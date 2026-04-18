@@ -1,0 +1,228 @@
+---
+/**
+ * WikiSidebar.astro
+ * Left sidebar navigation for wiki pages showing all categories
+ */
+
+interface Props {
+  currentCategory?: string;
+}
+
+const { currentCategory } = Astro.props;
+
+// Wiki categories with slugs and descriptions
+const categories = [
+  { 
+    slug: "getting-started", 
+    name: "Getting Started", 
+    description: "Begin your cyberdeck journey" 
+  },
+  { 
+    slug: "enclosures", 
+    name: "Enclosures", 
+    description: "Cases and housings" 
+  },
+  { 
+    slug: "compute", 
+    name: "Compute", 
+    description: "SBCs and processors" 
+  },
+  { 
+    slug: "displays", 
+    name: "Displays", 
+    description: "Screens and drivers" 
+  },
+  { 
+    slug: "input", 
+    name: "Input", 
+    description: "Keyboards and pointing" 
+  },
+  { 
+    slug: "power", 
+    name: "Power", 
+    description: "Batteries and charging" 
+  },
+  { 
+    slug: "networking", 
+    name: "Networking", 
+    description: "Connectivity options" 
+  },
+  { 
+    slug: "software", 
+    name: "Software", 
+    description: "OS and applications" 
+  },
+  { 
+    slug: "3d-printing-for-cyberdecks", 
+    name: "3D Printing", 
+    description: "Printing and design" 
+  },
+  { 
+    slug: "soldering-electronics", 
+    name: "Soldering & Electronics", 
+    description: "Skills and components" 
+  },
+];
+---
+
+<nav class="wiki-sidebar" aria-label="Wiki categories">
+  <div class="sidebar-header">
+    <a href="/wiki" class="wiki-home-link">
+      <svg class="wiki-icon" width="22" height="22" viewBox="0 0 20 20" fill="none">
+        <path d="M3 5L10 2L17 5V15L10 18L3 15V5Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M10 7V12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M7 9.5L10 7L13 9.5" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+      </svg>
+      <span>Wiki Home</span>
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <h3 class="sidebar-section-title">Categories</h3>
+    <ul class="category-list">
+      {categories.map((category) => (
+        <li class="category-item">
+          <a 
+            href={`/wiki/${category.slug}`}
+            class:list={["category-link", { active: currentCategory === category.slug }]}
+          >
+            <span class="category-name">{category.name}</span>
+            <span class="category-desc">{category.description}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</nav>
+
+<style>
+  .wiki-sidebar {
+    width: 280px;
+    background: var(--surface);
+    border: 4px solid var(--text);
+    border-radius: 0;
+    padding: 0;
+    height: fit-content;
+    position: sticky;
+    top: 2rem;
+    box-shadow: 6px 6px 0 var(--border);
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 4px solid var(--text);
+    background: var(--color-primary);
+  }
+
+  .wiki-home-link {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    text-decoration: none;
+    color: white;
+    font-weight: 800;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: opacity 0.15s ease;
+  }
+
+  .wiki-home-link:hover {
+    opacity: 0.85;
+  }
+
+  .wiki-icon {
+    flex-shrink: 0;
+  }
+
+  .sidebar-section {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .sidebar-section-title {
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid var(--border);
+  }
+
+  .category-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .category-item {
+    position: relative;
+  }
+
+  .category-link {
+    display: block;
+    padding: 0.625rem 0.875rem;
+    text-decoration: none;
+    border: 2px solid transparent;
+    transition: all 0.15s ease;
+    border-radius: 0;
+  }
+
+  .category-link:hover {
+    background: var(--color-secondary-100);
+    border-color: var(--text);
+    transform: translateX(3px);
+  }
+
+  :global(html.dark) .category-link:hover {
+    background: var(--color-secondary-800);
+  }
+
+  .category-link.active {
+    background: var(--color-secondary);
+    border-color: var(--text);
+    border-left: 6px solid var(--color-primary);
+    padding-left: calc(0.875rem - 4px);
+    box-shadow: 3px 3px 0 var(--text);
+  }
+
+  .category-link.active .category-desc {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .category-name {
+    display: block;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .category-link.active .category-name {
+    color: white;
+    font-weight: 800;
+  }
+
+  .category-desc {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.125rem;
+    line-height: 1.4;
+  }
+
+  /* Mobile hamburger toggle */
+  @media (max-width: 768px) {
+    .wiki-sidebar {
+      width: 100%;
+      position: relative;
+      top: 0;
+      box-shadow: 4px 4px 0 var(--border);
+    }
+  }
+</style>

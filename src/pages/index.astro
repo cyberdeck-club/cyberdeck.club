@@ -1,0 +1,829 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import SectionHeader from "@/components/SectionHeader.astro";
+import WikiArticleCard from "@/components/WikiArticleCard.astro";
+import ForumThreadPreview from "@/components/ForumThreadPreview.astro";
+import MeetupCard from "@/components/MeetupCard.astro";
+import BuildCard from "@/components/BuildCard.astro";
+import { getEmDashCollection } from "emdash";
+import { MarkdownRenderer } from '@/utils/MarkdownRenderer';
+
+// Query homepage config collection for editable marketing content
+const { entries: homepageConfigEntries, cacheHint: homepageCacheHint } = await getEmDashCollection("homepage_config");
+Astro.cache.set(homepageCacheHint);
+const hpConfig = homepageConfigEntries[0]?.data || {};
+
+// Hero section
+const homepageHeroTitle = hpConfig.hero_title || "Build the future.\nFor you.\nBy you.";
+const homepageHeroSubtitle = hpConfig.hero_subtitle || "💅 the girls, gays, and theys are coming together: designing and creating cyberdecks that represent who they are, regardless of skill level — from first-timers to seasoned modders.";
+const homepageGetStartedBtn = hpConfig.get_started_btn || "Get Started";
+const homepageJoinForumBtn = hpConfig.join_forum_btn || "Join the Forum";
+
+// What is a Cyberdeck section
+const homepageWhatIsCyberdeckTitle = hpConfig.what_is_cyberdeck_title || "What is a Cyberdeck?";
+const homepageWhatIsCyberdeck = hpConfig.what_is_cyberdeck_text || "A cyberdeck is a portable, custom-built computing rig that combines vintage aesthetics with modern technology. Think of it as a laptop you designed yourself — inside and out.";
+const homepagePortableLabel = hpConfig.portable_label || "Portable";
+const homepageCustomLabel = hpConfig.custom_label || "Custom";
+const homepageYoursLabel = hpConfig.yours_label || "Yours";
+
+// Section headers
+const homepageFeaturedWikiTitle = hpConfig.featured_wiki_title || "Featured Wiki Articles";
+const homepageActiveThreadsTitle = hpConfig.active_threads_title || "Active Forum Threads";
+const homepageUpcomingMeetupsTitle = hpConfig.upcoming_meetups_title || "Upcoming Meetups";
+const homepageRecentBuildsTitle = hpConfig.recent_builds_title || "Recent Builds";
+
+// CTA section
+const homepageCtaTitle = hpConfig.cta_title || "Ready to Start Building?";
+const homepageCtaText = hpConfig.cta_text || "Join our community of makers, hackers, and cyberdeck enthusiasts.";
+const homepageIntroduceBtn = hpConfig.introduce_btn || "Introduce Yourself";
+const homepageReadWikiBtn = hpConfig.read_wiki_btn || "Read the Wiki";
+
+// Query wiki articles
+const { entries: wikiEntries, cacheHint: wikiCacheHint } = await getEmDashCollection("wiki_articles");
+Astro.cache.set(wikiCacheHint);
+
+// Transform wiki articles for template (limit to 3, filter published)
+const wikiArticles = wikiEntries
+  .filter((e: any) => e.data.status === "published")
+  .slice(0, 3)
+  .map((entry: any) => ({
+    title: entry.data.title,
+    category: entry.data.category,
+    excerpt: entry.data.excerpt || "",
+    href: `/wiki/${entry.data.category?.toLowerCase().replace(/\s+/g, '-')}/${entry.data.slug}`
+  }));
+
+// Query forum threads
+const { entries: threadEntries, cacheHint: forumCacheHint } = await getEmDashCollection("forum_threads");
+Astro.cache.set(forumCacheHint);
+
+// Helper to format relative time
+function formatRelativeTime(dateStr: string | undefined): string {
+  if (!dateStr) return "recently";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  if (diffDays < 30) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString();
+}
+
+// Transform forum threads for template (limit to 4, exclude locked)
+const forumThreads = threadEntries
+  .filter((e: any) => e.data.is_locked !== true)
+  .slice(0, 4)
+  .map((entry: any) => ({
+    title: entry.data.title,
+    category: entry.data.category,
+    replyCount: entry.data.reply_count || 0,
+    lastActivity: formatRelativeTime(entry.data.updated_at || entry.data.created_at),
+    href: `/forum/thread/${entry.data.slug}`
+  }));
+
+// Query meetup events
+const { entries: meetupEntries, cacheHint: meetupCacheHint } = await getEmDashCollection("meetup_events");
+Astro.cache.set(meetupCacheHint);
+
+// Helper to format date
+function formatEventDate(dateStr: string | undefined): string {
+  if (!dateStr) return "Date TBD";
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+// Transform meetups for template (limit to 3, filter upcoming)
+const meetups = meetupEntries
+  .filter((e: any) => e.data.status === "upcoming")
+  .slice(0, 3)
+  .map((entry: any) => ({
+    title: entry.data.title,
+    date: formatEventDate(entry.data.date_start),
+    location: entry.data.location_name || "Location TBD",
+    region: entry.data.region || "",
+    status: (entry.data.status || "upcoming") as "upcoming",
+    attendeeCount: entry.data.rsvp_count || 0,
+    href: `/meetups/${entry.data.slug}`
+  }));
+
+// Query builds
+const { entries: buildEntries, cacheHint: buildCacheHint } = await getEmDashCollection("builds");
+Astro.cache.set(buildCacheHint);
+
+// Gradient presets for builds without images
+const buildGradients = [
+  "linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)",
+  "linear-gradient(135deg, var(--color-accent) 0%, var(--color-pop-lemon) 100%)",
+  "linear-gradient(135deg, var(--color-secondary) 0%, var(--color-pop-sky) 100%)",
+];
+
+// Transform builds for template (limit to 3)
+const builds = buildEntries
+  .slice(0, 3)
+  .map((entry: any, index: number) => ({
+    title: entry.data.title,
+    builderName: entry.data.builder || "Anonymous Builder",
+    imageGradient: buildGradients[index % buildGradients.length],
+    difficulty: (entry.data.difficulty || "beginner") as "beginner" | "intermediate" | "advanced",
+    href: `/builds/${entry.data.slug}`
+  }));
+
+// Community stats from collections
+const { entries: wikiEntriesForStats, cacheHint: wikiStatsCacheHint } = await getEmDashCollection("wiki_articles");
+Astro.cache.set(wikiStatsCacheHint);
+
+const { entries: buildEntriesForStats, cacheHint: buildStatsCacheHint } = await getEmDashCollection("builds");
+Astro.cache.set(buildStatsCacheHint);
+
+const communityStats = {
+  members: 1247, // Would need users collection to get real count
+  builds: buildEntriesForStats.length || 342,
+  wikiArticles: wikiEntriesForStats.length || 89
+};
+---
+
+<BaseLayout>
+  <!-- Hero Section -->
+  <section class="hero">
+    <!-- Decorative blobs for neobrutalist punch -->
+    <div class="hero-blob hero-blob-1"></div>
+    <div class="hero-blob hero-blob-2"></div>
+    <div class="hero-blob hero-blob-3"></div>
+    <div class="hero-blob hero-blob-4"></div>
+    
+    <div class="hero-content">
+      <div class="hero-sparkles">
+        <span class="sparkle">✦</span>
+        <span class="sparkle">✧</span>
+        <span class="sparkle">✦</span>
+        <span class="sparkle">✧</span>
+      </div>
+      <h1 class="hero-title"><MarkdownRenderer content={homepageHeroTitle}/></h1>
+      <p class="hero-subtitle">
+        {homepageHeroSubtitle}
+      </p>
+      <div class="hero-actions">
+        <a href="/wiki/category/getting-started" class="btn btn-primary">
+          {homepageGetStartedBtn}
+        </a>
+        <a href="/forum" class="btn btn-secondary">
+          {homepageJoinForumBtn}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- What is a Cyberdeck Section -->
+  <section class="what-is-section">
+    <div class="container">
+      <div class="what-is-content">
+        <h2 class="what-is-title">{homepageWhatIsCyberdeckTitle}</h2>
+        <p class="what-is-intro">
+          {homepageWhatIsCyberdeck}
+        </p>
+        <div class="what-is-features">
+          <div class="feature">
+            <span class="feature-icon">💻</span>
+            <span class="feature-text">{homepagePortableLabel}</span>
+          </div>
+          <div class="feature">
+            <span class="feature-icon">🔧</span>
+            <span class="feature-text">{homepageCustomLabel}</span>
+          </div>
+          <div class="feature">
+            <span class="feature-icon">✨</span>
+            <span class="feature-text">{homepageYoursLabel}</span>
+          </div>
+        </div>
+        <a href="/wiki/getting-started" class="what-is-link">
+          Start your journey →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Wiki Articles -->
+  <section class="section">
+    <div class="container">
+      <SectionHeader
+        title={homepageFeaturedWikiTitle}
+        linkText="View all wiki articles"
+        linkHref="/wiki"
+      />
+      <div class="card-grid card-grid-3">
+        {wikiArticles.map((article) => (
+          <WikiArticleCard 
+            title={article.title}
+            category={article.category}
+            excerpt={article.excerpt}
+            href={article.href}
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Active Forum Threads -->
+  <section class="section section-alt">
+    <div class="container">
+      <SectionHeader
+        title={homepageActiveThreadsTitle}
+        linkText="Visit the forum"
+        linkHref="/forum"
+      />
+      <div class="card-grid card-grid-2">
+        {forumThreads.map((thread) => (
+          <ForumThreadPreview 
+            title={thread.title}
+            category={thread.category}
+            replyCount={thread.replyCount}
+            lastActivity={thread.lastActivity}
+            href={thread.href}
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Upcoming Meetups -->
+  <section class="section">
+    <div class="container">
+      <SectionHeader
+        title={homepageUpcomingMeetupsTitle}
+        linkText="See all meetups"
+        linkHref="/meetups"
+      />
+      <div class="card-grid card-grid-3">
+        {meetups.map((meetup) => (
+          <MeetupCard
+            title={meetup.title}
+            date={meetup.date}
+            location={meetup.location}
+            region={meetup.region}
+            status={meetup.status}
+            attendeeCount={meetup.attendeeCount}
+            href={meetup.href}
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent Builds -->
+  <section class="section section-alt">
+    <div class="container">
+      <SectionHeader
+        title={homepageRecentBuildsTitle}
+        linkText="Browse all builds"
+        linkHref="/builds"
+      />
+      <div class="card-grid card-grid-3">
+        {builds.map((build) => (
+          <BuildCard
+            title={build.title}
+            builderName={build.builderName}
+            difficulty={build.difficulty}
+            href={build.href}
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Join the Community CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <h2 class="cta-title">{homepageCtaTitle}</h2>
+        <p class="cta-subtitle">
+          {homepageCtaText}
+        </p>
+        <div class="cta-actions">
+          <a href="/forum/introductions" class="btn btn-primary btn-lg">
+            {homepageIntroduceBtn}
+          </a>
+          <a href="/wiki/category/getting-started" class="btn btn-outline btn-lg">
+            {homepageReadWikiBtn}
+          </a>
+        </div>
+        <div class="cta-stats">
+          <div class="stat">
+            <span class="stat-number">{communityStats.members.toLocaleString()}</span>
+            <span class="stat-label">Members</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number">{communityStats.builds.toLocaleString()}</span>
+            <span class="stat-label">Builds</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number">{communityStats.wikiArticles.toLocaleString()}</span>
+            <span class="stat-label">Wiki Articles</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* ============================================
+     HERO SECTION - Neobrutalist Boldness
+     ============================================ */
+  .hero {
+    position: relative;
+    padding: 8rem 2rem 6rem;
+    text-align: center;
+    overflow: hidden;
+    background: var(--bg);
+    border-bottom: 4px solid var(--color-primary);
+  }
+
+  /* Decorative blobs like Ella Mae */
+  .hero-blob {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .hero-blob-1 {
+    width: 300px;
+    height: 300px;
+    background: var(--color-primary);
+    opacity: 0.15;
+    top: -100px;
+    right: -80px;
+    box-shadow: 8px 8px 0 var(--color-accent-900);
+  }
+
+  .hero-blob-2 {
+    width: 200px;
+    height: 200px;
+    background: var(--color-secondary);
+    opacity: 0.2;
+    bottom: 20%;
+    right: -60px;
+    box-shadow: 6px 6px 0 var(--color-primary);
+  }
+
+  .hero-blob-3 {
+    width: 250px;
+    height: 250px;
+    background: var(--color-accent);
+    opacity: 0.15;
+    top: 30%;
+    left: -80px;
+    box-shadow: 8px 8px 0 var(--color-secondary);
+  }
+
+  .hero-blob-4 {
+    width: 180px;
+    height: 180px;
+    background: var(--color-pop-mint);
+    opacity: 0.2;
+    bottom: -50px;
+    left: 10%;
+    box-shadow: 6px 6px 0 var(--color-accent);
+  }
+
+  .hero-content {
+    max-width: 900px;
+    margin: 2rem auto 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-sparkles {
+    position: absolute;
+    top: -3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4rem;
+    opacity: 0.7;
+    z-index: -1;
+  }
+
+  .sparkle {
+    font-size: 1.5rem;
+    color: var(--color-primary);
+    animation: sparkle 3s ease-in-out infinite;
+  }
+
+  .sparkle:nth-child(1) { animation-delay: 0s; }
+  .sparkle:nth-child(2) { animation-delay: 0.7s; }
+  .sparkle:nth-child(3) { animation-delay: 1.4s; }
+  .sparkle:nth-child(4) { animation-delay: 2.1s; }
+
+  @keyframes sparkle {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.4); }
+  }
+
+  .hero-title {
+    font-size: clamp(3rem, 10vw, 5rem);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--color-primary);
+    margin: 0 0 2rem;
+    text-transform: uppercase;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(1.125rem, 3vw, 1.5rem);
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin: 0 0 3rem;
+    max-width: 650px;
+    margin-left: auto;
+    margin-right: auto;
+    font-weight: 500;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+
+  /* ============================================
+     BUTTONS - Neobrutalist Boldness
+     ============================================ */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+    font-weight: 800;
+    text-decoration: none;
+    border-radius: 0;
+    border: 3px solid var(--color-text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-primary {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+    box-shadow: 6px 6px 0 var(--color-accent-900);
+  }
+
+  .btn-primary:hover {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0 var(--color-primary);
+  }
+
+  .btn-secondary {
+    background: var(--color-secondary);
+    color: white;
+    border-color: var(--color-secondary);
+    box-shadow: 6px 6px 0 var(--color-accent-900);
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0 var(--color-secondary);
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--color-text);
+    box-shadow: 6px 6px 0 var(--color-accent-900);
+  }
+
+  .btn-outline:hover {
+    background: var(--color-text);
+    border-color: var(--color-text);
+    color: var(--bg);
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0 var(--color-primary);
+  }
+
+  .btn-lg {
+    padding: 1.25rem 2.5rem;
+    font-size: 1.25rem;
+  }
+
+  /* ============================================
+     WHAT IS SECTION - Bold Dividers
+     ============================================ */
+  .what-is-section {
+    padding: 6rem 2rem;
+    background: var(--surface);
+    border-top: 4px solid var(--color-accent);
+    border-bottom: 4px solid var(--color-accent);
+  }
+
+  .what-is-content {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .what-is-title {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-secondary);
+    margin: 0 0 1.5rem;
+    border: 4px solid var(--color-secondary);
+    display: inline-block;
+    padding: 0.5rem 2rem;
+    box-shadow: 6px 6px 0 var(--color-primary);
+  }
+
+  .what-is-intro {
+    font-size: 1.25rem;
+    line-height: 1.8;
+    color: var(--text);
+    margin: 0 0 2.5rem;
+    font-weight: 500;
+  }
+
+  .what-is-features {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+  }
+
+  .feature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border: 3px solid var(--border);
+    background: var(--bg);
+    box-shadow: 5px 5px 0 var(--color-primary);
+    min-width: 120px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .feature:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 7px 7px 0 var(--color-primary);
+  }
+
+  .feature-icon {
+    font-size: 2.5rem;
+  }
+
+  .feature-text {
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text);
+  }
+
+  .what-is-link {
+    display: inline-block;
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1.5rem;
+    border: 3px solid var(--color-primary);
+    box-shadow: 4px 4px 0 var(--color-primary);
+    transition: all 0.15s ease;
+  }
+
+  .what-is-link:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--color-accent);
+  }
+
+  /* ============================================
+     SECTIONS - Bold Spacing
+     ============================================ */
+  .section {
+    padding: 6rem 2rem;
+    border-bottom: 4px solid var(--border);
+  }
+
+  .section-alt {
+    background: var(--surface);
+    border-top: 4px solid var(--color-secondary);
+    border-bottom: 4px solid var(--color-secondary);
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ============================================
+     CARD GRIDS
+     ============================================ */
+  .card-grid {
+    display: grid;
+    gap: 2rem;
+  }
+
+  .card-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .card-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* ============================================
+     CTA SECTION - Bold and Punchy
+     ============================================ */
+  .cta-section {
+    padding: 8rem 2rem;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    border-top: 4px solid var(--color-accent);
+    border-bottom: 4px solid var(--color-accent);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 20px,
+      rgba(0,0,0,0.05) 20px,
+      rgba(0,0,0,0.05) 40px
+    );
+  }
+
+  .cta-content {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cta-title {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 900;
+    color: white;
+    margin: 0 0 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    text-shadow: 3px 3px 0 var(--color-accent);
+  }
+
+  .cta-subtitle {
+    font-size: 1.375rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0 0 3rem;
+    font-weight: 500;
+  }
+
+  .cta-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 4rem;
+    flex-wrap: wrap;
+  }
+
+  .cta-section .btn-primary {
+    background: white;
+    color: var(--color-primary);
+    border-color: white;
+    box-shadow: 6px 6px 0 var(--color-accent-900);
+  }
+
+  .cta-section .btn-primary:hover {
+    background: var(--color-pop-lemon);
+    border-color: var(--color-pop-lemon);
+    color: var(--color-text);
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0 white;
+  }
+
+  .cta-section .btn-outline {
+    background: transparent;
+    color: white;
+    border-color: white;
+    box-shadow: 6px 6px 0 rgba(0,0,0,0.2);
+  }
+
+  .cta-section .btn-outline:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: white;
+    color: white;
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0 rgba(0,0,0,0.3);
+  }
+
+  .cta-stats {
+    display: flex;
+    justify-content: center;
+    gap: 4rem;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: rgba(255,255,255,0.1);
+    border: 3px solid rgba(255,255,255,0.3);
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+  }
+
+  .stat-number {
+    font-size: 3rem;
+    font-weight: 900;
+    color: white;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0.5rem;
+  }
+
+  /* ============================================
+     RESPONSIVE
+     ============================================ */
+  @media (max-width: 900px) {
+    .card-grid-3 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .hero-blob {
+      transform: scale(0.7);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .hero {
+      padding: 6rem 1rem 4rem;
+    }
+
+    .hero-sparkles {
+      gap: 2rem;
+    }
+
+    .card-grid-2,
+    .card-grid-3 {
+      grid-template-columns: 1fr;
+    }
+
+    .what-is-features {
+      gap: 1.5rem;
+    }
+
+    .what-is-title {
+      font-size: 1.5rem;
+      padding: 0.5rem 1rem;
+    }
+
+    .cta-stats {
+      gap: 1.5rem;
+    }
+
+    .stat {
+      padding: 1rem 1.5rem;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+    }
+
+    .hero-blob {
+      display: none;
+    }
+  }
+</style>

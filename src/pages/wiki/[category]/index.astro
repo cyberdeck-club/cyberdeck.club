@@ -1,0 +1,412 @@
+---
+/**
+ * Wiki Category Listing Page
+ * Shows all articles in a specific wiki category
+ * Dynamic route: /wiki/[category]
+ */
+
+import WikiLayout from "@/layouts/WikiLayout.astro";
+import WikiArticleCard from "@/components/WikiArticleCard.astro";
+
+// Server-rendered page
+export const prerender = false;
+
+// Get category from URL params
+const { category } = Astro.params;
+
+// Category data with descriptions and placeholder articles
+const categoryData: Record<string, { 
+  name: string; 
+  description: string;
+  articles: Array<{
+    slug: string;
+    title: string;
+    excerpt: string;
+    lastUpdated: string;
+    author: string;
+  }>;
+}> = {
+  "getting-started": {
+    name: "Getting Started",
+    description: "Begin your cyberdeck journey with these essential guides. Learn what a cyberdeck is, why you might want to build one, and get your first project started with confidence.",
+    articles: [
+      {
+        slug: "what-is-a-cyberdeck",
+        title: "What is a Cyberdeck?",
+        excerpt: "A cyberdeck is a portable, often handcrafted computer system that combines modern computing hardware with a retro-futuristic or unique aesthetic. Learn the history and philosophy behind these builds.",
+        lastUpdated: "2026-04-10",
+        author: "NeonBuilder"
+      },
+      {
+        slug: "why-build-a-cyberdeck",
+        title: "Why Build a Cyberdeck?",
+        excerpt: "From practical portability to creative expression, there are many reasons builders create cyberdecks. Discover what motivates the community and find your own inspiration.",
+        lastUpdated: "2026-04-08",
+        author: "CircuitWitch"
+      },
+      {
+        slug: "essential-tools",
+        title: "Essential Tools for Beginners",
+        excerpt: "Starting your first build? Here's a comprehensive list of tools you'll need, from basic hand tools to specialized equipment for electronics and 3D printing.",
+        lastUpdated: "2026-04-05",
+        author: "MakerMike"
+      },
+      {
+        slug: "planning-your-build",
+        title: "Planning Your First Build",
+        excerpt: "Before you start cutting or soldering, plan your cyberdeck build with our step-by-step guide. Define your goals, set a budget, and create a realistic timeline.",
+        lastUpdated: "2026-04-02",
+        author: "NeonBuilder"
+      },
+      {
+        slug: "safety-precautions",
+        title: "Safety Precautions",
+        excerpt: "Working with electronics, batteries, and power tools requires proper safety knowledge. Learn essential safety practices to protect yourself and your equipment.",
+        lastUpdated: "2026-03-28",
+        author: "SafeSolder"
+      },
+    ],
+  },
+  "enclosures": {
+    name: "Enclosures",
+    description: "Find the perfect housing for your cyberdeck. From rugged Pelican cases to custom 3D printed designs, explore enclosure options for every skill level and budget.",
+    articles: [
+      {
+        slug: "pelican-case-builds",
+        title: "Pelican Case Cyberdecks",
+        excerpt: "Pelican cases provide excellent protection and a blank canvas for creative builds. Learn how to modify these rugged cases for electronics.",
+        lastUpdated: "2026-04-12",
+        author: "HardCaseHero"
+      },
+      {
+        slug: "3d-printed-enclosures",
+        title: "3D Printed Enclosure Design",
+        excerpt: "Design and print your own custom enclosure. This guide covers CAD software options, print settings, and finishing techniques.",
+        lastUpdated: "2026-04-09",
+        author: "PrintMaster"
+      },
+      {
+        slug: "upcycled-enclosures",
+        title: "Upcycled and Found Materials",
+        excerpt: "Give old electronics, vintage equipment, or unexpected objects new life as cyberdeck enclosures. Creative reuse at its finest.",
+        lastUpdated: "2026-04-06",
+        author: "ReClaimer"
+      },
+    ],
+  },
+  "compute": {
+    name: "Compute",
+    description: "Choose the right computing module for your project. Compare single-board computers, understand x86 vs ARM tradeoffs, and optimize performance for your use case.",
+    articles: [
+      {
+        slug: "raspberry-pi-guide",
+        title: "Raspberry Pi Selection Guide",
+        excerpt: "From the Pi Zero to the Compute Module 4, understand which Raspberry Pi is right for your cyberdeck build.",
+        lastUpdated: "2026-04-11",
+        author: "PiMaster"
+      },
+      {
+        slug: "orange-pi-comparison",
+        title: "Orange Pi vs Raspberry Pi",
+        excerpt: "A detailed comparison of Orange Pi models versus Raspberry Pi alternatives, including performance benchmarks and use case recommendations.",
+        lastUpdated: "2026-04-07",
+        author: "ARMAdvocate"
+      },
+      {
+        slug: "intel-nuc-builds",
+        title: "Intel NUC Cyberdecks",
+        excerpt: "For desktop-class performance in a portable form factor, Intel NUC systems offer x86 compatibility and powerful integrated graphics.",
+        lastUpdated: "2026-04-04",
+        author: "X86Fan"
+      },
+    ],
+  },
+  "displays": {
+    name: "Displays",
+    description: "Screen technologies for cyberdecks including e-ink for low power, vibrant LCDs and OLEDs, and creative solutions like round displays.",
+    articles: [
+      {
+        slug: "e-ink-displays",
+        title: "E-Ink Display Integration",
+        excerpt: "E-ink screens offer incredible battery life and a unique aesthetic. Learn about controller boards and software setup for e-ink displays.",
+        lastUpdated: "2026-04-10",
+        author: "InkMaster"
+      },
+      {
+        slug: "lcd-vs-oled",
+        title: "LCD vs OLED for Cyberdecks",
+        excerpt: "Compare display technologies including brightness, contrast, power consumption, and durability for portable cyberdeck applications.",
+        lastUpdated: "2026-04-06",
+        author: "ScreenGuru"
+      },
+    ],
+  },
+  "input": {
+    name: "Input",
+    description: "Keyboards, trackballs, trackpads, and custom input solutions. Build a comfortable and functional input system for your cyberdeck.",
+    articles: [
+      {
+        slug: "mechanical-keyboards",
+        title: "Mechanical Keyboards for Cyberdecks",
+        excerpt: "Add tactile satisfaction to your build with mechanical keyboards. Learn about switch types, form factors, and integration tips.",
+        lastUpdated: "2026-04-09",
+        author: "ClickClack"
+      },
+      {
+        slug: "split-keyboard-builds",
+        title: "Split Keyboard Projects",
+        excerpt: "Ergonomic split keyboards are popular in the cyberdeck community. Explore DIY options and integration guides.",
+        lastUpdated: "2026-04-05",
+        author: "ErgoBuilder"
+      },
+    ],
+  },
+  "power": {
+    name: "Power",
+    description: "Battery selection, charging circuits, solar power, and UPS modules. Keep your cyberdeck running with reliable power solutions.",
+    articles: [
+      {
+        slug: "battery-selection",
+        title: "Battery Selection Guide",
+        excerpt: "Compare LiPo, 18650, and other battery technologies for cyberdeck applications. Learn about capacity, discharge rates, and safety.",
+        lastUpdated: "2026-04-11",
+        author: "PowerPack"
+      },
+      {
+        slug: "charging-circuits",
+        title: "Charging Circuit Fundamentals",
+        excerpt: "Understand charging ICs, protection circuits, and how to safely charge and balance battery packs.",
+        lastUpdated: "2026-04-08",
+        author: "CircuitDoctor"
+      },
+    ],
+  },
+  "networking": {
+    name: "Networking",
+    description: "WiFi, LoRa, mesh networking, cellular modems, and offline-first setups. Connect your cyberdeck to the world (or keep it isolated).",
+    articles: [
+      {
+        slug: "wifi-setup",
+        title: "WiFi Configuration for Cyberdecks",
+        excerpt: "Set up reliable WiFi connectivity including advanced configurations, network switching, and offline modes.",
+        lastUpdated: "2026-04-07",
+        author: "NetRunner"
+      },
+    ],
+  },
+  "software": {
+    name: "Software",
+    description: "Operating systems, window managers, and cyberdeck-specific applications. Software choices that define your cyberdeck experience.",
+    articles: [
+      {
+        slug: "os-choices",
+        title: "Operating System Options",
+        excerpt: "Debian, Armbian, Arch, and more. Compare Linux distributions and find the best OS for your hardware and use case.",
+        lastUpdated: "2026-04-10",
+        author: "SysAdmin_Sarah"
+      },
+      {
+        slug: "window-managers",
+        title: "Window Managers for Cyberdecks",
+        excerpt: "From i3 to Sway to exotic tiling window managers, explore the options for efficient screen real estate usage.",
+        lastUpdated: "2026-04-06",
+        author: "TilingFan"
+      },
+    ],
+  },
+  "3d-printing-for-cyberdecks": {
+    name: "3D Printing for Cyberdecks",
+    description: "Design enclosures, hinges, mounts, and custom parts. Master 3D printing for cyberdeck projects.",
+    articles: [
+      {
+        slug: "filament-selection",
+        title: "Filament Selection Guide",
+        excerpt: "PLA, PETG, ABS, ASA, and specialty filaments. Choose the right material for durability, aesthetics, and printability.",
+        lastUpdated: "2026-04-08",
+        author: "FilamentFan"
+      },
+      {
+        slug: "hinge-designs",
+        title: "Hinge Design for Cyberdecks",
+        excerpt: "Integrate hinges into your 3D printed designs for foldable and adjustable cyberdeck configurations.",
+        lastUpdated: "2026-04-04",
+        author: "PrintMaster"
+      },
+    ],
+  },
+  "soldering-electronics": {
+    name: "Soldering & Electronics",
+    description: "Basic skills, connector types, wiring techniques, and PCB design fundamentals for cyberdeck builders.",
+    articles: [
+      {
+        slug: "soldering-basics",
+        title: "Soldering 101",
+        excerpt: "Learn or refresh essential soldering skills. From through-hole to surface mount, master the basics of making solid electrical connections.",
+        lastUpdated: "2026-04-09",
+        author: "SolderKing"
+      },
+      {
+        slug: "connector-guide",
+        title: "Common Connectors Reference",
+        excerpt: "USB-C, JST, Dupont, Molex, and more. Understand when to use which connector and how to properly wire them.",
+        lastUpdated: "2026-04-05",
+        author: "ConnectorPro"
+      },
+    ],
+  },
+};
+
+// Get the category info or redirect/404
+const currentCategory = categoryData[category ?? ""];
+
+// Server-rendered with dynamic content
+---
+
+{currentCategory ? (
+  <WikiLayout 
+    title={`${currentCategory.name} Wiki`}
+    description={currentCategory.description}
+    currentCategory={category}
+    breadcrumb={[{ label: currentCategory.name, href: `/wiki/${category}` }]}
+  >
+    <div class="category-header">
+      <h1 class="category-title">{currentCategory.name}</h1>
+      <p class="category-description">{currentCategory.description}</p>
+    </div>
+
+    <div class="articles-section">
+      <div class="articles-grid">
+        {currentCategory.articles.map((article) => (
+          <WikiArticleCard
+            title={article.title}
+            category={currentCategory.name}
+            excerpt={article.excerpt}
+            href={`/wiki/${category}/${article.slug}`}
+          />
+        ))}
+      </div>
+    </div>
+
+    {category !== "getting-started" && (
+      <div class="new-to-wiki-prompt">
+        <p>
+          <svg class="prompt-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M10 14V10M10 6H10.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          New to the wiki? <a href="/wiki/getting-started">Start with Getting Started</a>
+        </p>
+      </div>
+    )}
+  </WikiLayout>
+) : (
+  <WikiLayout title="Category Not Found" currentCategory={category}>
+    <div class="not-found">
+      <h1>Category Not Found</h1>
+      <p>Sorry, we couldn't find the wiki category you're looking for.</p>
+      <a href="/wiki" class="back-link">← Back to Wiki Home</a>
+    </div>
+  </WikiLayout>
+)}
+
+<style>
+  .category-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 3px solid var(--border);
+  }
+
+  .category-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin: 0 0 0.75rem 0;
+  }
+
+  .category-description {
+    font-size: 1rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0;
+    max-width: 65ch;
+  }
+
+  .articles-section {
+    margin-bottom: 2rem;
+  }
+
+  .articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .new-to-wiki-prompt {
+    background: var(--color-pop-mint);
+    border: 2px solid var(--color-pop-mint);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-top: 2rem;
+  }
+
+  .new-to-wiki-prompt p {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--text);
+  }
+
+  .prompt-icon {
+    flex-shrink: 0;
+    color: var(--color-secondary);
+  }
+
+  .new-to-wiki-prompt a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .new-to-wiki-prompt a:hover {
+    text-decoration: underline;
+  }
+
+  .not-found {
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+
+  .not-found h1 {
+    font-size: 1.75rem;
+    color: var(--color-primary);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .not-found p {
+    color: var(--text-muted);
+    margin: 0 0 1.5rem 0;
+  }
+
+  .back-link {
+    display: inline-block;
+    padding: 0.75rem 1.25rem;
+    background: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+  }
+
+  .back-link:hover {
+    background: var(--color-primary-hover);
+  }
+
+  @media (max-width: 640px) {
+    .articles-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,812 @@
+---
+/**
+ * Forum Thread View Page
+ * Shows a single thread with its replies
+ */
+
+import ForumLayout from "@/layouts/ForumLayout.astro";
+import { MarkdownRenderer } from "@/utils/MarkdownRenderer";
+
+// Server-rendered (no static paths)
+export const prerender = false;
+
+// Get thread ID from URL params
+const { id } = Astro.params;
+
+// Validate thread ID
+if (!id) {
+  return Astro.redirect("/forum");
+}
+
+// Placeholder thread data
+const thread = {
+  id,
+  title: "Hey from Portland! Building my first deck",
+  category: "introductions",
+  categorySlug: "introductions",
+  categoryName: "Introductions",
+  authorId: "user_123",
+  authorName: "NeonBuilder",
+  createdAt: "2026-04-15T10:30:00Z",
+  updatedAt: "2026-04-16T14:20:00Z",
+  replyCount: 12,
+  viewCount: 234,
+  status: "open" as const,
+  pinned: false,
+  locked: false,
+  body: "Hey everyone! I'm a software developer from Portland, Oregon who's been lurking here for a while. Finally decided to build my first cyberdeck! I'm planning a build based on a Raspberry Pi 5 with a 7-inch touchscreen and a custom 3D printed case. Super excited to learn from all of you and eventually share my build progress. Has anyone used the official 7-inch Raspberry Pi display? I'm wondering about power consumption when running both the Pi and the screen off a battery pack.",
+};
+
+// Placeholder replies data
+const replies = [
+  {
+    id: "reply_1",
+    authorName: "CyberMaster",
+    authorId: "user_456",
+    createdAt: "2026-04-15T11:45:00Z",
+    body: "Welcome to the community! The official 7-inch display is pretty solid for a first build. Power consumption is around 5W for the screen alone. I'd recommend a battery pack with at least 20W output if you want decent run time. Check out our wiki for battery recommendations!",
+  },
+  {
+    id: "reply_2",
+    authorName: "PixelPunk",
+    authorId: "user_789",
+    createdAt: "2026-04-15T12:30:00Z",
+    body: "Portland represent! 🚀 I'm in Seattle, so we should definitely connect. There's actually a Pacific Northwest cyberdeck meetup group - I'll DM you the Discord link. Great choice on the Pi 5, but make sure you get adequate cooling! Those ARM chips run hot.",
+  },
+  {
+    id: "reply_3",
+    authorName: "NeonBuilder",
+    authorId: "user_123",
+    createdAt: "2026-04-15T14:00:00Z",
+    body: "Thanks for the tips! @PixelPunk I'd love that Discord link. And good call on cooling - I was planning to use the official Pi 5 cooler but open to suggestions. Maybe a small Noctua fan would be quieter?",
+  },
+  {
+    id: "reply_4",
+    authorName: "CircuitWizard",
+    authorId: "user_101",
+    createdAt: "2026-04-16T09:15:00Z",
+    body: "For a first build, I highly recommend using a USB-C power bank with PD (Power Delivery) support. That way you can use the same charger for your Pi and other devices. I'm getting about 6-8 hours of runtime with a 20,000mAh pack.",
+  },
+];
+
+// Get current user from session (populated by middleware)
+const currentUser = Astro.locals.user;
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+---
+
+<ForumLayout 
+  title={thread.title}
+  description={`Forum thread: ${thread.title}`}
+  currentCategory={thread.categorySlug}
+  breadcrumb={[
+    { label: thread.categoryName, href: `/forum/${thread.categorySlug}` },
+    { label: thread.title, href: `/forum/thread/${thread.id}` }
+  ]}
+>
+  <article class="thread-view">
+    <!-- Thread Header -->
+    <header class="thread-header">
+      <div class="thread-badges">
+        <a href={`/forum/${thread.categorySlug}`} class="category-badge">
+          {thread.categoryName}
+        </a>
+        {thread.pinned && <span class="badge pin">📌 Pinned</span>}
+        {thread.locked && <span class="badge lock">🔒 Locked</span>}
+      </div>
+      
+      <h1 class="thread-title">{thread.title}</h1>
+      
+      <div class="thread-meta">
+        <span class="meta-item">
+          <svg class="meta-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M2 14C2 11.2386 4.23858 9 7 9H9C11.7614 9 14 11.2386 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span>Started by <strong>{thread.authorName}</strong></span>
+        </span>
+        <span class="meta-separator">•</span>
+        <span class="meta-item">{formatDate(thread.createdAt)}</span>
+        <span class="meta-separator">•</span>
+        <span class="meta-item">{thread.replyCount} replies</span>
+        <span class="meta-separator">•</span>
+        <span class="meta-item">{thread.viewCount} views</span>
+      </div>
+    </header>
+
+    <div class="thread-layout">
+      <!-- Main Content -->
+      <div class="thread-main">
+        <!-- Original Post -->
+        <div class="post original-post">
+          <div class="post-sidebar">
+            <div class="user-avatar">
+              {thread.authorName.charAt(0).toUpperCase()}
+            </div>
+            <div class="user-name">{thread.authorName}</div>
+            <div class="user-badge">Member</div>
+          </div>
+          <div class="post-content">
+            <div class="post-header">
+              <span class="post-time">{formatRelativeTime(thread.createdAt)}</span>
+            </div>
+            <div class="post-body">
+              <MarkdownRenderer content={thread.body}/>
+            </div>
+            <div class="post-actions">
+              <button class="action-btn">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M12 5L5 12L2 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Like
+              </button>
+              <button class="action-btn">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 2V12M2 7H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Quote
+              </button>
+              <button class="action-btn">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M2 4H12M2 7H12M2 10H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Reply
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Replies -->
+        <section class="replies-section">
+          <h2 class="replies-title">
+            Replies ({replies.length})
+          </h2>
+          
+          {replies.map((reply) => (
+            <div class="post reply">
+              <div class="post-sidebar">
+                <div class="user-avatar secondary">
+                  {reply.authorName.charAt(0).toUpperCase()}
+                </div>
+                <div class="user-name">{reply.authorName}</div>
+                <div class="user-badge">Member</div>
+              </div>
+              <div class="post-content">
+                <div class="post-header">
+                  <span class="post-time">{formatRelativeTime(reply.createdAt)}</span>
+                </div>
+                <div class="post-body">
+                  <MarkdownRenderer content={reply.body}/>
+                </div>
+                <div class="post-actions">
+                  <button class="action-btn">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M12 5L5 12L2 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Like
+                  </button>
+                  <button class="action-btn">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M7 2V12M2 7H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Quote
+                  </button>
+                  <button class="action-btn">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M2 4H12M2 7H12M2 10H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Reply
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <!-- Reply Form (Placeholder) -->
+        {currentUser && !thread.locked && thread.status === "open" ? (
+          <div class="reply-form">
+            <h3 class="reply-form-title">Post a Reply</h3>
+            <textarea 
+              class="reply-textarea" 
+              placeholder="Share your thoughts..."
+              rows="4"
+            ></textarea>
+            <div class="reply-form-actions">
+              <button class="submit-btn">Post Reply ✨</button>
+            </div>
+          </div>
+        ) : (
+          <div class="reply-form-disabled">
+            <p>
+              {thread.locked 
+                ? "🔒 This thread is locked and cannot receive new replies."
+                : thread.status !== "open"
+                ? "This thread is not accepting replies."
+                : "💬 Log in to post a reply."}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="thread-sidebar">
+        <div class="sidebar-card">
+          <h3 class="sidebar-title">Thread Info</h3>
+          <dl class="thread-info-list">
+            <div class="info-item">
+              <dt>Category</dt>
+              <dd>
+                <a href={`/forum/${thread.categorySlug}`} class="info-link">
+                  {thread.categoryName}
+                </a>
+              </dd>
+            </div>
+            <div class="info-item">
+              <dt>Started</dt>
+              <dd>{formatDate(thread.createdAt)}</dd>
+            </div>
+            <div class="info-item">
+              <dt>Last Reply</dt>
+              <dd>{formatDate(thread.updatedAt)}</dd>
+            </div>
+            <div class="info-item">
+              <dt>Replies</dt>
+              <dd>{thread.replyCount}</dd>
+            </div>
+            <div class="info-item">
+              <dt>Views</dt>
+              <dd>{thread.viewCount}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="sidebar-card">
+          <h3 class="sidebar-title">Author</h3>
+          <div class="author-info">
+            <div class="author-avatar">
+              {thread.authorName.charAt(0).toUpperCase()}
+            </div>
+            <div class="author-details">
+              <span class="author-name">{thread.authorName}</span>
+              <span class="author-role">Member</span>
+            </div>
+          </div>
+          <button class="subscribe-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2V8L10 11M2 11H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Subscribe
+          </button>
+        </div>
+
+        <div class="sidebar-card">
+          <h3 class="sidebar-title">Actions</h3>
+          <div class="action-list">
+            <button class="action-list-btn">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M12 5L5 12L3 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Share Thread
+            </button>
+            <button class="action-list-btn">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M4 8H12M4 4H12M4 12H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              Report Thread
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </article>
+</ForumLayout>
+
+<style>
+  .thread-view {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Thread Header */
+  .thread-header {
+    padding-bottom: 1.5rem;
+    border-bottom: 3px solid var(--border);
+  }
+
+  .thread-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .category-badge {
+    padding: 0.25rem 0.75rem;
+    background: var(--color-secondary);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 20px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .category-badge:hover {
+    background: var(--color-primary);
+  }
+
+  .badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    border-radius: 4px;
+  }
+
+  .badge.pin {
+    background: var(--color-pop-mint);
+  }
+
+  .badge.lock {
+    background: var(--color-accent);
+  }
+
+  .thread-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 0 1rem;
+    line-height: 1.3;
+  }
+
+  .thread-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .meta-icon {
+    opacity: 0.7;
+  }
+
+  .meta-separator {
+    opacity: 0.5;
+  }
+
+  /* Thread Layout */
+  .thread-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .thread-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Posts */
+  .post {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .post.original-post {
+    border-color: var(--color-primary);
+    border-width: 3px;
+  }
+
+  .post-sidebar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    width: 70px;
+    flex-shrink: 0;
+  }
+
+  .user-avatar {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary);
+    color: white;
+    font-weight: 800;
+    font-size: 1.25rem;
+    border-radius: 50%;
+    border: 3px solid var(--border);
+  }
+
+  .user-avatar.secondary {
+    background: var(--color-secondary);
+  }
+
+  .user-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text);
+  }
+
+  .user-badge {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.4rem;
+    background: var(--color-pop-mint);
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .post-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .post-header {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .post-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .post-body {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  .post-body p {
+    margin: 0;
+  }
+
+  .post-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border);
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    background: transparent;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .action-btn:hover {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+  }
+
+  /* Replies Section */
+  .replies-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .replies-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  /* Reply Form */
+  .reply-form {
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 3px solid var(--color-secondary);
+    border-radius: 12px;
+  }
+
+  .reply-form-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 1rem;
+  }
+
+  .reply-textarea {
+    width: 100%;
+    padding: 1rem;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 120px;
+  }
+
+  .reply-textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .reply-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+
+  .submit-btn {
+    padding: 0.75rem 1.5rem;
+    background: var(--color-primary);
+    border: 3px solid var(--border);
+    border-radius: 8px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 3px 3px 0 var(--border);
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 5px 5px 0 var(--border);
+  }
+
+  .reply-form-disabled {
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    text-align: center;
+  }
+
+  .reply-form-disabled p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  /* Thread Sidebar */
+  .thread-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: sticky;
+    top: 2rem;
+  }
+
+  .sidebar-card {
+    padding: 1rem;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .sidebar-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-secondary);
+    margin: 0 0 0.75rem;
+  }
+
+  .thread-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+  }
+
+  .info-item dt {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .info-item dd {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .info-link {
+    color: var(--color-secondary);
+    text-decoration: none;
+  }
+
+  .info-link:hover {
+    text-decoration: underline;
+  }
+
+  .author-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .author-avatar {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary);
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+  }
+
+  .author-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .author-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .author-role {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  .subscribe-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background: var(--color-secondary);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .subscribe-btn:hover {
+    background: var(--color-primary);
+  }
+
+  .action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .action-list-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    text-align: left;
+  }
+
+  .action-list-btn:hover {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--color-primary);
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .thread-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .thread-sidebar {
+      position: static;
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    .sidebar-card {
+      flex: 1;
+      min-width: 200px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .thread-title {
+      font-size: 1.35rem;
+    }
+
+    .post {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .post-sidebar {
+      flex-direction: row;
+      width: auto;
+      justify-content: flex-start;
+    }
+
+    .user-badge {
+      display: none;
+    }
+
+    .thread-meta {
+      font-size: 0.75rem;
+    }
+  }
+</style>
