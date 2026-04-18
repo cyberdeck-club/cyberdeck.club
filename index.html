@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cyberdeck.club - Coming Soon</title>
+  
+  <!-- Google Fonts - Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23ff2d78' x='10' y='10' width='80' height='80' rx='15'/><rect fill='%23a855f7' x='25' y='25' width='50' height='50' rx='10'/><rect fill='%23000' x='35' y='35' width='30' height='30' rx='5'/></svg>">
+  
+  <style>
+    /* ===== CSS VARIABLES ===== */
+    :root {
+      /* Light Mode Colors */
+      --color-bg: oklch(98% 0.01 80);
+      --color-surface: oklch(95% 0.01 80);
+      --color-border: oklch(70% 0.12 340);
+      --color-text: oklch(25% 0.02 50);
+      --color-text-muted: oklch(45% 0.01 50);
+      --color-primary: oklch(65% 0.25 340);
+      --color-primary-hover: oklch(70% 0.22 340);
+      --color-secondary: oklch(70% 0.18 290);
+      
+      /* Shadows (pixel-based, no blur) */
+      --shadow-sm: 0px 3px;
+      --shadow: 0px 5px;
+      --shadow-lg: 0px 10px;
+      
+      /* Transitions */
+      --transition-theme: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+    }
+    
+    .dark {
+      /* Dark Mode Colors */
+      --color-bg: oklch(18% 0.02 320);
+      --color-surface: oklch(22% 0.02 320);
+      --color-border: oklch(35% 0.08 320);
+      --color-text: oklch(92% 0.01 80);
+      --color-text-muted: oklch(65% 0.01 290);
+    }
+    
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      scroll-behavior: smooth;
+    }
+    
+    body {
+      min-height: 100vh;
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      transition: var(--transition-theme);
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+    
+    /* ===== BACKGROUND DECORATIONS ===== */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(var(--color-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+      background-size: 50px 50px;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .dark .bg-grid {
+      opacity: 0.15;
+    }
+    
+    .bg-glow {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      filter: blur(150px);
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .bg-glow-1 {
+      top: -200px;
+      right: -200px;
+      background: var(--color-primary);
+    }
+    
+    .bg-glow-2 {
+      bottom: -200px;
+      left: -200px;
+      background: var(--color-secondary);
+    }
+    
+    /* ===== HEADER ===== */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--color-text);
+    }
+    
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+    }
+    
+    .logo-text {
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    
+    .logo-text span {
+      color: var(--color-primary);
+    }
+    
+    /* ===== THEME TOGGLE ===== */
+    .theme-toggle {
+      position: relative;
+      z-index: 10;
+      background-color: var(--color-surface);
+      border: 2px solid var(--color-border);
+      color: var(--color-text);
+      padding: 0.75rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 200ms ease;
+    }
+    
+    .theme-toggle:hover {
+      background-color: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+      transform: scale(1.05);
+    }
+    
+    .theme-toggle:focus-visible {
+      outline: 3px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+    
+    .theme-toggle svg {
+      display: block;
+      width: 24px;
+      height: 24px;
+    }
+    
+    #sun-icon { display: none; }
+    #moon-icon { display: block; }
+    
+    .dark #sun-icon { display: block; }
+    .dark #moon-icon { display: none; }
+    
+    /* ===== MAIN CONTENT ===== */
+    main {
+      position: relative;
+      z-index: 10;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      text-align: center;
+    }
+    
+    /* ===== HERO SECTION ===== */
+    .hero {
+      max-width: 700px;
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      padding: 0.5rem 1rem;
+      border-radius: 100px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--color-primary);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.2); }
+    }
+    
+    h1 {
+      font-size: clamp(2.5rem, 8vw, 5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
+    }
+    
+    h1 .gradient-text {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      font-size: 1.125rem;
+      color: var(--color-text-muted);
+      line-height: 1.6;
+      max-width: 500px;
+      margin: 0 auto 2.5rem;
+    }
+    
+    /* ===== TERMINAL CARD ===== */
+    .terminal {
+      background-color: var(--color-surface);
+      border: 2px solid var(--color-border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      text-align: left;
+    }
+    
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .terminal-dot:nth-child(1) { background: #ff5f56; }
+    .terminal-dot:nth-child(2) { background: #ffbd2e; }
+    .terminal-dot:nth-child(3) { background: #27ca40; }
+    
+    .terminal-title {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      font-weight: 500;
+      margin-left: auto;
+    }
+    
+    .terminal-body {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.875rem;
+      line-height: 1.8;
+      color: var(--color-text);
+    }
+    
+    .terminal-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+    
+    .terminal-prompt {
+      color: var(--color-primary);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    
+    .terminal-text {
+      color: var(--color-text-muted);
+    }
+    
+    .terminal-text .highlight {
+      color: var(--color-secondary);
+      font-weight: 500;
+    }
+    
+    .terminal-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 16px;
+      background-color: var(--color-primary);
+      margin-left: 0.5rem;
+      animation: blink 1s step-end infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    
+    /* ===== DECORATIVE ELEMENTS ===== */
+    .floating-elements {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+    
+    .floating-shape {
+      position: absolute;
+      border: 2px solid var(--color-border);
+      opacity: 0.5;
+    }
+    
+    .shape-1 {
+      top: 15%;
+      left: 10%;
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      transform: rotate(15deg);
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    .shape-2 {
+      top: 25%;
+      right: 15%;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      animation: float 8s ease-in-out infinite reverse;
+    }
+    
+    .shape-3 {
+      bottom: 20%;
+      left: 15%;
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
+      transform: rotate(-20deg);
+      animation: float 7s ease-in-out infinite;
+    }
+    
+    .shape-4 {
+      bottom: 30%;
+      right: 10%;
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      animation: float 5s ease-in-out infinite reverse;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(5deg); }
+    }
+    
+    .dark .shape-1 { border-color: var(--color-primary); opacity: 0.3; }
+    .dark .shape-2 { border-color: var(--color-secondary); opacity: 0.3; }
+    .dark .shape-3 { border-color: var(--color-primary); opacity: 0.2; }
+    .dark .shape-4 { border-color: var(--color-secondary); opacity: 0.3; }
+    
+    /* ===== FOOTER ===== */
+    footer {
+      position: relative;
+      z-index: 10;
+      padding: 2rem;
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      border-top: 1px solid var(--color-border);
+    }
+    
+    footer span {
+      color: var(--color-primary);
+    }
+    
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 640px) {
+      header {
+        padding: 1rem;
+      }
+      
+      .logo-text {
+        font-size: 1rem;
+      }
+      
+      main {
+        padding: 1.5rem;
+      }
+      
+      .terminal {
+        padding: 1rem;
+      }
+      
+      .terminal-body {
+        font-size: 0.75rem;
+      }
+      
+      .floating-elements {
+        display: none;
+      }
+    }
+  </style>
+  
+  <!-- Inline theme initialization to prevent flash -->
+  <script>
+    (function() {
+      const stored = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const html = document.documentElement;
+      
+      if (stored === 'dark' || (!stored && prefersDark)) {
+        html.classList.add('dark');
+      } else {
+        html.classList.add('light');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <!-- Background decorations -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-1" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-2" aria-hidden="true"></div>
+  
+  <!-- Floating decorative shapes -->
+  <div class="floating-elements" aria-hidden="true">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+    <div class="floating-shape shape-4"></div>
+  </div>
+  
+  <!-- Header with logo and theme toggle -->
+  <header>
+    <a href="#" class="logo">
+      <svg class="logo-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="10" width="80" height="80" rx="15" fill="var(--color-primary)"/>
+        <rect x="25" y="25" width="50" height="50" rx="10" fill="var(--color-secondary)"/>
+        <rect x="35" y="35" width="30" height="30" rx="5" fill="var(--color-text)"/>
+      </svg>
+      <span class="logo-text">cyberdeck<span>.club</span></span>
+    </a>
+    
+    <button class="theme-toggle" type="button" aria-label="Toggle dark mode" id="theme-toggle">
+      <svg id="sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+      </svg>
+      <svg id="moon-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+      </svg>
+    </button>
+  </header>
+  
+  <!-- Main content -->
+  <main>
+    <div class="hero">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        <span>Under Construction</span>
+      </div>
+      
+      <h1>
+        <span class="gradient-text">Coming Soon</span>
+      </h1>
+      
+      <p class="subtitle">
+        A community space for<br/>
+        girls, gays, and theys<br/>
+        to build the perfect deck
+      </p>
+      
+      <!-- Terminal-style card -->
+      <div class="terminal">
+        <div class="terminal-header">
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-title">cyberdeck.club</span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-text">init <span class="highlight">cyberdeck.club</span></span>
+          </div>
+          <div class="terminal-line">
+            <span class="terminal-prompt">></span>
+            <span class="terminal-text">Building community...</span>
+          </div>
+          <div class="terminal-line">
+            <span class="terminal-prompt">></span>
+            <span class="terminal-text">Status: <span class="highlight">In Progress</span><span class="terminal-cursor"></span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2024 <span>cyberdeck.club</span> &bull; Built with ♥ and some very hot pink</p>
+  </footer>
+  
+  <!-- Theme toggle script -->
+  <script>
+    (function() {
+      const toggle = document.getElementById('theme-toggle');
+      const html = document.documentElement;
+      
+      toggle.addEventListener('click', function() {
+        const isDark = html.classList.contains('dark');
+        
+        if (isDark) {
+          html.classList.remove('dark');
+          html.classList.add('light');
+          localStorage.setItem('theme', 'light');
+        } else {
+          html.classList.remove('light');
+          html.classList.add('dark');
+          localStorage.setItem('theme', 'dark');
+        }
+      });
+      
+      // Listen for system theme changes
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        if (!localStorage.getItem('theme')) {
+          if (e.matches) {
+            html.classList.remove('light');
+            html.classList.add('dark');
+          } else {
+            html.classList.remove('dark');
+            html.classList.add('light');
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
