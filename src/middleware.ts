@@ -1,44 +1,36 @@
 // @ts-nocheck
 /**
- * Site-wide middleware to check authentication session
- * and populate Astro.locals.user for all routes.
+ * Site-wide middleware.
+ *
+ * EmDash's built-in auth middleware already resolves the session cookie
+ * and populates `Astro.locals.user` on every request.  A previous version
+ * of this file made a loopback fetch to `/_emdash/api/auth/me`, which
+ * triggered the middleware recursively on every request — creating an
+ * infinite loop that broke the admin panel (and any authenticated route).
+ *
+ * This file is kept as a pass-through so Astro doesn't fall back to its
+ * default middleware.  Add any custom per-request logic here; just avoid
+ * making HTTP calls back to the same server.
  */
 
 import { defineMiddleware } from "astro:middleware";
 
-export const onRequest = defineMiddleware(async ({ locals, request }, next) => {
-  // Initialize user as undefined (not logged in)
-  locals.user = undefined;
+export const onRequest = defineMiddleware(async (ctx, next) => {
+  const response = await next();
 
-  // Check for session cookie
-  const cookies = request.headers.get("cookie");
-  if (!cookies) {
-    return next();
-  }
-
-  // Parse session cookie - EmDash uses a session cookie
-  const sessionMatch = cookies.match(/session=([^;]+)/);
-  if (!sessionMatch) {
-    return next();
-  }
-
-  // Fetch user from session via EmDash API
-  try {
-    const response = await fetch(new URL("/_emdash/api/auth/me", request.url), {
-      headers: {
-        Cookie: `session=${sessionMatch[1]}`,
-      },
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data?.user) {
-        locals.user = data.user;
-      }
+  // EmDash's magic link verify endpoint defaults to redirecting to
+  // /_emdash/admin after login. For the public site, we want users
+  // to land on the homepage instead (admins can still navigate to admin).
+  if (
+    ctx.url.pathname === "/_emdash/api/auth/magic-link/verify" &&
+    response.status >= 300 &&
+    response.status < 400
+  ) {
+    const location = response.headers.get("location");
+    if (location === "/_emdash/admin" || location === "/_emdash/admin/") {
+      return ctx.redirect("/");
     }
-  } catch (error) {
-    console.error("Failed to fetch user session:", error);
   }
 
-  return next();
+  return response;
 });

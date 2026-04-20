@@ -71,6 +71,34 @@ Content is accessed via the `_emdash` collection with loader queries in pages.
 | `npx emdash seed seed/seed.json --no-content` | Seed schema only (no demo content) |
 | `npx emdash types` | Generate TypeScript types (`emdash-env.d.ts`) |
 
+### Post-Seed Setup (required after fresh seed or DB reset)
+
+After seeding, run [`seed/setup.mjs`](seed/setup.mjs) to configure the running EmDash instance.
+The script reads `RESEND_API_KEY` / `RESEND_FROM_ADDRESS` from `.env` automatically.
+
+```bash
+# Requires an admin API token — create at /_emdash/admin → Settings → API Tokens
+# (needs: settings:manage scope)
+
+# Local dev
+EMDASH_TOKEN=em_xxx node seed/setup.mjs
+
+# Remote/production
+EMDASH_TOKEN=em_xxx node seed/setup.mjs --url https://cyberdeck.club
+
+# Different .env file path
+EMDASH_TOKEN=em_xxx node seed/setup.mjs --env .env.production
+
+# Cloudflare Access protected
+CF_ACCESS_CLIENT_ID=xxx.access CF_ACCESS_CLIENT_SECRET=yyy \
+  EMDASH_TOKEN=em_xxx node seed/setup.mjs --url https://cyberdeck.club
+```
+
+This script:
+1. Reads `RESEND_API_KEY` + `RESEND_FROM_ADDRESS` from `.env` and POSTs them to the plugin's KV store
+2. Selects `emdash-resend` as the active `email:deliver` provider
+3. Adds 20 common email domains to `allowed_domains` (SUBSCRIBER role = 10) so anyone can self-register
+
 ### Admin UI
 
 Access the EmDash admin at `/_emdash/admin` for content management.

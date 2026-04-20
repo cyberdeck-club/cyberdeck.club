@@ -12,10 +12,12 @@
  *   plugins: [forumPlugin(), wikiPlugin(), resendPlugin()],
  * })
  * ```
+ *
+ * After seeding, run seed/setup.mjs to store RESEND_API_KEY / RESEND_FROM_ADDRESS
+ * from the .env file into EmDash's plugin KV store.
  */
 
 import type { PluginDescriptor } from "emdash";
-import { definePlugin } from "emdash";
 
 export function resendPlugin(): PluginDescriptor {
   return {

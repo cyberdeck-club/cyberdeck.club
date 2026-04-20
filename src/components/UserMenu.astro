@@ -33,12 +33,12 @@ const user = Astro.locals.user;
           </span>
         </div>
         <hr class="dropdown-divider" />
-        <a href="/_emdash/admin" class="dropdown-item">
+        {user.role >= 50  && <a href="/_emdash/admin" class="dropdown-item">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
           Dashboard
-        </a>
+        </a>}
         <button type="button" class="dropdown-item dropdown-logout" id="logout-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
