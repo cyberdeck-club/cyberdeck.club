@@ -7,9 +7,45 @@
 
 import WikiLayout from "@/layouts/WikiLayout.astro";
 import WikiArticleCard from "@/components/WikiArticleCard.astro";
+import { CreateArticleButton } from "@/components/wiki/CreateArticleButton";
 
 // Server-rendered page
 export const prerender = false;
+
+// Role values for permission checking
+const ROLE_VALUES = {
+  subscriber: 10,
+  contributor: 20,
+  author: 30,
+  editor: 40,
+  admin: 50,
+} as const;
+
+type Role = keyof typeof ROLE_VALUES;
+
+function getUserRole(user: any): Role {
+  if (!user) return "subscriber";
+  if (typeof user.role === "string") {
+    const role = user.role.toLowerCase() as Role;
+    if (role in ROLE_VALUES) return role;
+  }
+  if (typeof user.role === "number") {
+    for (const [r, value] of Object.entries(ROLE_VALUES)) {
+      if (user.role === value) return r as Role;
+    }
+  }
+  return "subscriber";
+}
+
+function hasMinRole(user: any, minRole: Role): boolean {
+  if (!user) return false;
+  const userRole = getUserRole(user);
+  return ROLE_VALUES[userRole] >= ROLE_VALUES[minRole];
+}
+
+// Get user from Astro.locals
+const user = Astro.locals.user;
+const canCreate = hasMinRole(user, "contributor");
 
 // Get category from URL params
 const { category } = Astro.params;
@@ -263,15 +299,26 @@ const currentCategory = categoryData[category ?? ""];
 ---
 
 {currentCategory ? (
-  <WikiLayout 
+  <WikiLayout
     title={`${currentCategory.name} Wiki`}
     description={currentCategory.description}
     currentCategory={category}
     breadcrumb={[{ label: currentCategory.name, href: `/wiki/${category}` }]}
   >
     <div class="category-header">
-      <h1 class="category-title">{currentCategory.name}</h1>
-      <p class="category-description">{currentCategory.description}</p>
+      <div class="category-header-row">
+        <div>
+          <h1 class="category-title">{currentCategory.name}</h1>
+          <p class="category-description">{currentCategory.description}</p>
+        </div>
+        {canCreate && (
+          <CreateArticleButton
+            client:load
+            buttonLabel="New Article"
+            defaultCategory={category}
+          />
+        )}
+      </div>
     </div>
 
     <div class="articles-section">
@@ -314,6 +361,13 @@ const currentCategory = categoryData[category ?? ""];
     margin-bottom: 2rem;
     padding-bottom: 1.5rem;
     border-bottom: 3px solid var(--border);
+  }
+
+  .category-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
   }
 
   .category-title {
@@ -407,6 +461,10 @@ const currentCategory = categoryData[category ?? ""];
   @media (max-width: 640px) {
     .articles-grid {
       grid-template-columns: 1fr;
+    }
+    .category-header-row {
+      flex-direction: column;
+      align-items: stretch;
     }
   }
 </style>

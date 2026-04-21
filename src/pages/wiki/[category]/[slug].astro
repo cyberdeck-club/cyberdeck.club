@@ -7,9 +7,56 @@
 
 import WikiLayout from "@/layouts/WikiLayout.astro";
 import { MarkdownRenderer } from "@/utils/MarkdownRenderer";
+import { WikiEditor } from "@/components/wiki/WikiEditor";
+import { InlineEditor } from "@/components/wiki/InlineEditor";
 
 // Server-rendered page
 export const prerender = false;
+
+// Parse edit mode from URL params
+const editParam = Astro.url.searchParams.get("edit");
+const isEditingFromUrl = editParam === "true";
+
+// Role values for permission checking
+const ROLE_VALUES = {
+  subscriber: 10,
+  contributor: 20,
+  author: 30,
+  editor: 40,
+  admin: 50,
+} as const;
+
+type Role = keyof typeof ROLE_VALUES;
+
+function getUserRole(user: any): Role {
+  if (!user) return "subscriber";
+  if (typeof user.role === "string") {
+    const role = user.role.toLowerCase() as Role;
+    if (role in ROLE_VALUES) return role;
+  }
+  if (typeof user.role === "number") {
+    for (const [r, value] of Object.entries(ROLE_VALUES)) {
+      if (user.role === value) return r as Role;
+    }
+  }
+  return "subscriber";
+}
+
+function hasMinRole(user: any, minRole: Role): boolean {
+  if (!user) return false;
+  const userRole = getUserRole(user);
+  return ROLE_VALUES[userRole] >= ROLE_VALUES[minRole];
+}
+
+function isArticleOwner(user: any, articleAuthor: string): boolean {
+  if (!user || !articleAuthor) return false;
+  const userId = user.id ?? user._id;
+  return String(userId) === String(articleAuthor);
+}
+
+// Get user from Astro.locals
+const user = Astro.locals.user;
+const userRole = getUserRole(user);
 
 // Get category and slug from URL params
 const { category, slug } = Astro.params;
@@ -752,6 +799,19 @@ const breadcrumbs = article ? [
   { label: article.title, href: `/wiki/${category}/${slug}` }
 ] : [];
 
+// Calculate permissions
+const canEdit = hasMinRole(user, "contributor") && isArticleOwner(user, article?.author ?? "");
+const canEditAny = hasMinRole(user, "editor");
+const canDelete = hasMinRole(user, "author") && isArticleOwner(user, article?.author ?? "");
+const canDeleteAny = hasMinRole(user, "admin");
+
+// Combined permissions for the article
+const articleCanEdit = canEdit || canEditAny;
+const articleCanDelete = canDelete || canDeleteAny;
+
+// Article ID for API calls (using category:slug format)
+const articleId = `${category}:${slug}`;
+
 // Server-rendered with dynamic content
 ---
 
@@ -787,17 +847,39 @@ const breadcrumbs = article ? [
         </div>
       </header>
 
-      <div class="article-content prose"><MarkdownRenderer content={article.content}/></div>
+      {/* Conditional rendering: view mode shows MarkdownRenderer, edit mode shows InlineEditor */}
+      {isEditingFromUrl && articleCanEdit ? (
+        <InlineEditor
+          client:only="react"
+          value={article.content}
+          articleId={articleId}
+          category={category ?? ""}
+          slug={slug ?? ""}
+          editPermission={true}
+          minHeight="400px"
+        />
+      ) : (
+        <>
+          <div class="article-content">
+            <MarkdownRenderer content={article.content} />
+          </div>
+
+          {/* WikiEditor shows edit/delete buttons when in view mode */}
+          {!isEditingFromUrl && (
+            <WikiEditor
+              client:only="react"
+              articleId={articleId}
+              title={article.title}
+              content={article.content}
+              category={category ?? ""}
+              canEdit={articleCanEdit}
+              canDelete={articleCanDelete}
+            />
+          )}
+        </>
+      )}
 
       <footer class="article-footer">
-        <div class="edit-prompt">
-          <svg class="edit-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-            <path d="M10 4L12 6" stroke="currentColor" stroke-width="1.5"/>
-          </svg>
-          <a href="#" class="edit-link">Edit this article</a>
-        </div>
-
         {article.relatedArticles.length > 0 && (
           <div class="related-articles">
             <h3>Related Articles</h3>

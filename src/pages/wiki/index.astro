@@ -5,9 +5,45 @@
  */
 
 import WikiLayout from "@/layouts/WikiLayout.astro";
+import { CreateArticleButton } from "@/components/wiki/CreateArticleButton";
 
 // Server-rendered page
 export const prerender = false;
+
+// Role values for permission checking
+const ROLE_VALUES = {
+  subscriber: 10,
+  contributor: 20,
+  author: 30,
+  editor: 40,
+  admin: 50,
+} as const;
+
+type Role = keyof typeof ROLE_VALUES;
+
+function getUserRole(user: any): Role {
+  if (!user) return "subscriber";
+  if (typeof user.role === "string") {
+    const role = user.role.toLowerCase() as Role;
+    if (role in ROLE_VALUES) return role;
+  }
+  if (typeof user.role === "number") {
+    for (const [r, value] of Object.entries(ROLE_VALUES)) {
+      if (user.role === value) return r as Role;
+    }
+  }
+  return "subscriber";
+}
+
+function hasMinRole(user: any, minRole: Role): boolean {
+  if (!user) return false;
+  const userRole = getUserRole(user);
+  return ROLE_VALUES[userRole] >= ROLE_VALUES[minRole];
+}
+
+// Get user from Astro.locals
+const user = Astro.locals.user;
+const canCreate = hasMinRole(user, "contributor");
 
 // Wiki categories with slugs, descriptions, and placeholder article counts
 const categories = [
@@ -311,7 +347,16 @@ const categories = [
 </div>
 
 <div class="wiki-container">
-  <p class="section-label">Browse all {categories.length} categories</p>
+  <div class="wiki-header-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+    <p class="section-label">Browse all {categories.length} categories</p>
+    {canCreate && (
+      <CreateArticleButton
+        client:load
+        buttonLabel="Create New Article"
+        categories={categories.map(c => ({ id: c.slug, label: c.name }))}
+      />
+    )}
+  </div>
 
   <div class="category-grid">
     {categories.map((category) => (
