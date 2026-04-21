@@ -1,4 +1,4 @@
-# Architecture Migration: EmDash → Astro SSR + Auth.js + Drizzle + D1
+# Architecture Migration: EmDash → Astro SSR + Better Auth + Drizzle + D1
 
 **Status:** Planned
 **Target branch:** `main` (in-place migration)
@@ -12,12 +12,14 @@ This migration removes EmDash entirely and replaces it with a native Astro SSR a
 
 - **Astro 6** — same framework, now running without the EmDash integration layer
 - **Cloudflare Workers** — native deployment via `@astrojs/cloudflare`, no adapter gymnastics
-- **Auth.js** — via `auth-astro`, with a magic link email provider backed by Resend
-- **Drizzle ORM** — typed SQL layer against Cloudflare D1
-- **Cloudflare D1** — SQLite at the edge
+- **Better Auth** — Astro's officially-recommended auth library, with its built-in magic link plugin and Resend-backed email delivery
+- **Drizzle ORM** — typed SQL layer against Cloudflare D1, wired to Better Auth via its built-in Drizzle adapter
+- **Cloudflare D1** — SQLite at the edge (first-class supported by Better Auth v1.5+)
 - **Markdown** — all wiki/forum rich text stored as Markdown strings, rendered with `marked`
 
 Everything else stays: the visual design system (neobrutalist + girlie pop), Tailwind v4 theme tokens, the page routing structure, and the component library.
+
+> **Why Better Auth and not Auth.js?** Astro's official authentication guide (docs.astro.build/en/guides/authentication/) currently recommends Better Auth, Clerk, or Lucia. `auth-astro` is a community package not mentioned in the current docs. Better Auth has first-class Cloudflare D1 support as of v1.5, a built-in Drizzle adapter, a built-in magic link plugin, and a documented Astro integration path — it's the lowest-risk choice for an AI-executed migration because the model can rely on official, current documentation rather than reverse-engineering a less-traveled integration.
 
 ## Goals
 
@@ -44,48 +46,48 @@ Everything else stays: the visual design system (neobrutalist + girlie pop), Tai
 | Adapter | `@astrojs/node` (standalone) | `@astrojs/cloudflare` |
 | Database | SQLite via EmDash (`data.db`) | Cloudflare D1 |
 | ORM / query | EmDash loader + Portable Text | Drizzle ORM, Markdown text |
-| Auth | EmDash magic link | Auth.js (`auth-astro`) + Resend |
+| Auth | EmDash magic link | Better Auth + `magicLink` plugin + Resend for email delivery |
 | Rich text | Portable Text via Tiptap | Markdown (plain text), rendered with `marked` |
 | Admin | EmDash admin at `/_emdash/admin` | Role-gated pages + inline editors |
 | Plugins | `emdash-plugin-wiki`, `emdash-plugin-forum` | Removed — logic inlined into the app |
-| Email | `emdash-resend` plugin | Direct Resend API calls from Auth.js provider |
+| Email | `emdash-resend` plugin | Resend SDK called directly from Better Auth's `sendMagicLink` |
 
 ## Data model
 
 All tables live in D1. Schema is defined in `src/db/schema.ts` using Drizzle's SQLite column builders.
 
-### Users and auth
+### Users and auth (Better Auth-owned)
+
+Better Auth owns its own tables. **Do not hand-write them.** Instead, after configuring the Better Auth instance, run `npx @better-auth/cli generate --output src/db/auth-schema.ts` which emits a Drizzle schema file matching the exact shape Better Auth expects. That file is then imported into the main `src/db/schema.ts` alongside the app-specific tables.
+
+The tables Better Auth will create (approximate, definitive shape comes from the CLI output):
+
+```
+user            // base user row — id, email, emailVerified, name, image, createdAt, updatedAt
+session         // session rows — id, userId, token, expiresAt, createdAt, etc.
+account         // credential/OAuth account links (unused for magic-link-only but still created)
+verification    // magic link verification tokens
+```
+
+The magic link plugin uses the `verification` table to store tokens. No extra schema needed for it.
+
+**App-specific user fields** (role, bio, avatar_url beyond Better Auth's `image`) are added via Better Auth's `additionalFields` config option, which the CLI will include in the generated schema:
 
 ```ts
-users {
-  id: text primary key (cuid2 or nanoid)
-  email: text unique not null
-  name: text
-  avatar_url: text
-  role: text not null default 'member'  // 'admin' | 'moderator' | 'member'
-  bio: text
-  created_at: integer not null  // unix ms
-  updated_at: integer not null
-}
-
-sessions {
-  id: text primary key              // session token
-  user_id: text not null references users(id) on delete cascade
-  expires_at: integer not null
-  created_at: integer not null
-}
-
-verification_tokens {
-  identifier: text not null          // email
-  token: text not null unique
-  expires_at: integer not null
-  primary key (identifier, token)
+// in the Better Auth config
+user: {
+  additionalFields: {
+    role: { type: "string", defaultValue: "member", input: false },
+    bio: { type: "string", required: false },
+  },
 }
 ```
 
-Auth.js needs tables matching its adapter contract. Use `@auth/drizzle-adapter` — it ships schema helpers; our migration mirrors those shapes.
+`role` is `input: false` so end users can't set it via signup — only server-side code (promotion flows) can write it.
 
 ### Wiki
+
+All `author_id` / user foreign keys reference Better Auth's `user.id` (note: singular, per the CLI-generated schema).
 
 ```ts
 wiki_categories {
@@ -104,7 +106,7 @@ wiki_articles {
   title: text not null
   content: text not null              // Markdown
   excerpt: text
-  author_id: text references users(id)
+  author_id: text references user(id)
   status: text not null default 'draft' // 'draft' | 'published'
   view_count: integer not null default 0
   created_at: integer not null
@@ -118,7 +120,7 @@ wiki_revisions {
   article_id: text not null references wiki_articles(id) on delete cascade
   content: text not null               // Markdown snapshot
   title: text not null
-  author_id: text references users(id)
+  author_id: text references user(id)
   created_at: integer not null
 }
 ```
@@ -138,14 +140,14 @@ forum_categories {
 forum_threads {
   id: text primary key
   category_id: text not null references forum_categories(id)
-  author_id: text not null references users(id)
+  author_id: text not null references user(id)
   slug: text not null
   title: text not null
   is_pinned: integer not null default 0  // boolean
   is_locked: integer not null default 0
   post_count: integer not null default 0
   last_reply_at: integer
-  last_reply_user_id: text references users(id)
+  last_reply_user_id: text references user(id)
   created_at: integer not null
   updated_at: integer not null
 }
@@ -153,7 +155,7 @@ forum_threads {
 forum_posts {
   id: text primary key
   thread_id: text not null references forum_threads(id) on delete cascade
-  author_id: text not null references users(id)
+  author_id: text not null references user(id)
   content: text not null               // Markdown
   created_at: integer not null
   updated_at: integer not null
@@ -171,7 +173,7 @@ builds {
   content: text                        // Markdown long-form writeup
   hero_image_url: text
   status: text not null default 'in_progress' // 'complete' | 'in_progress' | 'planning'
-  author_id: text references users(id)
+  author_id: text references user(id)
   created_at: integer not null
   updated_at: integer not null
 }
@@ -186,7 +188,7 @@ meetups {
   starts_at: integer                   // unix ms
   ends_at: integer
   status: text not null default 'upcoming' // 'upcoming' | 'past' | 'cancelled'
-  organizer_id: text references users(id)
+  organizer_id: text references user(id)
   created_at: integer not null
   updated_at: integer not null
 }
@@ -197,7 +199,7 @@ meetups {
 - `forum_threads`: index on `(category_id, last_reply_at DESC)` for category listings.
 - `forum_posts`: index on `(thread_id, created_at ASC)` for thread rendering.
 - `wiki_articles`: index on `(category_id, status)` for category pages.
-- `sessions`: index on `user_id`, `expires_at`.
+- Better Auth's generated schema already handles indexes on `session.userId`, `session.expiresAt`, `verification.identifier`, etc.
 
 ## File-by-file change plan
 
@@ -228,13 +230,13 @@ Remove:
 
 Add:
 - `@astrojs/cloudflare`
-- `auth-astro`
-- `@auth/core`
-- `@auth/drizzle-adapter`
+- `better-auth`
+- `@better-auth/cli` (dev)
 - `drizzle-orm`
 - `drizzle-kit` (dev)
 - `resend`
 - `@paralleldrive/cuid2`
+- `marked`
 
 Update scripts:
 ```json
@@ -242,6 +244,7 @@ Update scripts:
 "start": "astro dev",
 "build": "astro build",
 "preview": "wrangler pages dev ./dist",
+"auth:generate": "better-auth generate --output src/db/auth-schema.ts",
 "db:generate": "drizzle-kit generate",
 "db:migrate": "wrangler d1 migrations apply cyberdeck-db --local",
 "db:migrate:prod": "wrangler d1 migrations apply cyberdeck-db --remote",
@@ -253,15 +256,17 @@ Remove `rebuild:plugins` entirely.
 
 **`astro.config.mjs`**
 
-Remove `emdash` integration, `sqlite` import, `forumPlugin`, `wikiPlugin`, `resendPlugin` imports. Swap `@astrojs/node` for `@astrojs/cloudflare`. Add `auth-astro` integration. Keep the React, Tailwind, and fonts config unchanged.
+Remove `emdash` integration, `sqlite` import, `forumPlugin`, `wikiPlugin`, `resendPlugin` imports. Swap `@astrojs/node` for `@astrojs/cloudflare`. Keep the React, Tailwind, and fonts config unchanged. Better Auth does not require an Astro integration entry — it's wired via API route and middleware only.
 
 **`wrangler.jsonc`**
 
-Add D1 database binding:
+Add D1 database binding and the `nodejs_compat` compatibility flag (required by Better Auth for `AsyncLocalStorage`):
+
 ```jsonc
 {
   "name": "cyberdeck-club",
   "compatibility_date": "2025-10-01",
+  "compatibility_flags": ["nodejs_compat"],
   "pages_build_output_dir": "./dist",
   "d1_databases": [
     {
@@ -272,12 +277,12 @@ Add D1 database binding:
     }
   ],
   "vars": {
-    "AUTH_URL": "https://cyberdeck.club"
+    "BETTER_AUTH_URL": "https://cyberdeck.club"
   }
 }
 ```
 
-Secrets set via `wrangler secret put`: `AUTH_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_ADDRESS`.
+Secrets set via `wrangler secret put`: `BETTER_AUTH_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_ADDRESS`.
 
 **`src/pages/` — all pages that currently call `getEntry("_emdash", ...)`**
 
@@ -302,43 +307,76 @@ All page-level content access moves through typed helper functions in `src/lib/`
 
 ### Files to create
 
-**`src/db/schema.ts`** — Drizzle schema definitions (see Data Model section above)
+**`src/db/schema.ts`** — imports and re-exports from `src/db/auth-schema.ts` (generated by Better Auth CLI) plus defines app-specific tables (wiki, forum, builds, meetups) per the Data Model section.
 
-**`src/db/client.ts`** — exports `getDb(env)` that returns a Drizzle client bound to the D1 binding
+**`src/db/auth-schema.ts`** — **generated** by `npx @better-auth/cli generate`. Do not hand-edit. Regenerate whenever the Better Auth config changes (e.g., adding a plugin or `additionalFields`).
 
-**`src/db/index.ts`** — re-exports schema and client
+**`src/db/client.ts`** — exports `getDb(env: Env)` that calls `drizzle(env.DB, { schema })` and returns a Drizzle client bound to the request's D1 binding. **Never export a module-level singleton** — the D1 binding only exists inside a request context on Workers.
 
-**`src/lib/auth.ts`** — Auth.js configuration: Drizzle adapter, Email provider with Resend `sendVerificationRequest`, session callback that attaches role/id to the session object
+**`src/lib/auth.ts`** — exports `getAuth(env: Env)` (a factory, not a singleton) that returns a configured Better Auth instance. Inside the factory:
 
-**`src/lib/wiki.ts`** — `getWikiArticle`, `listWikiArticlesByCategory`, `createWikiArticle`, `updateWikiArticle`, `createRevision`, `incrementViewCount`
+- Initialize Drizzle via `getDb(env)`.
+- Call `betterAuth({ ... })` with:
+  - `database: drizzleAdapter(db, { provider: "sqlite" })`
+  - `baseURL: env.BETTER_AUTH_URL`
+  - `secret: env.BETTER_AUTH_SECRET`
+  - `user.additionalFields: { role: { type: "string", defaultValue: "member", input: false }, bio: { type: "string", required: false } }`
+  - `plugins: [magicLink({ sendMagicLink: async ({ email, url }) => { /* call Resend API with env.RESEND_API_KEY */ } })]`
 
-**`src/lib/forum.ts`** — `listForumCategories`, `listThreadsByCategory`, `getThread`, `listPostsForThread`, `createThread`, `createPost`, `updatePost`
+**Critical Workers rule:** every handler/middleware invocation must create its own auth instance via `getAuth(env)`. Do not cache or reuse across requests. The [Better Auth + Cloudflare integration notes](#known-pitfalls) explain why — reusing instances causes WAL-lock hangs in local dev and transient 503s in production.
 
-**`src/lib/builds.ts`, `src/lib/meetups.ts`** — analogous read/write helpers
+**`src/lib/resend.ts`** — thin wrapper around the Resend SDK: `sendEmail(env, { to, subject, html })`. Called from the `sendMagicLink` callback in the Better Auth config. Uses `env.RESEND_API_KEY` and `env.RESEND_FROM_ADDRESS`.
 
-**`src/lib/markdown.ts`** — `renderMarkdown(text: string): string` using `marked`, with a consistent sanitization step. Export a configured `Marked` instance; never render untrusted input without going through this.
+**`src/lib/wiki.ts`** — `getWikiArticle`, `listWikiArticlesByCategory`, `createWikiArticle`, `updateWikiArticle`, `createRevision`, `incrementViewCount`. Every function takes `db` as its first argument — no module-level db reference.
 
-**`src/lib/slug.ts`** — `slugify(s)` and `uniqueSlug(db, table, baseSlug)` helpers
+**`src/lib/forum.ts`** — `listForumCategories`, `listThreadsByCategory`, `getThread`, `listPostsForThread`, `createThread`, `createPost`, `updatePost`. Same per-function `db` arg pattern.
 
-**`src/middleware.ts`** — Astro middleware that attaches `db` and `session` to `Astro.locals`. Reads session token from cookies, looks up the session, attaches user. Runs on every request.
+**`src/lib/builds.ts`, `src/lib/meetups.ts`** — analogous read/write helpers, same pattern.
 
-**`src/env.d.ts`** — extends `Astro.Locals` type with `db`, `session`, and `user`
+**`src/lib/markdown.ts`** — `renderMarkdown(text: string): string` using `marked`. Wraps the render call with HTML sanitization (Better Auth doesn't handle this; it's our responsibility). Export a single configured function; never render untrusted input through anything else.
 
-**`src/pages/api/auth/[...auth].ts`** — Auth.js handler route mounted at `/api/auth/*`
+**`src/lib/slug.ts`** — `slugify(s)` and `uniqueSlug(db, table, baseSlug)` helpers.
 
-**`src/pages/api/forum/threads.ts`** (POST) — create thread. Validates input, requires session, inserts `forum_threads` + initial `forum_posts` in a transaction.
+**`src/middleware.ts`** — Astro middleware that:
 
-**`src/pages/api/forum/threads/[id]/posts.ts`** (POST) — create reply. Requires session, inserts post, updates thread's `last_reply_at` / `post_count`.
+1. Reads `env` from `context.locals.runtime.env` (this is how `@astrojs/cloudflare` exposes Workers bindings to Astro).
+2. Creates a per-request `db` via `getDb(env)` and attaches it to `Astro.locals.db`.
+3. Creates a per-request Better Auth instance via `getAuth(env)`.
+4. Calls `auth.api.getSession({ headers: context.request.headers })` to resolve the session.
+5. Attaches `session` and `user` to `Astro.locals`.
+
+Middleware runs on every request. Pages and API routes read `Astro.locals.user` for gating.
+
+**`src/env.d.ts`** — extends `Astro.Locals` type with `db`, `session`, and `user` (the user type includes the `additionalFields` shape).
+
+**`src/pages/api/auth/[...all].ts`** — Better Auth catch-all handler route. Pattern from Astro's official docs:
+
+```ts
+import type { APIRoute } from "astro";
+import { getAuth } from "../../../lib/auth";
+
+export const prerender = false;
+
+export const ALL: APIRoute = async (ctx) => {
+  const env = ctx.locals.runtime.env;
+  const auth = getAuth(env);
+  return auth.handler(ctx.request);
+};
+```
+
+**`src/pages/api/forum/threads.ts`** (POST) — create thread. Validates input, requires session (via `Astro.locals.user`), inserts `forum_threads` + initial `forum_posts` using D1's `batch()` API for atomicity (D1 does not support interactive transactions).
+
+**`src/pages/api/forum/threads/[id]/posts.ts`** (POST) — create reply. Requires session, inserts post, updates thread's `last_reply_at` / `post_count` in the same `batch()`.
 
 **`src/pages/api/forum/posts/[id].ts`** (PATCH, DELETE) — edit/delete own post, or any post if moderator/admin.
 
 **`src/pages/api/wiki/articles.ts`** (POST) — create article. Requires `member`+ role.
 
-**`src/pages/api/wiki/articles/[id].ts`** (PATCH) — edit article. Writes a revision row, updates article. Requires author or moderator+.
+**`src/pages/api/wiki/articles/[id].ts`** (PATCH) — edit article. Writes a revision row, updates article. Uses D1 `batch()`.
 
-**`src/pages/login.astro`** — magic link email submit form. Posts to Auth.js sign-in endpoint.
+**`src/pages/login.astro`** — magic link email submit form. Client-side uses Better Auth's `authClient.signIn.magicLink({ email, callbackURL: "/" })`.
 
-**`src/pages/logout.astro`** — triggers Auth.js sign-out.
+**`src/pages/logout.astro`** — calls `authClient.signOut()`, redirects home.
 
 **`src/pages/profile/[id].astro`** — user profile. Shows name, bio, avatar, recent posts/threads/articles.
 
@@ -352,32 +390,54 @@ All page-level content access moves through typed helper functions in `src/lib/`
 
 **`src/pages/wiki/new.astro`** — new wiki article form.
 
+**`src/lib/auth-client.ts`** — Better Auth client instance for browser-side sign-in/out calls:
+
+```ts
+import { createAuthClient } from "better-auth/client";
+import { magicLinkClient } from "better-auth/client/plugins";
+
+export const authClient = createAuthClient({
+  plugins: [magicLinkClient()],
+});
+export const { signIn, signOut, useSession } = authClient;
+```
+
 **`src/components/MarkdownEditor.astro`** — textarea + live preview pane. Client-side React island that renders preview via `marked` in the browser for immediate feedback.
 
 **`src/components/MarkdownRender.astro`** — takes a Markdown string, renders to sanitized HTML using the shared `marked` config.
 
-**`src/components/AuthForm.astro`** — email-only form used on `/login`.
+**`src/components/AuthForm.astro`** — email-only form used on `/login`. Submits to `authClient.signIn.magicLink()`.
 
 **`src/components/UserMenu.astro`** — nav menu item that shows sign-in button or avatar dropdown with profile/settings/logout.
 
-**`drizzle.config.ts`** — Drizzle Kit config pointing at `src/db/schema.ts` and output dir `drizzle/migrations`.
+**`drizzle.config.ts`** — Drizzle Kit config pointing at `src/db/schema.ts` (which re-exports the generated `auth-schema.ts`) and output dir `drizzle/migrations`.
 
 **`drizzle/migrations/`** — generated SQL migration files, committed to the repo.
 
-**`scripts/seed.ts`** — reads `seed/seed.json`, maps EmDash collection entries to the new schema, inserts into D1 (via `wrangler d1 execute` for remote, or direct better-sqlite3 for local dev fallback).
+**`scripts/seed.ts`** — reads `seed/seed.json`, maps EmDash collection entries to the new schema, inserts into D1 via `wrangler d1 execute` (the script generates a SQL file; then `wrangler d1 execute cyberdeck-db --file=seed.sql --local` or `--remote` runs it).
 
 **`seed/seed.json`** — kept; updated format if needed so `scripts/seed.ts` can consume it directly. The existing demo content (builds, meetups, wiki articles, forum threads) is mapped to the new tables.
 
 ## Authentication flow
 
 1. User visits `/login`, enters email, submits form.
-2. Form POSTs to `/api/auth/signin/email` (Auth.js Email provider).
-3. Auth.js generates a verification token, stores it in `verification_tokens`, calls the configured `sendVerificationRequest` which uses the Resend SDK to send a magic link (`/api/auth/callback/email?token=...&email=...`).
-4. User clicks link; Auth.js verifies the token, creates a session row in `sessions`, sets the session cookie, redirects to `/`.
-5. On every subsequent request, middleware reads the session cookie, looks up the session, attaches `user` to `Astro.locals`.
-6. Pages and API routes check `Astro.locals.user` for gating. Role checks use `user.role`.
+2. Client-side code calls `authClient.signIn.magicLink({ email, callbackURL: "/" })`, which POSTs to `/api/auth/sign-in/magic-link`.
+3. The Better Auth handler (mounted at `/api/auth/[...all].ts`) generates a token, stores it in the `verification` table, and calls the configured `sendMagicLink` callback. That callback uses the Resend SDK to email the user a link pointing at `/api/auth/magic-link/verify?token=...`.
+4. User clicks link; Better Auth verifies the token, creates a session row, sets the session cookie, and redirects to the `callbackURL`.
+5. On every subsequent request, middleware calls `auth.api.getSession({ headers })` to resolve the session, attaching `user` and `session` to `Astro.locals`.
+6. Pages and API routes check `Astro.locals.user` for gating. Role checks use `user.role` (populated from the `additionalFields` config).
 
-The session cookie is HTTP-only, secure in production, SameSite=Lax. Default session duration is 30 days, rolling on activity.
+Session cookies are HTTP-only, secure in production, SameSite=Lax — Better Auth sets these defaults. Default session duration is 7 days; can be extended via config.
+
+### Known pitfalls (Better Auth + Cloudflare Workers)
+
+These are documented gotchas the migration must handle correctly. They are the primary reason the "Model-specific notes" section below mandates reading the Better Auth + Cloudflare integration guide before writing auth code.
+
+1. **One auth instance per request.** Never cache the Better Auth instance at module scope. The D1 binding only exists in request context; creating the instance via `getAuth(env)` inside each handler/middleware is required. Reusing instances causes 30+ second WAL-lock hangs in local `wrangler dev` and transient 503s in production.
+2. **D1 has no interactive transactions.** Use `db.batch([...])` for atomicity (e.g., thread + initial post insertion). Better Auth itself already uses batch internally; our app code must follow the same pattern.
+3. **`nodejs_compat` flag is required** in `wrangler.jsonc` for Better Auth's `AsyncLocalStorage` usage.
+4. **KV secondary storage has a minimum TTL of 60 seconds.** Don't use KV as secondary storage for rate limiting without config overrides — some internal paths pass TTLs below the minimum.
+5. **The Better Auth CLI must be run with the `--y` flag** to skip interactive prompts, and must be pointed at the config file containing the app's auth instance.
 
 ## Authorization model
 
@@ -440,11 +500,17 @@ To account for this, the following rules apply throughout the migration:
 1. **Pin dependency versions before installing.** Before running `npm install` in Phase 2, the orchestrator (or its delegate) must run `npm view <package> version` for each new dependency and record the exact version to install. Do not install floating `latest`. Record the resolved versions in a `DEPS.md` alongside this doc so they're reproducible.
 
 2. **Read the docs before writing integration code.** For each of the following, the orchestrator must fetch and read the current official documentation before its first implementation subtask touches the integration:
-   - `auth-astro` (README + any integration guide) — before Phase 4
-   - `@auth/drizzle-adapter` — before Phase 4
+   - Astro's official authentication guide (`https://docs.astro.build/en/guides/authentication/`) — confirms the Better Auth integration pattern
+   - Better Auth core docs (`https://better-auth.com/docs/installation`) — config shape, CLI usage
+   - Better Auth Astro integration guide (`https://better-auth.com/docs/integrations/astro`) — handler route pattern, middleware pattern
+   - Better Auth magic link plugin docs — `sendMagicLink` signature, client plugin setup
+   - Better Auth + Cloudflare integration notes including the [known pitfalls article](https://medium.com/@senioro.valentino/better-auth-cloudflare-workers-the-integration-guide-nobody-wrote-8480331d805f) — this is not optional, it documents the WAL-lock hang that will bite a naive implementation
+   - `@better-auth/cli` usage (the `generate` command specifically) — output format, options
+   - `@better-auth/adapters/drizzle` — before Phase 4
    - `drizzle-orm/d1` — before Phase 3
    - `@astrojs/cloudflare` — before Phase 2
    - Cloudflare D1 migrations via Wrangler — before Phase 3
+   - D1's `batch()` API — before any API route that needs atomicity
 
 3. **No API-shape guessing.** If a function signature, configuration key, or import path is not verified from docs or source, the implementing subtask must stop and either read the package source (`node_modules/<pkg>/...`) or escalate. "I think the API is..." is not acceptable.
 
@@ -456,37 +522,41 @@ To account for this, the following rules apply throughout the migration:
 
 ## Risks and mitigations
 
-- **Auth.js on Astro is less battle-tested than on Next.js.** Mitigation: build a minimal auth spike first (see orchestrator prompt step 1) and validate session flow before porting any pages.
+- **Better Auth's per-request-instance requirement is the single most likely source of bugs.** Mitigation: the File-by-file plan explicitly requires `getAuth(env)` as a factory pattern, never a module-level singleton. The known-pitfalls section documents the WAL-lock symptom so it's recognized immediately if it appears. A Phase 4 verification step specifically exercises multiple concurrent requests to the auth handler to flush this out.
 - **D1 writes are single-region.** Mitigation: acceptable for community-scale traffic. If it becomes a bottleneck, swap to Turso — Drizzle driver change only.
+- **D1 lacks interactive transactions.** Mitigation: use `db.batch([...])` for multi-statement atomicity. Documented in the known-pitfalls section; API route subtasks reference it explicitly.
 - **Markdown rendering + user input = XSS risk.** Mitigation: always render user Markdown through the shared `renderMarkdown` helper, which sanitizes output. Never `set:html` on raw user input.
 - **In-place migration on `main` means the site breaks until the migration is complete.** Mitigation: work in short, committable increments; keep `astro build` passing at every commit where possible; tag the last pre-migration commit so rollback is one `git reset` away.
 - **Seed data may not cleanly map.** Mitigation: the seed script logs and skips entries it can't convert, rather than failing the whole run. Review warnings manually.
 - **Executing model (M2.7) may hallucinate library APIs.** Mitigation: the Model-specific notes section above imposes a "read docs and pin versions before writing" rule. Any subtask that produces integration code without a preceding doc-read or source-read step is rejected and re-dispatched.
+- **Better Auth CLI-generated schema may use singular table names (`user`, `session`) rather than plural, and our app-specific tables use plural (`wiki_articles`, `forum_threads`).** Mitigation: don't fight it. Accept the mixed convention and make sure foreign keys reference the actual generated table names. The Data Model section explicitly notes `user(id)` (singular) as the FK target.
 
 ## Sequencing
 
 Executed in this order by the orchestrator. Each phase is a committable unit.
 
-1. **Auth spike.** Brand new branch off main for experimentation, or temporary `/spike` route. Validate Auth.js + Resend + D1 session on Workers end-to-end. Discard or merge the learnings.
+1. **Auth spike.** Brand new branch off main for experimentation, or temporary `/spike` route. Validate Better Auth + magic link + Resend + D1 + per-request instance pattern end-to-end on Workers. Explicitly test the concurrent-request case (fire two magic-link verifications simultaneously) to confirm the WAL-lock pitfall is avoided. Discard or merge the learnings.
 2. **Dependency swap.** Remove EmDash packages, add new deps, switch adapter to Cloudflare. Site won't build yet — that's expected.
-3. **Schema + migrations.** Write `src/db/schema.ts`, generate migrations, set up D1 binding in Wrangler, apply to local D1.
-4. **Auth implementation.** Real `src/lib/auth.ts`, middleware, `/api/auth/[...auth].ts`, `/login`, `/logout`.
+3. **Schema + migrations.** Write the `getAuth` factory skeleton first (Better Auth needs a config to generate its schema). Run `npx @better-auth/cli generate --output src/db/auth-schema.ts` to emit auth tables. Hand-write app-specific tables in `src/db/schema.ts` and re-export the auth schema. Run `drizzle-kit generate`, set up D1 binding in Wrangler, apply migrations to local D1.
+4. **Auth implementation.** Full `src/lib/auth.ts` factory, `src/lib/auth-client.ts`, `src/lib/resend.ts`, middleware, `/api/auth/[...all].ts`, `/login`, `/logout`. Verify end-to-end: submit email → receive real magic link → click → land authenticated → session reflected in `Astro.locals.user`.
 5. **Read paths.** Port wiki read pages, forum read pages, builds, meetups to Drizzle queries. Seed script runs and populates demo data. Site should be browsable as a logged-out reader at this point.
-6. **Write paths.** Forum thread/post creation, wiki article create/edit, builds and meetups create/edit. API routes and forms.
-7. **Admin/moderator affordances.** Role-gated controls: pin/lock threads, edit any post, delete any post, promote users.
+6. **Write paths.** Forum thread/post creation, wiki article create/edit, builds and meetups create/edit. API routes using D1 `batch()` for atomicity where needed, forms, Markdown editor island.
+7. **Admin/moderator affordances.** Role-gated controls: pin/lock threads, edit any post, delete any post, promote users. Role changes go through a dedicated admin route that enforces `role: 'admin'` before allowing writes to the `user.role` field.
 8. **Cleanup.** Delete EmDash plugin dirs, remove `data.db*`, remove `emdash-env.d.ts`, update `AGENTS.md`, update `README.md`.
-9. **Deploy.** Secrets, D1 remote migration, seed remote, Cloudflare Pages deploy, smoke test.
+9. **Deploy.** Secrets (`BETTER_AUTH_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_ADDRESS`), D1 remote migration, seed remote, Cloudflare Pages deploy, smoke test.
 
 ## Definition of done
 
 - [ ] No `emdash*` imports anywhere in the codebase.
+- [ ] No `auth-astro`, `next-auth`, or `@auth/*` imports anywhere (Better Auth replaces these).
 - [ ] `package.json` contains no `emdash*` or `@tiptap/y-*` dependencies.
 - [ ] `data.db*` files removed from repo and `.gitignore` still covers them.
 - [ ] All pages under `src/pages/` build without EmDash types.
-- [ ] Magic link login works end-to-end in production.
+- [ ] Magic link login works end-to-end in production — real email arrives, link verifies, session persists.
+- [ ] Concurrent magic-link verifications (two requests in flight simultaneously) both succeed without 30s hangs — verifies the per-request auth instance pattern is correct.
 - [ ] Seed data visible on the deployed site.
 - [ ] At least one forum thread can be created, replied to, edited, and deleted in production by a logged-in user.
 - [ ] At least one wiki article can be created, edited (producing a revision row), and viewed.
 - [ ] Moderator role can pin/lock a thread; admin role can promote a user.
 - [ ] Dark mode, theme toggle, and all visual patterns (shadows, borders, marquees) look identical to the pre-migration site.
-- [ ] `AGENTS.md` and `README.md` reflect the new architecture.
+- [ ] `AGENTS.md` and `README.md` reflect the new architecture (including Better Auth, Drizzle, D1, no-EmDash).
