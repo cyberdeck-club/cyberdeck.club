@@ -1,122 +1,49 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import MeetupCard from "@/components/MeetupCard.astro";
+import { getMeetups } from "@/lib/meetups";
 
-// Placeholder meetup data - in production this would come from EmDash queries
-const placeholderMeetupsData: Record<string, {
-  title: string;
-  description: string;
-  location_name: string;
-  date_start: string;
-  date_end?: string;
-  organizer: string;
-  max_attendees?: number;
-  rsvp_count: number;
-  status: "upcoming" | "in-progress" | "completed" | "cancelled";
-  region: string;
-}> = {
-  "columbus-oh-build-day-march-2025": {
-    title: "Columbus OH Build Day",
-    description: `Join us for a full day of cyberdeck building at the Columbus Makerspace! Whether you're a beginner just getting started or an experienced builder working on your latest project, there's something for everyone.
+// Server-rendered page
+export const prerender = false;
 
-We'll have:
-- Soldering stations and basic tools
-- 3D printers available for case printing
-- Show and tell portion in the afternoon
-- Pizza and drinks provided
+// Fetch meetups from database
+const db = Astro.locals.db!;
+const meetupsResult = await getMeetups(db);
 
-Bring your project or start something new. All skill levels welcome!`,
-    location_name: "Columbus Makerspace, Columbus OH",
-    date_start: "2025-03-15T10:00:00",
-    date_end: "2025-03-15T18:00:00",
-    organizer: "NeonRaspberry",
-    max_attendees: 20,
-    rsvp_count: 14,
-    status: "completed",
-    region: "Ohio"
-  },
-  "portland-cyberdeck-saturdays": {
-    title: "Portland Cyberdeck Saturdays",
-    description: `Monthly meetup for Pacific Northwest cyberdeck enthusiasts! This month we're focusing on power systems - battery selection, power management, and safety.
+// Transform database results to the format expected by MeetupCard
+const now = Math.floor(Date.now() / 1000);
 
-Agenda:
-- 10am: Doors open, coffee available
-- 11am: Presentation on LiPo safety
-- 12pm: Build session with guidance available
-- 2pm: Show and tell
-- 3pm: Networking and project planning for next month
-
-Bring your project or just come to learn. The makerspace has tools and basic components available.`,
-    location_name: "Portland Makerspace, Portland OR",
-    date_start: "2025-04-19T10:00:00",
-    date_end: "2025-04-19T16:00:00",
-    organizer: "CircuitWitch",
-    max_attendees: 25,
-    rsvp_count: 18,
-    status: "upcoming",
-    region: "Pacific Northwest"
-  },
-  "austin-tx-workshop-beginners": {
-    title: "Austin TX Beginner Workshop",
-    description: `New to cyberdeck building? This workshop is specifically designed for beginners! We'll walk through building a basic portable Pi station from scratch.
-
-What you'll learn:
-- Basic tool usage (soldering iron, multimeter)
-- Simple wiring and connections
-- Case design and 3D printing basics
-- Software setup for your deck
-
-All materials provided - just bring your enthusiasm! Space is limited to ensure hands-on help is available.`,
-    location_name: "Austin Hackerspace, Austin TX",
-    date_start: "2025-04-26T09:00:00",
-    date_end: "2025-04-26T17:00:00",
-    organizer: "ByteRunner",
-    max_attendees: 12,
-    rsvp_count: 12,
-    status: "upcoming",
-    region: "Texas"
-  },
-  "nyc-meetup-spring-2025": {
-    title: "NYC Spring Meetup",
-    description: `The annual NYC cyberdeck community meetup is back! Join us for an afternoon of demos, discussions, and networking with fellow builders from the tri-state area.
-
-Highlights:
-- Demos of recent builds from community members
-- Discussion panel on "The Future of Portable Computing"
-- Speed build competition (bring a kit!)
-- Pizza and refreshments provided
-
-This is our biggest meetup of the year - don't miss it!`,
-    location_name: "NYC Resilient Labs, Brooklyn NY",
-    date_start: "2025-05-03T14:00:00",
-    date_end: "2025-05-03T20:00:00",
-    organizer: "PixelPioneer",
-    max_attendees: 50,
-    rsvp_count: 31,
-    status: "upcoming",
-    region: "Northeast"
-  },
-  "seattle-workshop-intermediate": {
-    title: "Seattle Intermediate Build Day",
-    description: `This workshop is for builders who've completed at least one project and want to level up. We're focusing on custom enclosures and finishes this month.
-
-Topics covered:
-- Vacuum forming basics
-- Fiberglass layup techniques
-- Surface finishing and painting
-- Integrating custom RGB lighting
-
-Prerequisites: Basic soldering skills and your own multimeter. Space is limited!`,
-    location_name: "Seattle MakerSpace, Seattle WA",
-    date_start: "2025-05-10T10:00:00",
-    date_end: "2025-05-10T17:00:00",
-    organizer: "NeonRaspberry",
-    max_attendees: 16,
-    rsvp_count: 9,
-    status: "upcoming",
-    region: "Pacific Northwest"
+const meetups = meetupsResult.map(({ meetup, organizerName }) => {
+  const startDate = new Date(meetup.startsAt! * 1000);
+  const endDate = meetup.endsAt ? new Date(meetup.endsAt * 1000) : null;
+  
+  // Determine status based on timestamps if not explicitly set
+  let status: "upcoming" | "in-progress" | "completed" | "cancelled" = 
+    (meetup.status as "upcoming" | "in-progress" | "completed" | "cancelled") || "upcoming";
+  
+  if (status === "upcoming" && meetup.startsAt && meetup.startsAt <= now) {
+    if (meetup.endsAt && meetup.endsAt > now) {
+      status = "in-progress";
+    } else if (meetup.endsAt && meetup.endsAt <= now) {
+      status = "completed";
+    }
   }
-};
+
+  return {
+    slug: meetup.slug,
+    title: meetup.title,
+    description: meetup.description || "",
+    locationName: meetup.location || "TBD",
+    dateStart: startDate.toISOString(),
+    dateEnd: endDate ? endDate.toISOString() : undefined,
+    organizer: organizerName,
+    status,
+    // Default values for schema fields not yet in DB
+    region: "Community", // Schema doesn't have region yet
+    rsvpCount: 0, // Schema doesn't have rsvp_count yet
+    maxAttendees: undefined // Schema doesn't have max_attendees yet
+  };
+});
 
 // Helper to format dates for display
 const formatDateShort = (dateStr: string) => {
@@ -133,19 +60,18 @@ const formatDateShort = (dateStr: string) => {
 const selectedRegion = Astro.url.searchParams.get('region') || 'all';
 const selectedStatus = Astro.url.searchParams.get('status') || 'upcoming';
 
-const regions = ['all', 'Ohio', 'Pacific Northwest', 'Texas', 'Northeast'];
+// Get unique regions from meetups data
+const regions = ['all', ...new Set(meetups.map(m => m.region))];
 
 // Filter meetups
-const filteredMeetups = Object.entries(placeholderMeetupsData).filter(([slug, meetup]) => {
+const filteredMeetups = meetups.filter((meetup) => {
   const regionMatch = selectedRegion === 'all' || meetup.region.toLowerCase() === selectedRegion.toLowerCase();
-  const now = new Date();
-  const meetupDate = new Date(meetup.date_start);
   
   let statusMatch = true;
   if (selectedStatus === 'upcoming') {
-    statusMatch = meetupDate >= now && meetup.status === 'upcoming';
+    statusMatch = meetup.status === 'upcoming' || meetup.status === 'in-progress';
   } else if (selectedStatus === 'past') {
-    statusMatch = meetupDate < now || ['completed', 'cancelled'].includes(meetup.status);
+    statusMatch = meetup.status === 'completed' || meetup.status === 'cancelled';
   }
   
   return regionMatch && statusMatch;
@@ -153,12 +79,12 @@ const filteredMeetups = Object.entries(placeholderMeetupsData).filter(([slug, me
 
 // Separate upcoming and past for display
 const upcomingMeetups = filteredMeetups
-  .filter(([, meetup]) => new Date(meetup.date_start) >= new Date() || meetup.status === 'in-progress')
-  .sort(([, a], [, b]) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
+  .filter((meetup) => meetup.status === 'upcoming' || meetup.status === 'in-progress')
+  .sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime());
 
-const pastMeetups = Object.entries(placeholderMeetupsData)
-  .filter(([, meetup]) => new Date(meetup.date_start) < new Date() || ['completed', 'cancelled'].includes(meetup.status))
-  .sort(([, a], [, b]) => new Date(b.date_start).getTime() - new Date(a.date_start).getTime());
+const pastMeetups = meetups
+  .filter((meetup) => meetup.status === 'completed' || meetup.status === 'cancelled')
+  .sort((a, b) => new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime());
 ---
 
 <BaseLayout 
@@ -223,16 +149,16 @@ const pastMeetups = Object.entries(placeholderMeetupsData)
         
         {upcomingMeetups.length > 0 ? (
           <div class="meetups-grid">
-            {upcomingMeetups.map(([slug, meetup]) => (
+            {upcomingMeetups.map((meetup) => (
               <MeetupCard 
                 title={meetup.title}
-                date={formatDateShort(meetup.date_start)}
-                location={meetup.location_name}
+                date={formatDateShort(meetup.dateStart)}
+                location={meetup.locationName}
                 region={meetup.region}
                 status={meetup.status}
-                attendeeCount={meetup.rsvp_count}
-                maxAttendees={meetup.max_attendees}
-                href={`/meetups/${slug}`}
+                attendeeCount={meetup.rsvpCount}
+                maxAttendees={meetup.maxAttendees}
+                href={`/meetups/${meetup.slug}`}
               />
             ))}
           </div>
@@ -273,16 +199,16 @@ const pastMeetups = Object.entries(placeholderMeetupsData)
             <span class="past-count">{pastMeetups.length} events</span>
           </summary>
           <div class="past-grid">
-            {pastMeetups.map(([slug, meetup]) => (
+            {pastMeetups.map((meetup) => (
               <MeetupCard 
                 title={meetup.title}
-                date={formatDateShort(meetup.date_start)}
-                location={meetup.location_name}
+                date={formatDateShort(meetup.dateStart)}
+                location={meetup.locationName}
                 region={meetup.region}
                 status={meetup.status}
-                attendeeCount={meetup.rsvp_count}
-                maxAttendees={meetup.max_attendees}
-                href={`/meetups/${slug}`}
+                attendeeCount={meetup.rsvpCount}
+                maxAttendees={meetup.maxAttendees}
+                href={`/meetups/${meetup.slug}`}
               />
             ))}
           </div>
@@ -400,131 +326,109 @@ const pastMeetups = Object.entries(placeholderMeetupsData)
     font-weight: 600;
     background: var(--bg);
     border: 3px solid var(--color-text);
-    color: var(--text);
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
-    min-width: 160px;
-    box-shadow: 3px 3px 0 var(--color-text);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-
-  .filter-select:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 5px 5px 0 var(--color-text);
   }
 
   .filter-select:focus {
     outline: none;
-    transform: translate(-2px, -2px);
-    box-shadow: 5px 5px 0 var(--color-primary);
+    box-shadow: 4px 4px 0 var(--color-text);
   }
 
-  /* Meetups Area */
-  .meetups-area {
-    margin-bottom: 3rem;
+  /* Meetups Grid */
+  .meetups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2rem;
+  }
+
+  .past-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
   }
 
   .area-title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 900;
+    margin: 0 0 1.5rem;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
-    margin: 0 0 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 4px solid var(--color-text);
-    color: var(--text);
-  }
-
-  .meetups-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 2rem;
+    letter-spacing: -0.01em;
   }
 
   /* Empty State */
   .empty-state {
     text-align: center;
-    padding: 5rem 2rem;
+    padding: 4rem 2rem;
     background: var(--surface);
-    border: 4px solid var(--color-text);
-    box-shadow: 6px 6px 0 var(--color-text);
+    border: 4px dashed var(--color-text);
   }
 
   .empty-icon {
-    font-size: 4rem;
+    font-size: 3rem;
     display: block;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
   }
 
   .empty-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 800;
-    margin: 0 0 0.75rem;
-    color: var(--text);
+    margin: 0 0 0.5rem;
   }
 
   .empty-text {
-    font-size: 1rem;
     color: var(--text-muted);
-    margin: 0 auto;
-    max-width: 400px;
-    line-height: 1.6;
+    margin: 0;
   }
 
   /* Organize CTA */
   .organize-cta {
-    background: var(--color-secondary);
+    margin-top: 4rem;
+    padding: 2.5rem;
+    background: var(--color-pop-lemon);
     border: 4px solid var(--color-text);
     box-shadow: 8px 8px 0 var(--color-text);
-    padding: 3rem;
-    margin-bottom: 3rem;
   }
 
   .cta-content {
-    text-align: center;
-    max-width: 500px;
-    margin: 0 auto;
+    max-width: 600px;
   }
 
   .cta-title {
-    font-size: 1.75rem;
+    font-size: 1.35rem;
     font-weight: 900;
+    margin: 0 0 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
-    margin: 0 0 1rem;
-    color: white;
   }
 
   .cta-text {
     font-size: 1rem;
-    line-height: 1.7;
-    color: rgba(255, 255, 255, 0.95);
-    margin: 0 0 2rem;
+    margin: 0 0 1.5rem;
+    line-height: 1.6;
   }
 
   .cta-button {
     display: inline-flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 2rem;
-    font-size: 1rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: white;
-    color: var(--color-secondary);
+    gap: 0.5rem;
+    padding: 0.85rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+    background: var(--color-text);
+    color: var(--color-white);
     border: 3px solid var(--color-text);
     box-shadow: 4px 4px 0 var(--color-text);
-    text-decoration: none;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
 
   .cta-button:hover {
-    transform: translate(-4px, -4px);
-    box-shadow: 8px 8px 0 var(--color-text);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--color-text);
   }
 
   .cta-icon {
@@ -533,101 +437,59 @@ const pastMeetups = Object.entries(placeholderMeetupsData)
 
   /* Past Meetups */
   .past-meetups {
+    margin-top: 3rem;
     background: var(--surface);
     border: 4px solid var(--color-text);
     box-shadow: 6px 6px 0 var(--color-text);
-    overflow: hidden;
   }
 
   .past-summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.5rem;
+    padding: 1.25rem 1.5rem;
     font-size: 1rem;
-    font-weight: 700;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text);
     cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     list-style: none;
-    transition: background 0.2s ease;
   }
 
   .past-summary::-webkit-details-marker {
     display: none;
   }
 
-  .past-summary:hover {
-    background: var(--color-pop-mint);
+  .past-summary:after {
+    content: "+";
+    font-size: 1.5rem;
+    font-weight: 400;
   }
 
-  .past-summary::after {
-    content: '▼';
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    transition: transform 0.2s ease;
-  }
-
-  details[open] .past-summary::after {
-    transform: rotate(180deg);
+  details[open] .past-summary:after {
+    content: "−";
   }
 
   .past-count {
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 400;
     color: var(--text-muted);
-    background: var(--color-pop-lemon);
-    padding: 0.35rem 0.75rem;
-    border: 2px solid var(--color-text);
   }
 
-  .past-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 2rem;
+  .past-meetups > .past-grid {
     padding: 0 1.5rem 1.5rem;
   }
 
-  /* Dark mode */
-  :global(html.dark) .filter-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
-  }
-
-  /* Dark mode */
-  :global(html.dark) .filter-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
-  }
-
-  @media (max-width: 600px) {
+  /* Responsive */
+  @media (max-width: 640px) {
     .hero-title {
-      font-size: 2.25rem;
+      font-size: 2.5rem;
     }
 
-    .sparkle {
-      font-size: 2.5rem;
+    .meetups-grid {
+      grid-template-columns: 1fr;
     }
 
     .filter-form {
       flex-direction: column;
-    }
-
-    .filter-select {
-      width: 100%;
-    }
-
-    .meetups-grid,
-    .past-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .meetups-area,
-    .organize-cta {
-      padding-left: 1rem;
-      padding-right: 1rem;
-      margin-left: -1rem;
-      margin-right: -1rem;
-      width: calc(100% + 2rem);
     }
   }
 </style>
