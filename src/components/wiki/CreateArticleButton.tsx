@@ -38,7 +38,7 @@ export function CreateArticleButton({
     async (data: { title: string; categoryId?: string; content: string; status: string }) => {
       setError(null);
       try {
-        const response = await fetch("/_emdash/api/plugin/wiki/article:create", {
+        const response = await fetch("/api/wiki/articles", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

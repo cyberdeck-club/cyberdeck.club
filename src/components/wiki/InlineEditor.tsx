@@ -24,7 +24,7 @@ export interface InlineEditorProps {
   category: string;
   /** URL path segment for the article */
   slug: string;
-  /** Optional save endpoint override (defaults to /_emdash/api/plugin/wiki/article:update) */
+  /** Optional save endpoint override (defaults to /api/wiki/articles/:id) */
   saveEndpoint?: string;
   onChange?: (content: string) => void;
   placeholder?: string;
@@ -39,7 +39,7 @@ export function InlineEditor({
   articleId,
   category,
   slug,
-  saveEndpoint = "/_emdash/api/plugins/wiki/article:update",
+  saveEndpoint = "/api/wiki/articles",
   onChange,
   placeholder,
   disabled = false,
@@ -79,7 +79,7 @@ export function InlineEditor({
         credentials: "same-origin",
         headers: {
           "Content-Type": "application/json",
-          "X-EmDash-Request": "1",
+          "X-CyberDeck-Request": "1",
         },
         body: JSON.stringify({ contentId: articleId, content: editValue }),
       });

@@ -2,7 +2,7 @@
 
 **Build Your Cyberdeck. Meet Your People.**
 
-A community platform for cyberdeck builders — part wiki, part forum, part build showcase. Built with Astro 6 and EmDash CMS.
+A community platform for cyberdeck builders — part wiki, part forum, part build showcase. Built with Astro 6 (SSR), Better Auth, Drizzle ORM, and Cloudflare Workers.
 
 ## What is a Cyberdeck?
 
@@ -10,17 +10,11 @@ A cyberdeck is a portable, often custom-built computer system designed for perso
 
 ## Tech Stack
 
-- **Framework**: [Astro 6](https://astro.build) — Static site generation with island architecture
-- **CMS**: [EmDash CMS](https://emdash.cloud) — Headless CMS with admin UI and content API
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com) — Utility-first CSS
-- **Deployment**: [Cloudflare Pages](https://pages.cloudflare.com) — Edge hosting with Workers support
-
-### Plugins
-
-This site uses custom EmDash plugins for specialized content:
-
-- **[emdash-plugin-wiki](emdash-plugin-wiki/)** — Wiki article system with categories
-- **[emdash-plugin-forum](emdash-plugin-forum/)** — Forum with threads, posts, and categories
+- **Framework**: [Astro 6](https://astro.build) — SSR with island architecture
+- **Auth**: [Better Auth](https://better-auth.com) — Magic link authentication with Resend
+- **ORM**: [Drizzle ORM](https://orm.drizzle.team) — Type-safe database queries
+- **Database**: Cloudflare D1 (SQLite at the edge)
+- **Deployment**: [Cloudflare Workers](https://workers.cloudflare.com) — Edge hosting
 
 ## Prerequisites
 
@@ -42,33 +36,31 @@ cd cyberdeck.club
 pnpm install
 ```
 
-### 3. Set Up EmDash Types
+### 3. Configure Environment
 
-Generate the EmDash type definitions:
-
-```bash
-npx emdash types
-```
-
-This creates `emdash-env.d.ts` with TypeScript types for your content collections.
-
-### 4. Seed the Database
-
-Populate the database with schema definitions and demo content:
+Copy `.env.example` to `.env` and configure:
 
 ```bash
-npx emdash seed seed/seed.json
+cp .env.example .env
 ```
 
-To seed schema only (without demo content):
+Required variables:
+- `AUTH_SECRET` — Secret for session encryption
+- `RESEND_API_KEY` — API key for email delivery (magic link passwords)
+
+### 4. Run Database Migrations
 
 ```bash
-npx emdash seed seed/seed.json --no-content
+pnpm db:migrate
 ```
 
-### 5. Run Locally
+### 5. Seed the Database (optional)
 
-Start the development server:
+```bash
+pnpm db:seed
+```
+
+### 6. Run Locally
 
 ```bash
 pnpm dev
@@ -80,90 +72,68 @@ The site will be available at `http://localhost:4321`.
 
 ```
 cyberdeck.club/
-├── seed/
-│   └── seed.json          # Database schema and demo content
+├── drizzle/
+│   └── migrations/        # Database schema migrations
+├── scripts/
+│   └── seed.ts           # Database seeding script
 ├── src/
 │   ├── components/        # Astro components (Nav, Footer, Cards, etc.)
-│   ├── layouts/           # Page layouts (BaseLayout, WikiLayout, etc.)
-│   ├── pages/             # Astro pages
-│   │   ├── wiki/          # Wiki section pages
-│   │   ├── forum/         # Forum section pages
-│   │   ├── builds/        # Build showcase pages
-│   │   ├── meetups/       # Meetup event pages
-│   │   └── about.astro    # About page
+│   │   └── wiki/         # Wiki React components (islands)
+│   ├── db/               # Drizzle schema and client
+│   ├── layouts/          # Page layouts (BaseLayout, WikiLayout, etc.)
+│   ├── lib/              # Auth, Resend, and data access utilities
+│   ├── pages/            # Astro pages
+│   │   ├── api/          # API routes (auth, wiki, forum, builds, meetups)
+│   │   ├── wiki/         # Wiki section pages
+│   │   ├── forum/        # Forum section pages
+│   │   ├── builds/       # Build showcase pages
+│   │   ├── meetups/      # Meetup event pages
+│   │   └── about.astro   # About page
 │   └── styles/
-│       └── global.css     # Tailwind CSS and custom styles
-├── emdash-plugin-wiki/    # Wiki plugin source
-├── emdash-plugin-forum/   # Forum plugin source
-├── astro.config.mjs       # Astro configuration
+│       └── global.css    # Tailwind CSS and custom styles
+├── astro.config.mjs      # Astro configuration
+├── better-auth.config.ts # Better Auth configuration
+├── drizzle.config.ts     # Drizzle ORM configuration
 ├── package.json
-└── wrangler.jsonc         # Cloudflare Workers configuration
+└── wrangler.jsonc        # Cloudflare Workers configuration
 ```
 
-### Key Directories
+## Development
 
-| Directory | Purpose |
-|-----------|---------|
-| `seed/` | EmDash seed file with schema definitions and demo content |
-| `src/pages/` | Astro pages for wiki, forum, builds, meetups, and static pages |
-| `src/components/` | Reusable Astro components |
-| `src/layouts/` | Page layouts with shared structure |
-| `src/styles/` | Global CSS and Tailwind configuration |
-| `emdash-plugin-*/` | Custom EmDash plugins for wiki and forum features |
+### Authentication Flow
 
-## EmDash Plugins
+1. User clicks login → enters email
+2. Magic link sent via Resend
+3. User clicks link → session established
+4. Session stored in encrypted cookie
 
-### Wiki Plugin (`emdash-plugin-wiki/`)
+### Database Schema
 
-Provides wiki article functionality:
+- `users` — User accounts with email, role (admin/moderator/user)
+- `sessions` — Better Auth session storage
+- `verification_tokens` — Better Auth verification tokens
+- `forum_categories` — Forum categories
+- `forum_threads` — Forum threads
+- `forum_posts` — Forum posts
+- `wiki_articles` — Wiki articles with markdown content
+- `builds` — Cyberdeck build showcases
+- `meetups` — Meetup events
 
-- Article creation and editing via EmDash admin
-- Category-based organization
-- View count tracking
-- Revision history
+### API Routes
 
-### Forum Plugin (`emdash-plugin-forum/`)
-
-Provides community forum functionality:
-
-- Thread creation and replies
-- Category-based organization
-- User post counts
-- Moderation tools
+- `POST /api/auth/*` — Better Auth endpoints
+- `GET/POST /api/wiki/articles` — Wiki CRUD
+- `GET/POST /api/forum/threads` — Forum threads
+- `POST /api/forum/posts` — Forum posts
+- `GET/POST /api/builds` — Build showcase
+- `GET/POST /api/meetups` — Meetup events
 
 ## Deployment
 
-### Cloudflare Pages
-
-1. Connect your GitHub repository to [Cloudflare Pages](https://pages.cloudflare.com)
-2. Configure the build settings:
-   - **Build command**: `pnpm build`
-   - **Build output directory**: `dist`
-3. Add environment variables if needed
-4. Deploy
-
-### Wrangler (Workers)
-
-For custom Workers functions:
+Deploy to Cloudflare Workers:
 
 ```bash
-npx wrangler deploy
+pnpm deploy
 ```
 
-## Content Management
-
-Access the EmDash admin UI at `/emdash` when running locally or on your deployed site. From there you can:
-
-- Create, edit, and publish wiki articles
-- Manage forum threads and posts
-- Organize meetup events
-- Update build showcase entries
-- Manage navigation menus
-
-## Contributing
-
-Contributions welcome! Please feel free to submit issues or pull requests.
-
-## License
-
-MIT
+See [MIGRATION.md](./MIGRATION.md) for the full migration history from EmDash to native Astro SSR.

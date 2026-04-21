@@ -41,7 +41,7 @@ export function WikiEditor({
     setIsDeleting(true);
     setError(null);
     try {
-      const response = await fetch("/_emdash/api/plugin/wiki/article:delete", {
+      const response = await fetch("/api/wiki/articles", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
