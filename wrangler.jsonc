@@ -3,14 +3,13 @@
   "compatibility_date": "2026-02-24",
   "compatibility_flags": ["nodejs_compat"],
   "assets": { "directory": "./dist" },
-  // For local development with D1/R2, use these:
-  // "d1_databases": [
-  //   {
-  //     "binding": "DB",
-  //     "database_name": "cyberdeck-club",
-  //     "database_id": "", // from `wrangler d1 create cyberdeck-club`
-  //   },
-  // ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cyberdeck-db",
+      "database_id": "", // from `wrangler d1 create cyberdeck-db`
+    },
+  ],
   // "r2_buckets": [
   //   {
   //     "binding": "MEDIA",
