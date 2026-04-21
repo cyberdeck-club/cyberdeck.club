@@ -1,19 +1,23 @@
 {
-  "name": "cyberdeck-club",
-  "compatibility_date": "2026-02-24",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": { "directory": "./dist" },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "cyberdeck-db",
-      "database_id": "", // from `wrangler d1 create cyberdeck-db`
-    },
-  ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MEDIA",
-  //     "bucket_name": "cyberdeck-club-media",
-  //   },
-  // ],
+	"name": "cyberdeck-club",
+	"compatibility_date": "2026-02-24",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"assets": {
+		"directory": "./dist"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "cyberdeck-db",
+			"database_id": "608a63bd-c950-4e0c-bd94-08e189267194"
+		},
+	],
+	// "r2_buckets": [
+	//   {
+	//     "binding": "MEDIA",
+	//     "bucket_name": "cyberdeck-club-media",
+	//   },
+	// ],
 }

@@ -42,5 +42,8 @@
   },
   "engines": {
     "node": ">=24.0.0"
+  },
+  "optionalDependencies": {
+    "@opentelemetry/api": "^1.9.1"
   }
 }
