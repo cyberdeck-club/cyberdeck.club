@@ -79,13 +79,13 @@ const socialLinks = [
 
         <div class="flex items-center gap-6">
           <a
-            href="/_emdash/admin"
+            href="/login"
             class="footer-admin-link text-sm transition-colors duration-200"
           >
-            Admin
+            Admin Login
           </a>
           <p class="footer-credit text-sm opacity-75">
-            Powered by <a href="https://emdash.club" class="emdash-link underline hover:text-primary" target="_blank" rel="noopener">EmDash</a>
+            Built with 💖 by the cyberdeck community
           </p>
         </div>
       </div>
@@ -156,10 +156,6 @@ const socialLinks = [
     color: var(--color-primary);
   }
 
-  .emdash-link:hover {
-    color: var(--color-primary);
-  }
-
   /* Dark mode footer */
   :global(html.dark) .footer {
     background-color: var(--color-surface-dark);
@@ -201,10 +197,6 @@ const socialLinks = [
   }
 
   :global(html.dark) .footer-admin-link:hover {
-    color: var(--color-primary);
-  }
-
-  :global(html.dark) .emdash-link:hover {
     color: var(--color-primary);
   }
 

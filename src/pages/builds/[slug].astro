@@ -1,148 +1,83 @@
 ---
 import BuildLayout from "@/layouts/BuildLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
-import { MarkdownRenderer } from "@/utils/MarkdownRenderer";
+import { getBuild, getBuilds } from "@/lib/builds";
+import { marked } from "marked";
 
-// Placeholder build data - in production this would come from EmDash queries
-const placeholderBuildsData: Record<string, {
+// Server-rendered page
+export const prerender = false;
+
+// Get slug from URL params
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect("/builds");
+}
+
+// Fetch build from database
+const db = Astro.locals.db!;
+const buildResult = await getBuild(db, slug);
+
+// Build not found - redirect to builds list
+const notFound = !buildResult || buildResult.length === 0;
+
+if (notFound) {
+  return Astro.redirect("/builds");
+}
+
+const result = buildResult[0];
+const build = result.build;
+const authorName = result.authorName;
+
+// Transform build data for the template
+interface BuildData {
   title: string;
   builderName: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   computePlatform: string;
   estimatedCost: number;
   buildTime: string;
-  featuredImage: { url: string; alt: string };
+  featuredImage?: { url: string; alt: string };
   gallery: { url: string; alt: string }[];
   description: string;
+  content: string;
   partsList: { name: string; link?: string; price?: number; notes?: string }[];
   tags: string[];
   linkedBuildLog?: string;
   linkedWikiArticles?: string[];
-}> = {
-  "portable-pi-station": {
-    title: "Portable Pi Station",
-    builderName: "NeonRaspberry",
-    difficulty: "beginner",
-    computePlatform: "Raspberry Pi 5",
-    estimatedCost: 250,
-    buildTime: "1 weekend",
-    featuredImage: { url: "https://picsum.photos/seed/cyberdeck1/1200/800", alt: "Portable Pi Station" },
-    gallery: [
-      { url: "https://picsum.photos/seed/cyberdeck1a/800/600", alt: "Side view" },
-      { url: "https://picsum.photos/seed/cyberdeck1b/800/600", alt: "Top view" },
-      { url: "https://picsum.photos/seed/cyberdeck1c/800/600", alt: "Internal components" }
-    ],
-    description: `This is my first cyberdeck build, inspired by the classic portable gaming consoles of the 90s. I wanted something that felt nostalgic but with modern performance.
+}
 
-The case is 3D printed using PETG for durability, with a custom 3.5" IPS display that provides beautiful colors and wide viewing angles. The keyboard is a custom mechanical matrix that fits perfectly in the palm of your hand.
-
-I went with a Raspberry Pi 5 for the main compute - it's powerful enough for retro gaming and even some light Linux work. The 5000mAh battery gives me about 4 hours of continuous use.`,
-    partsList: [
-      { name: "Raspberry Pi 5 8GB", link: "https://www.raspberrypi.com/products/raspberry-pi-5/", price: 85 },
-      { name: "3.5\" IPS Display (640x480)", price: 35 },
-      { name: "5000mAh LiPo Battery", price: 25 },
-      { name: "3D Printed Case (PETG)", price: 15 },
-      { name: "Custom Mechanical Keyboard Matrix", price: 40 },
-      { name: "Power Management Board", price: 20 },
-      { name: "Power Button, USB-C PD", price: 15 },
-      { name: "Wires, Connectors, Misc", price: 15 }
-    ],
-    tags: ["portable", "raspberry-pi", "handheld", "3d-printed"],
-    linkedWikiArticles: ["raspberry-pi-5-setup", "3d-printing-basics"]
-  },
-  "cyberdeck-x9000": {
-    title: "CyberDeck X9000",
-    builderName: "CircuitWitch",
-    difficulty: "advanced",
-    computePlatform: "Jetson Orin Nano",
-    estimatedCost: 850,
-    buildTime: "3 weekends",
-    featuredImage: { url: "https://picsum.photos/seed/cyberdeck2/1200/800", alt: "CyberDeck X9000" },
-    gallery: [
-      { url: "https://picsum.photos/seed/cyberdeck2a/800/600", alt: "Front view" },
-      { url: "https://picsum.photos/seed/cyberdeck2b/800/600", alt: "RGB keyboard" },
-      { url: "https://picsum.photos/seed/cyberdeck2c/800/600", alt: "Internal view" }
-    ],
-    description: `The CyberDeck X9000 is my ultimate dream build - a high-performance workstation that can handle AI/ML workloads while still being portable enough to take to hackerspaces.
-
-The centerpiece is an NVIDIA Jetson Orin Nano with 8GB of RAM, giving me 62 TOPS of AI performance. Combined with the 7-inch touchscreen and mechanical keyboard, this is my mobile AI development station.
-
-The case is CNC-machined from aluminum with a custom powder coat finish. RGB lighting is integrated throughout and can be programmed via Python.`,
-    partsList: [
-      { name: "NVIDIA Jetson Orin Nano 8GB", link: "https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/", price: 499 },
-      { name: "7\" Touchscreen (1280x800)", price: 89 },
-      { name: "CNC Aluminum Case", price: 120 },
-      { name: "Kailh Mechanical Keyboard", price: 65 },
-      { name: "10000mAh Battery Pack", price: 45 },
-      { name: "RGB LED Strip (WS2812B)", price: 12 },
-      { name: "Custom Power Distribution", price: 20 }
-    ],
-    tags: ["nvidia", "jetson", "high-performance", "ai", "cnc-machined"],
-    linkedBuildLog: "https://forum.cyberdeck.club/thread/cyberdeck-x9000-build-log"
-  },
-  "retro-terminal-deck": {
-    title: "Retro Terminal Deck",
-    builderName: "ByteRunner",
-    difficulty: "intermediate",
-    computePlatform: "Raspberry Pi Zero 2 W",
-    estimatedCost: 75,
-    buildTime: "2 days",
-    featuredImage: { url: "https://picsum.photos/seed/cyberdeck3/1200/800", alt: "Retro Terminal Deck" },
-    gallery: [
-      { url: "https://picsum.photos/seed/cyberdeck3a/800/600", alt: "Green phosphor display" },
-      { url: "https://picsum.photos/seed/cyberdeck3b/800/600", alt: "Compact form factor" }
-    ],
-    description: `A compact, retro-styled terminal deck that fits in your pocket. The green phosphor CRT effect is achieved with a custom shader on the 2.8" display.
-
-This build is perfect for SSH sessions and command-line work on the go. The Raspberry Pi Zero 2 W provides enough performance for most terminal tasks while staying incredibly small and power-efficient.`,
-    partsList: [
-      { name: "Raspberry Pi Zero 2 W", link: "https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/", price: 20 },
-      { name: "2.8\" TFT Display (320x240)", price: 15 },
-      { name: "2000mAh LiPo Battery", price: 10 },
-      { name: "3D Printed Case", price: 8 },
-      { name: "Tactile Switches (6x)", price: 5 },
-      { name: "Power Boost Circuit", price: 7 },
-      { name: "Wires & Misc", price: 10 }
-    ],
-    tags: ["retro", "compact", "zero2w", "terminal"]
-  }
+const buildData: BuildData = {
+  title: build.title,
+  builderName: authorName,
+  difficulty: "intermediate" as const, // Default - schema doesn't have difficulty yet
+  computePlatform: "Raspberry Pi", // Default - schema doesn't have computePlatform yet
+  estimatedCost: 0, // Default - schema doesn't have estimatedCost yet
+  buildTime: "Varies", // Default - schema doesn't have buildTime yet
+  featuredImage: build.heroImageUrl ? { url: build.heroImageUrl, alt: build.title } : undefined,
+  gallery: [] as { url: string; alt: string }[], // Default - schema doesn't have gallery yet
+  description: build.description || "",
+  content: build.content || "",
+  partsList: [] as { name: string; link?: string; price?: number; notes?: string }[], // Default - schema doesn't have partsList yet
+  tags: [] as string[], // Default - schema doesn't have tags yet
+  linkedBuildLog: undefined as string | undefined,
+  linkedWikiArticles: undefined as string[] | undefined
 };
 
-// Get slug from URL - in server mode, Astro.url is available
-const slug = Astro.url.pathname.split('/').pop() || '';
-
-// Get build data (placeholder - would be EmDash query in production)
-const build = placeholderBuildsData[slug] || placeholderBuildsData["portable-pi-station"];
-
-// Related builds (placeholder)
-const relatedBuilds = Object.entries(placeholderBuildsData)
-  .filter(([key]) => key !== slug && placeholderBuildsData[key].difficulty === build.difficulty)
-  .map(([key, data]) => ({
-    slug: key,
-    title: data.title,
-    builderName: data.builderName,
-    difficulty: data.difficulty,
-    computePlatform: data.computePlatform,
-    estimatedCost: data.estimatedCost,
-    featuredImage: data.featuredImage
+// Fetch related builds (same difficulty)
+const allBuildsResult = await getBuilds(db, { limit: 20 });
+const relatedBuilds = allBuildsResult
+  .filter(({ build: b }) => b.slug !== slug)
+  .slice(0, 2)
+  .map(({ build: b, authorName: name }) => ({
+    slug: b.slug,
+    title: b.title,
+    builderName: name,
+    difficulty: "intermediate" as const,
+    computePlatform: "Raspberry Pi",
+    estimatedCost: 0,
+    featuredImage: b.heroImageUrl ? { url: b.heroImageUrl, alt: b.title } : undefined
   }));
-
-// If no related by difficulty, add some others
-if (relatedBuilds.length < 2) {
-  const others = Object.entries(placeholderBuildsData)
-    .filter(([key]) => key !== slug)
-    .slice(0, 2)
-    .map(([key, data]) => ({
-      slug: key,
-      title: data.title,
-      builderName: data.builderName,
-      difficulty: data.difficulty,
-      computePlatform: data.computePlatform,
-      estimatedCost: data.estimatedCost,
-      featuredImage: data.featuredImage
-    }));
-  relatedBuilds.push(...others);
-}
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -155,77 +90,45 @@ const formatCurrency = (amount: number) => {
 ---
 
 <BuildLayout
-  title={build.title}
-  description={`${build.title} by ${build.builderName} - ${build.computePlatform} cyberdeck build`}
-  featuredImage={build.featuredImage}
-  builderName={build.builderName}
-  difficulty={build.difficulty}
-  computePlatform={build.computePlatform}
-  estimatedCost={build.estimatedCost}
-  buildTime={build.buildTime}
-  tags={build.tags}
+  title={buildData.title}
+  description={`${buildData.title} by ${buildData.builderName} - ${buildData.computePlatform} cyberdeck build`}
+  featuredImage={buildData.featuredImage}
+  builderName={buildData.builderName}
+  difficulty={buildData.difficulty}
+  computePlatform={buildData.computePlatform}
+  estimatedCost={buildData.estimatedCost}
+  buildTime={buildData.buildTime}
+  tags={buildData.tags}
 >
   <!-- Description Section -->
   <section class="build-section">
     <h2 class="section-title">About This Build</h2>
     <div class="description-content">
-      <MarkdownRenderer content={build.description}/>
+      <Fragment set:html={marked.parse(buildData.description || buildData.content || "")}/>
     </div>
   </section>
 
-  <!-- Parts List Section -->
-  <section class="build-section">
-    <h2 class="section-title">Parts List</h2>
-    <div class="parts-table-wrapper">
-      <table class="parts-table">
-        <thead>
-          <tr>
-            <th>Component</th>
-            <th>Notes</th>
-            <th class="price-col">Est. Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          {build.partsList.map(part => (
-            <tr>
-              <td>
-                {part.link ? (
-                  <a href={part.link} target="_blank" rel="noopener" class="part-link">
-                    {part.name}
-                    <svg class="external-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
-                    </svg>
-                  </a>
-                ) : (
-                  part.name
-                )}
-              </td>
-              <td class="notes-col">{part.notes || '—'}</td>
-              <td class="price-col">{part.price ? formatCurrency(part.price) : '—'}</td>
-            </tr>
-          ))}
-          <tr class="total-row">
-            <td colspan="2">Total Estimated Cost</td>
-            <td class="price-col">{formatCurrency(build.estimatedCost)}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+  <!-- Parts List Section - Show message if no parts list in schema -->
+  {buildData.partsList.length === 0 && (
+    <section class="build-section">
+      <h2 class="section-title">Parts List</h2>
+      <p class="parts-placeholder">Parts list not available for this build yet.</p>
+    </section>
+  )}
 
   <!-- Image Gallery Section -->
-  {build.gallery.length > 0 && (
+  {buildData.gallery.length > 0 && (
     <section class="build-section">
       <h2 class="section-title">Gallery</h2>
       <div class="gallery-grid">
-        {build.gallery.map((image, index) => (
-          <button 
-            class="gallery-item" 
+        {buildData.gallery.map((image, index) => (
+          <button
+            class="gallery-item"
             data-gallery-index={index}
             aria-label={`View ${image.alt}`}
           >
-            <img 
-              src={image.url} 
+            <img
+              src={image.url}
               alt={image.alt}
               loading="lazy"
             />
@@ -236,10 +139,10 @@ const formatCurrency = (amount: number) => {
   )}
 
   <!-- Linked Build Log -->
-  {build.linkedBuildLog && (
+  {buildData.linkedBuildLog && (
     <section class="build-section">
       <h2 class="section-title">Build Log</h2>
-      <a href={build.linkedBuildLog} class="build-log-link" target="_blank" rel="noopener">
+      <a href={buildData.linkedBuildLog} class="build-log-link" target="_blank" rel="noopener">
         <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
           <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
@@ -253,18 +156,18 @@ const formatCurrency = (amount: number) => {
   )}
 
   <!-- Linked Wiki Articles -->
-  {build.linkedWikiArticles && build.linkedWikiArticles.length > 0 && (
+  {buildData.linkedWikiArticles && buildData.linkedWikiArticles.length > 0 && (
     <section class="build-section">
       <h2 class="section-title">Related Wiki Articles</h2>
       <ul class="wiki-links">
-        {build.linkedWikiArticles.map(article => (
+        {buildData.linkedWikiArticles.map((article: string) => (
           <li>
             <a href={`/wiki/${article}`} class="wiki-link">
               <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
               </svg>
-              {article.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              {article.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
             </a>
           </li>
         ))}
@@ -298,18 +201,18 @@ const formatCurrency = (amount: number) => {
       <h3 class="sidebar-title">Quick Stats</h3>
       <dl class="stats-list">
         <dt>Platform</dt>
-        <dd>{build.computePlatform}</dd>
+        <dd>{buildData.computePlatform}</dd>
         <dt>Est. Cost</dt>
-        <dd>{formatCurrency(build.estimatedCost)}</dd>
+        <dd>{formatCurrency(buildData.estimatedCost)}</dd>
         <dt>Build Time</dt>
-        <dd>{build.buildTime}</dd>
+        <dd>{buildData.buildTime}</dd>
         <dt>Difficulty</dt>
         <dd>
-          <span 
+          <span
             class="difficulty-inline"
-            style={`background: ${build.difficulty === 'beginner' ? 'var(--color-pop-mint)' : build.difficulty === 'intermediate' ? 'var(--color-pop-lemon)' : 'var(--color-accent)'}; color: ${build.difficulty === 'advanced' ? 'white' : 'var(--color-text)'}`}
+            style={`background: ${buildData.difficulty === 'beginner' ? 'var(--color-pop-mint)' : buildData.difficulty === 'intermediate' ? 'var(--color-pop-lemon)' : 'var(--color-accent)'}; color: ${buildData.difficulty === 'advanced' ? 'white' : 'var(--color-text)'}`}
           >
-            {build.difficulty.charAt(0).toUpperCase() + build.difficulty.slice(1)}
+            {buildData.difficulty.charAt(0).toUpperCase() + buildData.difficulty.slice(1)}
           </span>
         </dd>
       </dl>

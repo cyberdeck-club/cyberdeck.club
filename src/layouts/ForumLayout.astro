@@ -7,6 +7,8 @@
 import BaseLayout from "./BaseLayout.astro";
 import ForumSidebar from "@/components/ForumSidebar.astro";
 
+export const prerender = false;
+
 interface Props {
   title: string;
   description?: string;

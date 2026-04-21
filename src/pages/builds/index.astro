@@ -1,93 +1,29 @@
 ---
 import BuildLayout from "@/layouts/BuildLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
+import { getBuilds } from "@/lib/builds";
 
-// Placeholder build data - in production this would come from EmDash queries
-const placeholderBuilds = [
-  {
-    slug: "portable-pi-station",
-    title: "Portable Pi Station",
-    builderName: "NeonRaspberry",
-    difficulty: "beginner" as const,
-    computePlatform: "Raspberry Pi 5",
-    estimatedCost: 250,
-    featuredImage: { url: "https://picsum.photos/seed/cyberdeck1/800/600", alt: "Portable Pi Station" },
-    tags: ["portable", "raspberry-pi", "handheld"]
-  },
-  {
-    slug: "cyberdeck-x9000",
-    title: "CyberDeck X9000",
-    builderName: "CircuitWitch",
-    difficulty: "advanced" as const,
-    computePlatform: "Jetson Orin Nano",
-    estimatedCost: 850,
-    featuredImage: { url: "https://picsum.photos/seed/cyberdeck2/800/600", alt: "CyberDeck X9000" },
-    tags: ["nvidia", "jetson", "high-performance"]
-  },
-  {
-    slug: "retro-terminal-deck",
-    title: "Retro Terminal Deck",
-    builderName: "ByteRunner",
-    difficulty: "intermediate" as const,
-    computePlatform: "Raspberry Pi Zero 2 W",
-    estimatedCost: 75,
-    featuredImage: { url: "https://picsum.photos/seed/cyberdeck3/800/600", alt: "Retro Terminal Deck" },
-    tags: ["retro", "compact", "zero2w"]
-  },
-  {
-    slug: "mechanical-keyboard-deck",
-    title: "Mechanical Keyboard Deck",
-    builderName: "ClickyClack",
-    difficulty: "intermediate" as const,
-    computePlatform: "Raspberry Pi 4",
-    estimatedCost: 320,
-    featuredImage: { url: "https://picsum.photos/seed/cyberdeck4/800/600", alt: "Mechanical Keyboard Deck" },
-    tags: ["mechanical-keyboard", "split-keyboard", "ergonomic"]
-  },
-  {
-    slug: "pocket-cyberdeck",
-    title: "Pocket Cyberdeck",
-    builderName: "MiniMaker",
-    difficulty: "beginner" as const,
-    computePlatform: "Raspberry Pi Zero 2 W",
-    estimatedCost: 55,
-    featuredImage: { url: "https://picsum.photos/seed/cyberdeck5/800/600", alt: "Pocket Cyberdeck" },
-    tags: ["pocket", "compact", "beginner-friendly"]
-  },
-  {
-    slug: "vr-backpack-station",
-    title: "VR Backpack Station",
-    builderName: "ImmersiveTech",
-    difficulty: "advanced" as const,
-    computePlatform: "Intel NUC 12",
-    estimatedCost: 1200,
-    featuredImage: { url: "https://picsum.photos/seed/cyberdeck6/800/600", alt: "VR Backpack Station" },
-    tags: ["vr", "backpack", "wireless"]
-  },
-  {
-    slug: "steam-deck-mods",
-    title: "Steam Deck Modded",
-    builderName: "ValveVault",
-    difficulty: "intermediate" as const,
-    computePlatform: "Steam Deck",
-    estimatedCost: 450,
-    featuredImage: { url: "https://picsum.photos/seed/cyberdeck7/800/600", alt: "Steam Deck Modded" },
-    tags: ["steam-deck", "modded", "gaming"]
-  },
-  {
-    slug: "cyberpunk-wrist-display",
-    title: "Cyberpunk Wrist Display",
-    builderName: "FutureWear",
-    difficulty: "advanced" as const,
-    computePlatform: "ESP32-S3",
-    estimatedCost: 180,
-    featuredImage: { url: "https://picsum.photos/seed/cyberdeck8/800/600", alt: "Cyberpunk Wrist Display" },
-    tags: ["wearable", "esp32", "wrist-mounted"]
-  }
-];
+// Server-rendered page
+export const prerender = false;
+
+// Fetch builds from database
+const db = Astro.locals.db!;
+const buildsResult = await getBuilds(db);
+
+// Transform database results to the format expected by BuildCard
+const builds = buildsResult.map(({ build, authorName }) => ({
+  slug: build.slug,
+  title: build.title,
+  builderName: authorName,
+  difficulty: "intermediate" as const, // Default - schema doesn't have difficulty yet
+  computePlatform: "Raspberry Pi", // Default - schema doesn't have computePlatform yet
+  estimatedCost: 0, // Default - schema doesn't have estimatedCost yet
+  featuredImage: build.heroImageUrl ? { url: build.heroImageUrl, alt: build.title } : undefined,
+  tags: [] as string[]
+}));
 
 // Get unique platforms and difficulties for filters
-const allPlatforms = [...new Set(placeholderBuilds.map(b => b.computePlatform))];
+const allPlatforms = [...new Set(builds.map(b => b.computePlatform))];
 const allDifficulties = ["beginner", "intermediate", "advanced"] as const;
 const difficultyLabels = {
   "beginner": "Beginner",
@@ -154,7 +90,7 @@ const costRanges = [
   <!-- Builds Grid -->
   <section class="builds-grid-section">
     <div class="builds-grid" id="builds-grid">
-      {placeholderBuilds.map((build, index) => (
+      {builds.map((build, index) => (
         <BuildCard
           title={build.title}
           builderName={build.builderName}

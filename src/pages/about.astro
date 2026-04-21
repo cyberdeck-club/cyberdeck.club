@@ -1,19 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SectionHeader from '../components/SectionHeader.astro';
-import { getEmDashCollection } from 'emdash';
 
-// Query about page content from EmDash
-const { entries, cacheHint } = await getEmDashCollection('about_page');
-Astro.cache.set(cacheHint);
-
-const aboutPage = entries[0]?.data;
-const pageTitle = aboutPage?.page_title || 'About cyberdeck.club';
-const pageSubtitle = aboutPage?.page_subtitle || 'Build Your Cyberdeck. Meet Your People.';
-const whatIsCyberdeckContent = aboutPage?.what_is_cyberdeck_content || [];
-const communityContent = aboutPage?.community_content || [];
-const howToGetInvolvedContent = aboutPage?.how_to_get_involved_content || [];
-const aboutThisSiteContent = aboutPage?.about_this_site_content || [];
+const pageTitle = 'About cyberdeck.club';
+const pageSubtitle = 'Build Your Cyberdeck. Meet Your People.';
 ---
 
 <BaseLayout title={`${pageTitle} - cyberdeck.club`} description="Learn about the cyberdeck.club community and how to get involved.">
@@ -26,16 +16,19 @@ const aboutThisSiteContent = aboutPage?.about_this_site_content || [];
     <div class="prose prose-pink max-w-none">
       <section class="mb-12">
         <h2>What is cyberdeck.club?</h2>
-        {whatIsCyberdeckContent.map((block: any) => (
-          <p>{block.children?.[0]?.text || ''}</p>
-        ))}
+        <p>
+          cyberdeck.club is a community for enthusiasts building cyberdecks — portable,
+          custom-built computers inspired by the retro-futuristic aesthetic of cyberpunk fiction.
+          We bring together makers, hackers, and creative technologists who share a passion for
+          DIY computing projects.
+        </p>
       </section>
 
       <section class="mb-12">
         <h2>The Community</h2>
-        {communityContent.map((block: any) => (
-          <p>{block.children?.[0]?.text || ''}</p>
-        ))}
+        <p>
+          Our community includes makers of all skill levels, from beginners to experienced builders.
+        </p>
         <ul>
           <li><strong>Beginners</strong> — Starting their first build with a Raspberry Pi and a dream</li>
           <li><strong>Experienced builders</strong> — Refining their craft over years of iteration</li>
@@ -108,9 +101,10 @@ const aboutThisSiteContent = aboutPage?.about_this_site_content || [];
 
       <section class="text-sm text-base-content/70">
         <h2>About This Site</h2>
-        {aboutThisSiteContent.map((block: any) => (
-          <p>{block.children?.[0]?.text || ''}</p>
-        ))}
+        <p>
+          cyberdeck.club is an open-source community project built with Astro, Drizzle ORM,
+          and a whole lot of passion. The site is maintained by volunteers from the community.
+        </p>
         <p class="mt-4">
           Questions about the site itself? Drop them in the forum's
           <a href="/forum/off-topic" class="link">Off Topic</a> section.

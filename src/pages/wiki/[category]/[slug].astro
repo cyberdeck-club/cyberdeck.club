@@ -6,9 +6,10 @@
  */
 
 import WikiLayout from "@/layouts/WikiLayout.astro";
-import { MarkdownRenderer } from "@/utils/MarkdownRenderer";
 import { WikiEditor } from "@/components/wiki/WikiEditor";
 import { InlineEditor } from "@/components/wiki/InlineEditor";
+import { getWikiArticle, incrementWikiViewCount } from "@/lib/wiki";
+import { marked } from "marked";
 
 // Server-rendered page
 export const prerender = false;
@@ -61,761 +62,83 @@ const userRole = getUserRole(user);
 // Get category and slug from URL params
 const { category, slug } = Astro.params;
 
-// Category data with articles for placeholder content
-const wikiArticles: Record<string, Record<string, {
-  title: string;
-  content: string;
-  lastUpdated: string;
-  author: string;
-  status: "stub" | "needs-review" | "good" | "featured";
-  relatedArticles: string[];
-}>> = {
-  "getting-started": {
-    "what-is-a-cyberdeck": {
-      title: "What is a Cyberdeck?",
-      content: `
-A cyberdeck is a portable, often handcrafted computer system that combines modern computing hardware with a retro-futuristic or unique aesthetic. Unlike conventional laptops, cyberdecks are typically built from scratch or heavily modified, allowing builders complete control over form factor, features, and appearance.
-
-The term "cyberdeck" draws inspiration from William Gibson's cyberpunk novels, where such devices were ubiquitous tools for hackers and information brokers. In reality, today's cyberdecks serve as powerful portable workstations, creativity machines, and expressions of individual style.
-
-## Key Characteristics
-
-**Portable Form Factor**: Most cyberdecks are designed to be carried around, similar to a briefcase or messenger bag. Some are backpack-mounted, while others fold or collapse for transport.
-
-**Custom Hardware**: Rather than buying an off-the-shelf laptop, builders select individual components—single-board computers, displays, keyboards, batteries—to create systems tailored to their needs.
-
-**Unique Aesthetics**: From neon-lit steampunk designs to sleek minimalist builds, cyberdecks often feature distinctive visual styles that reflect their makers' personalities.
-
-**Open Design**: Many cyberdeck projects are documented openly, with builders sharing schematics, code, and design files for others to replicate or modify.
-
-## Why People Build Cyberdecks
-
-The motivations vary widely:
-
-- **Creative Expression**: The cyberdeck community treats hardware like art, expressing identity through custom builds
-- **Practical Portability**: Tailoring a system for specific use cases, like field work or presentations
-- **Technical Learning**: Building a cyberdeck teaches electronics, 3D design, and system integration
-- **Sustainability**: Repurposing old hardware reduces e-waste and extends equipment lifespans
-- **Community**: Sharing builds and collaborating with other makers
-
-## The Community
-
-Cyberdeck.club brings together builders from all backgrounds to share knowledge, showcase projects, and help newcomers get started. Whether you're interested in your first simple build or an ambitious multi-display workstation, you'll find guidance and inspiration here.
-
-Ready to start your journey? Check out our [Essential Tools guide](/wiki/getting-started/essential-tools) to see what you'll need.
-      `.trim(),
-      lastUpdated: "2026-04-10",
-      author: "NeonBuilder",
-      status: "good",
-      relatedArticles: ["why-build-a-cyberdeck", "planning-your-build", "essential-tools"]
-    },
-    "why-build-a-cyberdeck": {
-      title: "Why Build a Cyberdeck?",
-      content: `
-There are many reasons someone might choose to build a cyberdeck instead of buying a commercial laptop or computer. Here are some of the most common motivations in the community.
-
-## Creative Expression
-
-Modern consumer electronics are increasingly homogeneous—most laptops look and function nearly identically. A cyberdeck offers the opportunity to create something truly unique, a tool that reflects your personal aesthetic and values.
-
-Many builders describe their cyberdecks as "wearable art" or "functional sculpture." The design process involves careful consideration of materials, colors, lighting, and overall form.
-
-## Learning New Skills
-
-Building a cyberdeck is an excellent learning project. You'll likely develop skills in:
-
-- Electronics assembly and soldering
-- 3D modeling and printing
-- Linux system administration
-- Cable management and routing
-- Power systems and battery management
-- Ergonomic design
-
-## Practical Portability
-
-Commercial devices often force compromises. A cyberdeck lets you optimize for your specific needs:
-
-- Extra ports for your workflow
--阳光下 readable displays for outdoor use
-- Extended battery life with custom power systems
-- Integrated peripherals like barcode scanners or SDR receivers
-
-## Sustainability
-
-Building with repurposed or salvaged components extends the life of electronics that might otherwise become e-waste. Many builders specifically seek out vintage parts and give them new life in their projects.
-
-## Community and Belonging
-
-The cyberdeck community is welcoming and supportive. Sharing your builds, receiving feedback, and collaborating on projects creates meaningful connections with fellow makers worldwide.
-
-## Privacy and Security
-
-Custom-built systems give you complete control over your hardware and software, which can be appealing for those with strong privacy requirements. You know exactly what's in your system and how it's configured.
-      `.trim(),
-      lastUpdated: "2026-04-08",
-      author: "CircuitWitch",
-      status: "good",
-      relatedArticles: ["what-is-a-cyberdeck", "planning-your-build"]
-    },
-    "essential-tools": {
-      title: "Essential Tools for Beginners",
-      content: `
-Starting your first cyberdeck build? Here's a comprehensive guide to the tools you'll need, organized by category.
-
-## Hand Tools
-
-### Screwdriver Set
-A good set of precision screwdrivers is essential. You'll need various sizes for electronics, including:
-- Phillips #0, #1, #2
-- Flat head in multiple sizes
-- Torx T6, T8, T10
-- Pentalobe for Apple devices
-
-### Pliers
-- Needle-nose pliers for small work
-- Regular pliers for gripping
-- Diagonal cutters for trimming leads
-
-### Tweezers
-Anti-static tweezers are essential for placing small components.
-
-## Soldering Equipment
-
-### Soldering Iron
-A temperature-controlled station is recommended. Look for:
-- Adjustable temperature (200-480°C range)
-- Quick-change tips
-- At least 60W heating element
-
-### Solder
-- 60/40 or 63/37 leaded solder for general use
-- Lead-free solder if preferred
-- Various diameters (0.5mm for SMD, 1.0mm for through-hole)
-
-### Soldering Accessories
-- Soldering iron stand with sponge
-- Brass wool or wet sponge for tip cleaning
-- Flux pen for difficult joints
-- Desoldering pump or wick
-
-## Cutting and Shaping
-
-### Hobby Knife
-A quality hobby knife with replaceable blades for cutting plastic, foam, and other materials.
-
-### Flush Cutters
-For cleanly cutting component leads and wires.
-
-### Rotary Tool
-A Dremel or equivalent with various attachments:
-- Cutoff wheels
-- Sanding drums
-- Polishing accessories
-
-## Measurement and Testing
-
-### Multimeter
-Essential for checking connections, measuring voltage, and troubleshooting.
-
-### Digital Calipers
-Precise measurements are crucial for custom enclosures and mounting.
-
-### Wire Strippers
-Look for a quality pair with multiple gauge settings.
-
-## 3D Printing (Optional but Recommended)
-
-If your build involves 3D-printed parts, you'll need:
-- 3D printer (FDM is most accessible)
-- Various filaments (PLA, PETG minimum)
-- Sanding and finishing supplies
-
-## Safety Equipment
-
-- Safety glasses
-- Good ventilation or fume extractor
-- First aid kit
-- Fire extinguisher (for soldering safety)
-
-Start with the basics and add tools as your projects require them.
-      `.trim(),
-      lastUpdated: "2026-04-05",
-      author: "MakerMike",
-      status: "good",
-      relatedArticles: ["what-is-a-cyberdeck", "soldering-basics", "3d-printing-for-cyberdecks"]
-    },
-    "planning-your-build": {
-      title: "Planning Your First Build",
-      content: `
-Before diving into your first cyberdeck build, taking time to plan will save you frustration and potentially money. This guide walks through the essential planning steps.
-
-## Define Your Goals
-
-Ask yourself:
-- What will you primarily use this cyberdeck for?
-- Where will you typically use it?
-- What aesthetics appeal to you?
-- What's your budget?
-
-## Set a Budget
-
-Cyberdeck builds can range from under $100 to several thousand dollars. Consider:
-
-| Component | Budget Range | Mid-Range | High-End |
-|-----------|-------------|-----------|----------|
-| SBC/Compute | $15-75 | $100-200 | $300+ |
-| Display | $20-100 | $100-250 | $400+ |
-| Keyboard | $20-80 | $80-200 | $300+ |
-| Battery | $15-50 | $50-150 | $200+ |
-| Enclosure | $0-50 | $50-200 | $500+ |
-
-## Choose Your Form Factor
-
-Common approaches:
-- **Briefcase style**: Classic look, good protection, can accommodate full-size keyboards
-- **Backpack mount**: Truly portable, keeps hands free
-- **Clipboard/tablet hybrid**: Ultra-portable, compromises on input
-- **Multi-screen workstation**: Maximum screen real estate, less portable
-
-## Select Your Compute Module
-
-Considerations:
-- **Raspberry Pi**: Excellent community support, good performance, efficient
-- **Orange Pi**: Lower cost, varied performance, less documentation
-- **Intel NUC/Compute Stick**: x86 compatibility, Windows support, more power
-- **LattePanda**: Built-in Arduino, Windows option
-
-## Plan Your Power System
-
-Decide on:
-- Battery chemistry (LiPo vs 18650 cells)
-- Capacity needs based on usage
-- Charging method
-- UPS capability if needed
-
-## Create a Timeline
-
-Set realistic milestones:
-1. Research and planning (1-2 weeks)
-2. Component acquisition (1-4 weeks)
-3. Initial assembly and testing (1-2 weeks)
-4. Enclosure fabrication (2-4 weeks)
-5. Software configuration (ongoing)
-6. Iteration and refinement (ongoing)
-
-## Document Everything
-
-Keep notes on:
-- Component sources and prices
-- Wiring diagrams
-- Software configurations
-- Problems encountered and solutions
-
-This documentation helps you troubleshoot and inspires future builds.
-      `.trim(),
-      lastUpdated: "2026-04-02",
-      author: "NeonBuilder",
-      status: "needs-review",
-      relatedArticles: ["what-is-a-cyberdeck", "essential-tools"]
-    },
-    "safety-precautions": {
-      title: "Safety Precautions",
-      content: `
-Working on cyberdeck projects involves various safety hazards. Understanding and following safety practices protects you and your equipment.
-
-## Electrical Safety
-
-### Battery Safety
-- Never short-circuit lithium batteries
-- Always use proper protection circuits
-- Charge batteries on non-flammable surfaces
-- Never leave charging batteries unattended
-- Store damaged batteries in safe containers
-
-### High Voltage Warning
-Some components can retain dangerous charges:
-- Capacitors in CRT displays can hold lethal charges
-- Always discharge capacitors before working on power circuits
-- If unsure, assume any component is dangerous
-
-### Power Supply Safety
-- Use properly rated power supplies
-- Check for recalls on PSU models
-- Never bypass safety ground connections
-- Ensure adequate ventilation for power components
-
-## Soldering Safety
-
-### Fume Exposure
-Soldering produces potentially harmful fumes:
-- Work in well-ventilated areas
-- Use fume extractors or fans
-- Lead-free solder reduces some hazards
-- Wash hands after handling solder
-
-### Burns Prevention
-- Let equipment cool before working on it
-- Use proper stands for hot irons
-- Be aware of component leads that retain heat
-
-## Tool Safety
-
-### Eye Protection
-- Always wear safety glasses when cutting, drilling, or soldering
-- Flying debris can damage eyes permanently
-- Include safety glasses in your toolkit
-
-### Respiratory Protection
-- Wear respirators when sanding or spray painting
-- Use dust collection when possible
-- Be aware of material safety data sheets (MSDS)
-
-### Tool Operation
-- Follow manufacturer guidelines for power tools
-- Use sharp blades—dull tools require more force and are dangerous
-- Secure workpieces properly before machining
-
-## Fire Safety
-
-### Hot Work
-- Keep fire extinguishers accessible
-- Have a fire blanket for small fires
-- Never leave heat sources unattended
-- Keep flammable materials away from hot work areas
-
-### Electrical Fires
-- Never use water on electrical fires
-- Know how to use a CO2 or dry chemical extinguisher
-- Disconnect power before attempting to fight electrical fires
-
-## First Aid
-
-Keep a basic first aid kit that includes:
-- Burns treatment
-- Eye wash solution
-- Bandages and gauze
-- Tweezers for splinters
-
-Know the location of emergency services.
-      `.trim(),
-      lastUpdated: "2026-03-28",
-      author: "SafeSolder",
-      status: "good",
-      relatedArticles: ["essential-tools", "soldering-basics"]
-    },
-  },
-  "software": {
-    "os-choices": {
-      title: "Operating System Options",
-      content: `
-Choosing the right operating system is one of the most important decisions for your cyberdeck. This guide compares popular options across different hardware platforms.
-
-## Linux Distributions
-
-### Debian/Ubuntu-based
-**Best for**: General use, maximum software compatibility
-
-- **Ubuntu**: Most popular desktop Linux, excellent hardware support
-- **Linux Mint**: User-friendly, familiar desktop environment
-- **Pop!_OS**: Great for hybrid graphics laptops, clean interface
-
-### Arch-based
-**Best for**: Cutting-edge software, minimal installations
-
-- **Arch Linux**: Rolling release, maximum control, steeper learning curve
-- **Manjaro**: Arch base with easier installation, good hardware detection
-- **EndeavourOS**: Arch made accessible, helpful community
-
-### Specialized
-**Best for**: Specific use cases
-
-- **DietPi**: Extremely lightweight, optimized for SBCs
-- **Armbian**: Purpose-built for ARM single-board computers
-- **Raspberry Pi OS**: Official OS for Raspberry Pi, excellent documentation
-
-## For ARM Systems (Raspberry Pi, etc.)
-
-### 64-bit vs 32-bit
-- 64-bit provides better performance with modern software
-- Some proprietary software only runs on 32-bit
-- Raspberry Pi OS offers both variants
-
-### Recommended ARM Distros
-1. **Raspberry Pi OS** (Debian-based, official)
-2. **Ubuntu Server/Desktop** (LTS versions recommended)
-3. **DietPi** (Lightweight, automated setup)
-4. **Armbian** (For non-Pi SBCs)
-5. **PostMarketOS** (For phone hardware repurposing)
-
-## For x86 Systems (Intel NUC, etc.)
-
-### Windows Options
-- **Windows 11**: Modern interface, best software compatibility
-- **Windows 10 LTSC**: Long-term stability, reduced bloat
-
-### Linux for x86
-- **Ubuntu/Debian**: Maximum compatibility
-- **Fedora**: Modern packages, good developer tools
-- **OpenSUSE**: Excellent stability, good partitioning tools
-
-## Dual-Boot Considerations
-
-Many cyberdeck builders run multiple operating systems:
-- Use a boot manager like GRUB
-- Consider drive encryption carefully
-- Test each OS before finalizing your setup
-
-## Performance Tips
-
-Regardless of your OS choice:
-- Disable unnecessary startup services
-- Use lightweight desktop environments if resource-constrained
-- Consider rolling release distros for latest hardware support
-- Keep systems updated for security
-      `.trim(),
-      lastUpdated: "2026-04-10",
-      author: "SysAdmin_Sarah",
-      status: "good",
-      relatedArticles: ["window-managers"]
-    },
-    "window-managers": {
-      title: "Window Managers for Cyberdecks",
-      content: `
-With limited screen real estate, window managers help maximize efficiency on cyberdecks. This guide explores popular options from simple tilers to full desktop environments.
-
-## Why Window Managers?
-
-Traditional desktop environments consume significant resources and leave window management entirely to the user. Window managers offer:
-
-- **Efficiency**: Keyboard-driven workflows, minimal mouse interaction
-- **Resource Savings**: Lower RAM and CPU usage
-- **Customization**: Complete control over window behavior
-- **Productivity**: Organized layouts, quick navigation
-
-## Tiling Window Managers
-
-Tiling WMs automatically arrange windows in non-overlapping layouts.
-
-### i3 / i3-gaps
-**Language**: C  
-**Config**: Plain text  
-**Best for**: General users wanting proven stability
-
-- Excellent documentation
-- Large community
-- Easy to configure
-- Available in most repositories
-
-### Sway
-**Language**: C  
-**Config**: i3-compatible  
-**Best for**: Wayland preference
-
-- Wayland compositor
-- i3-compatible configuration
-- Modern features
-- Better HiDPI support
-
-### bspwm
-**Language**: C  
-**Config**: Shell scripts + sxhkd  
-**Best for**: Modular, scriptable setups
-
-- Tree-based layout
-- Extremely minimal core
-- Highly scriptable
-- Requires separate keybindings daemon
-
-### Awesome
-**Language**: C + Lua  
-**Config**: Lua  
-**Best for**: Widgets and status bars
-
-- Built-in widget system
-- Powerful Lua configuration
-- Retro aesthetic appeal
-- Steeper learning curve
-
-## Dynamic WMs
-
-### herbstluftwm
-**Language**: C + X11  
-**Config**: Shell  
-**Best for**: Hybrid manual/tiling approaches
-
-- Tag-based layout system
-- Highly customizable
-- Good documentation
-
-## Stacking WMs (with Tiling Features)
-
-### Xfce with xfwm-tiling
-**Best for**: Familiar desktop with tiling
-
-- Lightweight but full-featured
-- Optional tiling added via plugins
-- GTK ecosystem integration
-
-## Practical Setup Tips
-
-1. **Start with i3-gaps** for easiest learning curve
-2. **Use polybar or waybar** for status information
-3. **Configure rofi** for application launching
-4. **Set up aliases** for common commands
-5. **Read others' configs** on GitHub for inspiration
-
-## Recommended Minimal Stack
-
-- **WM**: i3-gaps or Sway
-- **Bar**: Polybar (X11) or Waybar (Wayland)
-- **Launcher**: Rofi
-- **Terminal**: Alacritty, Kitty, or Foot
-- **File Manager**: ranger, nnn, or Thunar
-      `.trim(),
-      lastUpdated: "2026-04-06",
-      author: "TilingFan",
-      status: "needs-review",
-      relatedArticles: ["os-choices"]
-    },
-  },
-  "soldering-electronics": {
-    "soldering-basics": {
-      title: "Soldering 101",
-      content: `
-Soldering is one of the most essential skills for cyberdeck building. This guide covers the fundamentals for beginners and serves as a refresher for experienced builders.
-
-## What is Soldering?
-
-Soldering creates a permanent electrical and mechanical connection between metals using a lower-melting-point alloy (solder). Unlike welding, soldering doesn't melt the base metals, preserving sensitive components.
-
-## Equipment Setup
-
-### Soldering Iron Selection
-**Temperature-controlled stations** are highly recommended over simple irons:
-- 60W minimum for most electronics work
-- Adjustable temperature (200-480°C)
-- Interchangeable tips for different tasks
-
-### Essential Accessories
-- Soldering iron stand with sponge
-- Brass wool tip cleaner
-- Flux (paste and pen)
-- Solder wick (desoldering braid)
-- Flush cutters
-- Safety glasses
-
-## Solder Types
-
-### Lead vs Lead-Free
-| Property | Lead (60/40) | Lead-Free |
-|----------|--------------|-----------|
-| Melting point | 183°C | 217°C |
-| Ease of use | Easier | Requires higher temp |
-| Wetting speed | Faster | Slower |
-| Health risk | Lead exposure | Flux fumes |
-| Joint appearance | Shiny | Duller |
-
-### Solder Diameter
-- **0.5mm**: Surface mount components
-- **0.8mm**: General electronics
-- **1.0mm+**: Through-hole, heavy wires
-
-## Basic Technique
-
-### Step 1: Preparation
-1. Clean the tip on a damp sponge
-2. Tin the tip with fresh solder
-3. Ensure workspace is well-ventilated
-
-### Step 2: Heating
-1. Place tip against both the pad AND component lead
-2. Wait 1-2 seconds for heat to transfer
-3. The joint should be heated, not just the solder
-
-### Step 3: Apply Solder
-1. Touch solder to the heated joint (not the tip directly)
-2. Allow capillary action to draw solder into the joint
-3. Use just enough solder—a volcano shape
-
-### Step 4: Finish
-1. Remove solder first, then tip
-2. Allow joint to cool naturally (1-2 seconds)
-3. Inspect the joint: should be shiny and complete
-
-## Common Mistakes
-
-- **Cold joints**: Insufficient heat, results in dull, grainy joints
-- **Insufficient solder**: Joint may crack or fail
-- **Too much solder**: Can create shorts or bridges
-- **Moving components**: Disturbs joint before solidification
-- **Overheating**: Damages components or lifts pads
-
-## Surface Mount (SMD) Tips
-
-1. Use magnification to see components
-2. Tin one pad first
-3. Hold component with tweezers
-4. Reflow while heating and watching for alignment
-5. Solder remaining leads
-
-## Safety Reminders
-
-- Always wash hands after soldering (especially with leaded solder)
-- Work in ventilated areas
-- Never touch the tip directly
-- Keep flammable materials away
-- Use lead-free solder if possible
-      `.trim(),
-      lastUpdated: "2026-04-09",
-      author: "SolderKing",
-      status: "good",
-      relatedArticles: ["connector-guide"]
-    },
-    "connector-guide": {
-      title: "Common Connectors Reference",
-      content: `
-Understanding connectors is essential for cyberdeck builds. This guide covers the most common connectors you'll encounter, their uses, and wiring best practices.
-
-## USB Connectors
-
-### USB-C
-**Use case**: Modern power delivery and data  
-**Specs**: Up to 100W PD, 40Gbps data
-
-Key considerations:
-- Use quality cables for high-power delivery
-- Check cable specs—many are charge-only
-- USB-C to USB-C may not work for all device combinations
-
-### USB-A
-**Use case**: Legacy devices, hubs, storage  
-**Specs**: USB 3.0 up to 4.5W (900mA)
-
-### Micro USB
-**Use case**: Older SBCs, small devices  
-**Specs**: Limited to ~15W
-
-### Mini USB
-**Use case**: Older hardware (increasingly rare)
-
-## Power Connectors
-
-### JST PH (2-pin)
-**Use case**: Battery connections on SBCs  
-**Rating**: Typically 2A
-
-Common on:
-- Raspberry Pi (power input)
-- Most LiPo battery boards
-
-### JST XH (2-pin)
-**Use case**: Balance leads for 2-4S LiPos  
-**Features**: Keyed to prevent reverse connection
-
-### XT30 / XT60 / XT90
-**Use case**: High-current power connections  
-**Ratings**:
-- XT30: 30A continuous
-- XT60: 60A continuous
-- XT90: 90A continuous
-
-### Barrel Jacks
-**Use case**: External power adapters  
-**Sizes**: 5.5x2.1mm most common
-
-## GPIO and Development
-
-### Dupont/Jumper Wires
-**Use case**: Prototyping, temporary connections  
-**Types**: Male-male, male-female, female-female
-
-### Pin Headers
-**Use case**: Permanent GPIO access  
-**Types**: Straight or right-angle
-
-### Grove Connectors
-**Use case**: Modular sensor/actuator connections  
-**Advantages**: Polarized, consistent pitch
-
-## Data Connectors
-
-### HDMI
-**Use case**: Display output  
-**Types**: Full-size, mini, micro
-
-### DisplayPort
-**Use case**: High-bandwidth display  
-**Advantages**: Often supports daisy-chaining
-
-### Ethernet (RJ45)
-**Use case**: Wired networking  
-**Speeds**: 10/100/1000 Mbps
-
-## Wiring Best Practices
-
-### Color Coding
-- **Red**: +3.3V or +5V
-- **Black**: Ground
-- **Yellow**: +12V or variable
-- **Green**: Data or control signals
-- **White**: Alternative data lines
-
-### Wire Gauge
-| Current | Minimum AWG |
-|---------|-------------|
-| 1A | 28 AWG |
-| 3A | 24 AWG |
-| 5A | 22 AWG |
-| 10A | 18 AWG |
-
-### Connection Methods
-1. **Solder**: Most permanent, requires skill
-2. **Crimp**: Reliable, requires proper tools
-3. **Screw terminals**: Adjustable, less secure
-4. **Wago-style levers**: Quick changes, compact
-
-## Connection Security
-
-- Use strain relief for mobile builds
-- Secure cables to prevent vibration loosening
-- Consider conformal coating for harsh environments
-- Label all connections for maintenance
-      `.trim(),
-      lastUpdated: "2026-04-05",
-      author: "ConnectorPro",
-      status: "good",
-      relatedArticles: ["soldering-basics", "power"]
-    },
-  },
-};
-
-// Get article data
-const categoryArticles = wikiArticles[category ?? ""];
-const article = categoryArticles?.[slug ?? ""];
-
-// Build breadcrumbs
-const breadcrumbs = article ? [
-  { label: category?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) ?? '', href: `/wiki/${category}` },
-  { label: article.title, href: `/wiki/${category}/${slug}` }
-] : [];
-
-// Calculate permissions
-const canEdit = hasMinRole(user, "contributor") && isArticleOwner(user, article?.author ?? "");
-const canEditAny = hasMinRole(user, "editor");
-const canDelete = hasMinRole(user, "author") && isArticleOwner(user, article?.author ?? "");
-const canDeleteAny = hasMinRole(user, "admin");
-
-// Combined permissions for the article
-const articleCanEdit = canEdit || canEditAny;
-const articleCanDelete = canDelete || canDeleteAny;
-
-// Article ID for API calls (using category:slug format)
-const articleId = `${category}:${slug}`;
-
-// Server-rendered with dynamic content
+if (!category || !slug) {
+  return Astro.redirect("/wiki");
+}
+
+// Fetch article from database
+const db = Astro.locals.db!;
+const articleResult = await getWikiArticle(db, category, slug);
+
+// Article not found
+const notFound = !articleResult || articleResult.length === 0;
+
+// Article data (only if found)
+let article: any = null;
+let authorName: string | null = null;
+let categoryName: string | null = null;
+let breadcrumbs: Array<{ label: string; href: string }> = [];
+let canEdit = false;
+let canEditAny = false;
+let canDelete = false;
+let canDeleteAny = false;
+let articleCanEdit = false;
+let articleCanDelete = false;
+let articleId = "";
+let contentHtml = "";
+let lastUpdated = "";
+let statusClass = "good";
+
+if (!notFound) {
+  const result = articleResult[0];
+  article = result.article;
+  authorName = result.authorName;
+  categoryName = result.categoryName;
+
+  // Increment view count (fire and forget)
+  incrementWikiViewCount(db, article.id).catch(console.error);
+
+  // Build breadcrumbs
+  breadcrumbs = [
+    { label: categoryName ?? category, href: `/wiki/${category}` },
+    { label: article.title, href: `/wiki/${category}/${slug}` }
+  ];
+
+  // Calculate permissions
+  canEdit = hasMinRole(user, "contributor") && isArticleOwner(user, article.authorId ?? "");
+  canEditAny = hasMinRole(user, "editor");
+  canDelete = hasMinRole(user, "author") && isArticleOwner(user, article.authorId ?? "");
+  canDeleteAny = hasMinRole(user, "admin");
+
+  // Combined permissions for the article
+  articleCanEdit = canEdit || canEditAny;
+  articleCanDelete = canDelete || canDeleteAny;
+
+  // Article ID for API calls (using article.id)
+  articleId = article.id;
+
+  // Render markdown content to HTML
+  contentHtml = await marked.parse(article.content ?? "");
+
+  // Format dates
+  lastUpdated = article.updatedAt 
+    ? new Date(article.updatedAt).toISOString().split('T')[0] 
+    : new Date().toISOString().split('T')[0];
+
+  // Determine status badge class
+  statusClass = article.status === "published" ? "good" : article.status;
+}
 ---
 
-{article ? (
+{notFound ? (
+  <WikiLayout title="Article Not Found" currentCategory={category}>
+    <div class="not-found">
+      <h1>Article Not Found</h1>
+      <p>Sorry, we couldn't find the wiki article you're looking for.</p>
+      <a href="/wiki" class="back-link">← Back to Wiki Home</a>
+    </div>
+  </WikiLayout>
+) : (
   <WikiLayout
     title={article.title}
     description={`Wiki article: ${article.title}`}
@@ -831,7 +154,7 @@ const articleId = `${category}:${slug}`;
               <circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/>
               <path d="M2 14C2 11.2386 4.68629 9 8 9C11.3137 9 14 11.2386 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
-            {article.author}
+            {authorName ?? "Unknown"}
           </span>
           <span class="meta-item">
             <svg class="meta-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -839,30 +162,28 @@ const articleId = `${category}:${slug}`;
               <path d="M2 6H14" stroke="currentColor" stroke-width="1.5"/>
               <path d="M5 1V3M11 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
-            {article.lastUpdated}
+            {lastUpdated}
           </span>
-          <span class={`status-badge status-${article.status}`}>
-            {article.status.replace('-', ' ')}
+          <span class={`status-badge status-${statusClass}`}>
+            {article.status}
           </span>
         </div>
       </header>
 
-      {/* Conditional rendering: view mode shows MarkdownRenderer, edit mode shows InlineEditor */}
+      {/* Conditional rendering: view mode shows content, edit mode shows InlineEditor */}
       {isEditingFromUrl && articleCanEdit ? (
         <InlineEditor
           client:only="react"
-          value={article.content}
+          value={article.content ?? ""}
           articleId={articleId}
-          category={category ?? ""}
-          slug={slug ?? ""}
+          category={category}
+          slug={slug}
           editPermission={true}
           minHeight="400px"
         />
       ) : (
         <>
-          <div class="article-content">
-            <MarkdownRenderer content={article.content} />
-          </div>
+          <div class="article-content" set:html={contentHtml} />
 
           {/* WikiEditor shows edit/delete buttons when in view mode */}
           {!isEditingFromUrl && (
@@ -870,40 +191,15 @@ const articleId = `${category}:${slug}`;
               client:only="react"
               articleId={articleId}
               title={article.title}
-              content={article.content}
-              category={category ?? ""}
+              content={article.content ?? ""}
+              category={category}
               canEdit={articleCanEdit}
               canDelete={articleCanDelete}
             />
           )}
         </>
       )}
-
-      <footer class="article-footer">
-        {article.relatedArticles.length > 0 && (
-          <div class="related-articles">
-            <h3>Related Articles</h3>
-            <ul class="related-list">
-              {article.relatedArticles.map((relatedSlug) => (
-                <li>
-                  <a href={`/wiki/${category}/${relatedSlug}`}>
-                    {relatedSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </footer>
     </article>
-  </WikiLayout>
-) : (
-  <WikiLayout title="Article Not Found" currentCategory={category}>
-    <div class="not-found">
-      <h1>Article Not Found</h1>
-      <p>Sorry, we couldn't find the wiki article you're looking for.</p>
-      <a href="/wiki" class="back-link">← Back to Wiki Home</a>
-    </div>
   </WikiLayout>
 )}
 
@@ -1035,86 +331,7 @@ const articleId = `${category}:${slug}`;
 
   .article-content :global(strong) {
     font-weight: 600;
-    color: var(--color-text);
-  }
-
-  .article-footer {
-    margin-top: 3rem;
-    padding-top: 1.5rem;
-    border-top: 2px solid var(--border);
-  }
-
-  .edit-prompt {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .edit-icon {
-    color: var(--text-muted);
-  }
-
-  .edit-link {
-    font-size: 0.875rem;
-    color: var(--color-primary);
-    text-decoration: none;
-    font-weight: 500;
-  }
-
-  .edit-link:hover {
-    text-decoration: underline;
-  }
-
-  .related-articles {
-    background: var(--color-secondary-100);
-    padding: 1rem 1.25rem;
-    border-radius: 8px;
-  }
-
-  :global(html.dark) .related-articles {
-    background: var(--color-secondary-800);
-  }
-
-  .related-articles h3 {
-    font-size: 0.875rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    margin: 0 0 0.75rem 0;
-  }
-
-  .related-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .related-list li {
-    margin: 0;
-  }
-
-  .related-list a {
-    display: inline-block;
-    padding: 0.375rem 0.75rem;
-    background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: 4px;
-    font-size: 0.8125rem;
-    font-weight: 500;
     color: var(--text);
-    text-decoration: none;
-    transition: all 0.2s ease;
-  }
-
-  .related-list a:hover {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-    color: white;
   }
 
   .not-found {

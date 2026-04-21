@@ -5,60 +5,20 @@
  */
 
 import ForumLayout from "@/layouts/ForumLayout.astro";
+import { getForumCategories } from "@/lib/forum";
 
-// Forum categories data
-const categories = [
-  { 
-    slug: "introductions", 
-    name: "Introductions", 
-    description: "New members introduce themselves and their cyberdeck goals",
-    threadCount: 156,
-    latestThread: "Hey from Portland! Building my first deck",
-    isHighlighted: true,
-  },
-  { 
-    slug: "build-help", 
-    name: "Build Help", 
-    description: "Questions and troubleshooting during builds",
-    threadCount: 423,
-    latestThread: "HDMI signal issues with Raspberry Pi 5",
-  },
-  { 
-    slug: "build-logs", 
-    name: "Build Logs", 
-    description: "Step-by-step documentation of builds in progress",
-    threadCount: 89,
-    latestThread: "Cyberdeck X100 - Custom aluminum ultrawide build",
-  },
-  { 
-    slug: "showcase", 
-    name: "Showcase", 
-    description: "Completed cyberdeck show-and-tell",
-    threadCount: 234,
-    latestThread: "Finally finished my Steam Deck revival!",
-  },
-  { 
-    slug: "parts-sourcing", 
-    name: "Parts & Sourcing", 
-    description: "Where to find components, group buys, deals",
-    threadCount: 178,
-    latestThread: "Group buy: Custom PBT keycaps - cyberdeck themed",
-  },
-  { 
-    slug: "meetups-events", 
-    name: "Meetups & Events", 
-    description: "Organizing and announcing local build meetups",
-    threadCount: 45,
-    latestThread: "NYC Cyberdeck Meetup - March 2026",
-  },
-  { 
-    slug: "off-topic", 
-    name: "Off-Topic", 
-    description: "General community chat",
-    threadCount: 312,
-    latestThread: "What music do you listen to while building?",
-  },
-];
+export const prerender = false;
+
+const db = Astro.locals.db!;
+const categoriesResult = await getForumCategories(db);
+const categories = categoriesResult.map((cat) => ({
+  slug: cat.slug,
+  name: cat.name,
+  description: cat.description ?? "",
+  threadCount: 0,
+  latestThread: "No threads yet",
+  isHighlighted: cat.slug === "introductions",
+}));
 ---
 
 <ForumLayout 

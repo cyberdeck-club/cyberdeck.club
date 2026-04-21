@@ -12,8 +12,8 @@ const user = Astro.locals.user;
   <div class={`user-menu-container ${className}`}>
     <div class="user-menu-wrapper">
       <button class="user-menu-trigger" id="user-menu-toggle" aria-expanded="false" aria-haspopup="true">
-        {user.avatarUrl ? (
-          <img src={user.avatarUrl} alt={user.name || user.email} class="user-avatar" />
+        {user.image ? (
+          <img src={user.image} alt={user.name || user.email} class="user-avatar" />
         ) : (
           <div class="user-avatar-placeholder">
             {(user.name || user.email).charAt(0).toUpperCase()}
@@ -28,17 +28,8 @@ const user = Astro.locals.user;
       <div class="user-dropdown" id="user-dropdown">
         <div class="dropdown-header">
           <span class="dropdown-email">{user.email}</span>
-          <span class="dropdown-role">
-            {user.role >= 50 ? 'Admin' : user.role >= 40 ? 'Editor' : user.role >= 20 ? 'Author' : 'Member'}
-          </span>
         </div>
         <hr class="dropdown-divider" />
-        {user.role >= 50  && <a href="/_emdash/admin" class="dropdown-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Dashboard
-        </a>}
         <button type="button" class="dropdown-item dropdown-logout" id="logout-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -339,15 +330,14 @@ const user = Astro.locals.user;
     });
   }
 
-  // Handle logout with CSRF header
+  // Handle logout
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
       try {
-        const response = await fetch('/_emdash/api/auth/logout', {
+        const response = await fetch('/api/auth/signout', {
           method: 'POST',
           headers: {
-            'X-EmDash-Request': '1',
             'Content-Type': 'application/json',
           },
           credentials: 'include',

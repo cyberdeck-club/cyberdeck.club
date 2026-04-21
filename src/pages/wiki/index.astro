@@ -6,6 +6,7 @@
 
 import WikiLayout from "@/layouts/WikiLayout.astro";
 import { CreateArticleButton } from "@/components/wiki/CreateArticleButton";
+import { getWikiCategories } from "@/lib/wiki";
 
 // Server-rendered page
 export const prerender = false;
@@ -45,83 +46,68 @@ function hasMinRole(user: any, minRole: Role): boolean {
 const user = Astro.locals.user;
 const canCreate = hasMinRole(user, "contributor");
 
-// Wiki categories with slugs, descriptions, and placeholder article counts
-const categories = [
-  { 
-    slug: "getting-started", 
-    name: "Getting Started", 
-    description: "What is a cyberdeck, why build one, first steps, tool requirements",
-    articleCount: 5,
-    badge: "Start here",
-    accent: "var(--color-pop-mint)"
-  },
-  { 
-    slug: "enclosures", 
-    name: "Enclosures", 
-    description: "Pelican cases, 3D printed cases, upcycled enclosures, custom builds",
-    articleCount: 8,
-    accent: "var(--color-pop-sky)"
-  },
-  { 
-    slug: "compute", 
-    name: "Compute", 
-    description: "Raspberry Pi, Orange Pi, Intel NUC, Framework Mainboard, SBCs, x86 vs ARM tradeoffs",
-    articleCount: 12,
-    accent: "var(--color-primary)"
-  },
-  { 
-    slug: "displays", 
-    name: "Displays", 
-    description: "E-ink, LCD, OLED, round displays, multiple display setups, driver boards",
-    articleCount: 7,
-    accent: "var(--color-secondary)"
-  },
-  { 
-    slug: "input", 
-    name: "Input", 
-    description: "Mechanical keyboards, split keyboards, trackballs, trackpads, custom input devices",
-    articleCount: 6,
-    accent: "var(--color-accent)"
-  },
-  { 
-    slug: "power", 
-    name: "Power", 
-    description: "Battery selection (LiPo, 18650), charging circuits, solar, UPS modules, power management",
-    articleCount: 9,
-    accent: "var(--color-pop-lemon)"
-  },
-  { 
-    slug: "networking", 
-    name: "Networking", 
-    description: "WiFi, LoRa, mesh networking, cellular modems, offline-first setups",
-    articleCount: 4,
-    accent: "var(--color-pop-sky)"
-  },
-  { 
-    slug: "software", 
-    name: "Software", 
-    description: "OS choices (Debian, Armbian, custom), window managers, cyberdeck-specific tools",
-    articleCount: 11,
-    accent: "var(--color-secondary)"
-  },
-  { 
-    slug: "3d-printing-for-cyberdecks", 
-    name: "3D Printing for Cyberdecks", 
-    description: "Designing enclosures, hinges, mounts, filament selection",
-    articleCount: 6,
-    accent: "var(--color-accent)"
-  },
-  { 
-    slug: "soldering-electronics", 
-    name: "Soldering & Electronics", 
-    description: "Basic skills, connectors, wiring, PCB design basics",
-    articleCount: 7,
-    accent: "var(--color-primary)"
-  },
-];
-
-// Server-rendered with dynamic content
+// Fetch categories from database
+const db = Astro.locals.db!;
+const categoriesResult = await getWikiCategories(db);
+const categories = categoriesResult.map(cat => ({
+  slug: cat.slug,
+  name: cat.name,
+  description: cat.description ?? "",
+  articleCount: 0, // Will be populated if we add article counts
+  badge: cat.slug === "getting-started" ? "Start here" : undefined,
+  accent: "var(--color-primary)"
+}));
 ---
+
+<WikiLayout title="Wiki" description="The knowledge base for cyberdeck builders">
+  <div class="wiki-hero">
+  <h1 class="wiki-title">Wiki ✨</h1>
+  <p class="wiki-subtitle">The knowledge base for cyberdeck builders</p>
+</div>
+
+<div class="wiki-container">
+  <div class="wiki-header-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+    <p class="section-label">Browse all {categories.length} categories</p>
+    {canCreate && (
+      <CreateArticleButton
+        client:load
+        buttonLabel="Create New Article"
+        categories={categories.map(c => ({ id: c.slug, label: c.name }))}
+      />
+    )}
+  </div>
+
+  <div class="category-grid">
+    {categories.map((category) => (
+      <a href={`/wiki/${category.slug}`} class="category-card">
+        <div class="category-card-accent" style={`background: ${category.accent};`}></div>
+        <div class="category-card-header">
+          <h2 class="category-name">{category.name}</h2>
+          {category.badge && (
+            <span class="start-here-badge">{category.badge}</span>
+          )}
+        </div>
+        <p class="category-description">{category.description}</p>
+        <div class="category-meta">
+          <span class="article-count">
+            <strong>{category.articleCount}</strong> articles
+          </span>
+          <span class="view-link">
+            Browse
+            <svg class="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M4 3L8 7L4 11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </div>
+      </a>
+    ))}
+  </div>
+
+  <div class="wiki-footer">
+    <p>Can't find what you're looking for? <a href="/forum">Ask in the forum</a> or <a href="/forum/new-thread">start a new discussion</a>.</p>
+  </div>
+</div>
+</WikiLayout>
 
 <style>
   .wiki-hero {
@@ -339,53 +325,3 @@ const categories = [
     }
   }
 </style>
-
-<WikiLayout title="Wiki" description="The knowledge base for cyberdeck builders">
-  <div class="wiki-hero">
-  <h1 class="wiki-title">Wiki ✨</h1>
-  <p class="wiki-subtitle">The knowledge base for cyberdeck builders</p>
-</div>
-
-<div class="wiki-container">
-  <div class="wiki-header-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-    <p class="section-label">Browse all {categories.length} categories</p>
-    {canCreate && (
-      <CreateArticleButton
-        client:load
-        buttonLabel="Create New Article"
-        categories={categories.map(c => ({ id: c.slug, label: c.name }))}
-      />
-    )}
-  </div>
-
-  <div class="category-grid">
-    {categories.map((category) => (
-      <a href={`/wiki/${category.slug}`} class="category-card">
-        <div class="category-card-accent" style={`background: ${category.accent};`}></div>
-        <div class="category-card-header">
-          <h2 class="category-name">{category.name}</h2>
-          {category.badge && (
-            <span class="start-here-badge">{category.badge}</span>
-          )}
-        </div>
-        <p class="category-description">{category.description}</p>
-        <div class="category-meta">
-          <span class="article-count">
-            <strong>{category.articleCount}</strong> articles
-          </span>
-          <span class="view-link">
-            Browse
-            <svg class="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M4 3L8 7L4 11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-        </div>
-      </a>
-    ))}
-  </div>
-
-  <div class="wiki-footer">
-    <p>Can't find what you're looking for? <a href="/forum">Ask in the forum</a> or <a href="/forum/new-thread">start a new discussion</a>.</p>
-  </div>
-</div>
-</WikiLayout>
