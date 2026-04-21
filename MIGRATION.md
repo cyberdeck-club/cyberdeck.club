@@ -427,6 +427,33 @@ New components (MarkdownEditor, MarkdownRender, AuthForm, UserMenu) follow the s
 7. Verify magic link email arrives, login works, session persists.
 8. Smoke test each section: wiki read/create/edit, forum read/create/reply, builds, meetups, profile.
 
+## Model-specific notes (MiniMax M2.7)
+
+This migration is being executed by MiniMax M2.7 running in Roo Code's orchestrator mode. M2.7 is a strong coding and agent model (approaches Opus on SWE-Pro, 97% skill adherence across complex multi-step skills) but is a 10B-active MoE, meaning:
+
+- Its recall of narrow, recently-changed library APIs is weaker than frontier proprietary models.
+- It benefits more than larger models from explicit version pins and "read the source" steps before writing integration code.
+- It performs best in tight iterate-and-verify loops rather than produce-large-batch-and-hope.
+
+To account for this, the following rules apply throughout the migration:
+
+1. **Pin dependency versions before installing.** Before running `npm install` in Phase 2, the orchestrator (or its delegate) must run `npm view <package> version` for each new dependency and record the exact version to install. Do not install floating `latest`. Record the resolved versions in a `DEPS.md` alongside this doc so they're reproducible.
+
+2. **Read the docs before writing integration code.** For each of the following, the orchestrator must fetch and read the current official documentation before its first implementation subtask touches the integration:
+   - `auth-astro` (README + any integration guide) — before Phase 4
+   - `@auth/drizzle-adapter` — before Phase 4
+   - `drizzle-orm/d1` — before Phase 3
+   - `@astrojs/cloudflare` — before Phase 2
+   - Cloudflare D1 migrations via Wrangler — before Phase 3
+
+3. **No API-shape guessing.** If a function signature, configuration key, or import path is not verified from docs or source, the implementing subtask must stop and either read the package source (`node_modules/<pkg>/...`) or escalate. "I think the API is..." is not acceptable.
+
+4. **Every phase gate requires a working run, not a passing typecheck.** A phase is not complete until the behavior it introduces has been exercised end-to-end with a real invocation (curl the route, submit the form, click the magic link). TypeScript compiling is necessary but not sufficient.
+
+5. **Subtasks are small and verified.** Prefer five small verified subtasks over one large one. Each subtask ends with either a test run, a dev-server check, or a curl invocation whose output is captured in the subtask's completion report.
+
+6. **When stuck, read source, don't guess.** `node_modules/` is the source of truth for library behavior. Reading a package's `dist/index.d.ts` or its `src/` is always preferred to speculating about its API.
+
 ## Risks and mitigations
 
 - **Auth.js on Astro is less battle-tested than on Next.js.** Mitigation: build a minimal auth spike first (see orchestrator prompt step 1) and validate session flow before porting any pages.
@@ -434,6 +461,7 @@ New components (MarkdownEditor, MarkdownRender, AuthForm, UserMenu) follow the s
 - **Markdown rendering + user input = XSS risk.** Mitigation: always render user Markdown through the shared `renderMarkdown` helper, which sanitizes output. Never `set:html` on raw user input.
 - **In-place migration on `main` means the site breaks until the migration is complete.** Mitigation: work in short, committable increments; keep `astro build` passing at every commit where possible; tag the last pre-migration commit so rollback is one `git reset` away.
 - **Seed data may not cleanly map.** Mitigation: the seed script logs and skips entries it can't convert, rather than failing the whole run. Review warnings manually.
+- **Executing model (M2.7) may hallucinate library APIs.** Mitigation: the Model-specific notes section above imposes a "read docs and pin versions before writing" rule. Any subtask that produces integration code without a preceding doc-read or source-read step is rejected and re-dispatched.
 
 ## Sequencing
 
