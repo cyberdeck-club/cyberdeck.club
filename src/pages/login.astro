@@ -7,7 +7,7 @@ export const prerender = false;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login - cyberdeck.club</title>
+    <title>Login - CyberDeck</title>
     <style>
       * {
         box-sizing: border-box;
@@ -100,65 +100,66 @@ export const prerender = false;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        background: #a855f7;
-        color: white;
         border: 2px solid #1a1a1a;
         border-radius: 0;
+        background: #1a1a1a;
+        color: white;
         cursor: pointer;
-        transition: transform 0.1s ease, box-shadow 0.1s ease;
-        box-shadow: 3px 3px 0 #1a1a1a;
+        transition: box-shadow 0.15s ease, transform 0.1s ease;
+      }
+      @media (prefers-color-scheme: dark) {
+        .submit-btn {
+          background: #a855f7;
+          border-color: #a855f7;
+        }
       }
       .submit-btn:hover {
-        transform: translate(-1px, -1px);
-        box-shadow: 4px 4px 0 #1a1a1a;
+        box-shadow: 4px 4px 0 #a855f7;
+        transform: translate(-2px, -2px);
       }
       .submit-btn:active {
-        transform: translate(2px, 2px);
-        box-shadow: 1px 1px 0 #1a1a1a;
+        transform: translate(0, 0);
+        box-shadow: none;
       }
       .submit-btn:disabled {
         opacity: 0.6;
         cursor: not-allowed;
-        transform: none;
-        box-shadow: 3px 3px 0 #1a1a1a;
       }
-      .error-message {
-        background: #fee2e2;
-        border: 2px solid #dc2626;
-        color: #991b1b;
-        padding: 0.75rem 1rem;
-        margin-bottom: 1.25rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        display: none;
-      }
-      @media (prefers-color-scheme: dark) {
-        .error-message {
-          background: #450a0a;
-          border-color: #f87171;
-          color: #fecaca;
-        }
-      }
-      .success-message {
-        background: #d1fae5;
-        border: 2px solid #059669;
-        color: #065f46;
+      .message {
         padding: 1rem;
-        text-align: center;
-        font-size: 0.95rem;
-        display: none;
+        margin-bottom: 1.5rem;
+        border: 2px solid #1a1a1a;
+        background: white;
       }
       @media (prefers-color-scheme: dark) {
-        .success-message {
-          background: #064e3b;
-          border-color: #34d399;
-          color: #a7f3d0;
+        .message {
+          background: #2a1a2a;
+          border-color: #a855f7;
         }
       }
-      .success-message strong {
-        display: block;
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
+      .message.success {
+        border-color: #22c55e;
+        background: #f0fdf4;
+      }
+      @media (prefers-color-scheme: dark) {
+        .message.success {
+          background: #14532d;
+          border-color: #22c55e;
+        }
+      }
+      .message.error {
+        border-color: #ef4444;
+        background: #fef2f2;
+      }
+      @media (prefers-color-scheme: dark) {
+        .message.error {
+          background: #7f1d1d;
+          border-color: #ef4444;
+        }
+      }
+      .message p {
+        margin: 0;
+        font-size: 0.95rem;
       }
       .back-link {
         display: block;
@@ -167,56 +168,26 @@ export const prerender = false;
         font-size: 0.875rem;
         color: inherit;
         opacity: 0.7;
-        text-decoration: underline;
-        text-underline-offset: 3px;
       }
       .back-link:hover {
         opacity: 1;
-      }
-      .divider {
-        text-align: center;
-        margin: 1.5rem 0;
-        position: relative;
-        color: inherit;
-        opacity: 0.5;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-      }
-      .divider::before,
-      .divider::after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        width: 35%;
-        height: 1px;
-        background: currentColor;
-      }
-      .divider::before {
-        left: 0;
-      }
-      .divider::after {
-        right: 0;
       }
     </style>
   </head>
   <body>
     <div class="login-container">
-      <header class="login-header">
-        <h1 class="login-title">✨ cyberdeck.club</h1>
-        <p class="login-subtitle">Sign in to your account</p>
-      </header>
+      <div class="login-header">
+        <h1 class="login-title">sign in</h1>
+        <p class="login-subtitle">enter your email to receive a magic link</p>
+      </div>
 
-      <div id="error-box" class="error-message"></div>
-
-      <div id="success-box" class="success-message">
-        <strong>Check your email! ✉️</strong>
-        We sent you a magic link. Click the link in the email to sign in. The link expires in 15 minutes.
+      <div id="message" class="message" style="display: none;">
+        <p id="message-text"></p>
       </div>
 
       <form id="login-form">
         <div class="form-group">
-          <label class="form-label" for="email">Email Address</label>
+          <label for="email" class="form-label">email</label>
           <input
             type="email"
             id="email"
@@ -227,66 +198,60 @@ export const prerender = false;
             autocomplete="email"
           />
         </div>
-
-        <button type="submit" class="submit-btn" id="submit-btn">Send Magic Link</button>
+        <button type="submit" class="submit-btn" id="submit-btn">
+          send magic link
+        </button>
       </form>
 
-      <div class="divider">or</div>
-
-      <p style="text-align: center; font-size: 0.9rem; opacity: 0.8;">
-        Don't have an account?<br />
-        <a href="/register" style="color: #a855f7; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">
-          Create one here
-        </a>
-      </p>
-
-      <a href="/" class="back-link">← Back to home</a>
+      <a href="/" class="back-link">← back to cyberdeck</a>
     </div>
 
-    <script is:inline>
-      const form = document.getElementById("login-form");
-      const errorBox = document.getElementById("error-box");
-      const successBox = document.getElementById("success-box");
-      const submitBtn = document.getElementById("submit-btn");
+    <script>
+      const form = document.getElementById("login-form") as HTMLFormElement;
+      const messageEl = document.getElementById("message") as HTMLDivElement;
+      const messageText = document.getElementById("message-text") as HTMLParagraphElement;
+      const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+
+      function showMessage(text: string, type: "success" | "error") {
+        messageEl.style.display = "block";
+        messageEl.className = `message ${type}`;
+        messageText.textContent = text;
+      }
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        errorBox.style.display = "none";
-        successBox.style.display = "none";
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Sending...";
+        const email = (document.getElementById("email") as HTMLInputElement).value;
+        const siteUrl = window.location.origin;
 
-        const email = document.getElementById("email").value.trim();
-        if (!email) {
-          errorBox.textContent = "Email is required";
-          errorBox.style.display = "block";
-          submitBtn.disabled = false;
-          submitBtn.textContent = "Send Magic Link";
-          return;
-        }
+        submitBtn.disabled = true;
+        submitBtn.textContent = "sending...";
 
         try {
-          const res = await fetch("/_emdash/api/auth/magic-link/send", {
+          const res = await fetch("/api/auth/sign-in/email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email }),
+            body: JSON.stringify({ email, callbackURL: siteUrl }),
           });
 
-          if (res.ok) {
-            form.style.display = "none";
-            successBox.style.display = "block";
-          } else {
-            const data = await res.json().catch(() => null);
-            errorBox.textContent = data?.error?.message || "Failed to send magic link";
-            errorBox.style.display = "block";
-          }
-        } catch (err) {
-          errorBox.textContent = "An unexpected error occurred";
-          errorBox.style.display = "block";
-        }
+          const data = await res.json();
 
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Send Magic Link";
+          if (!res.ok) {
+            throw new Error(data.error?.message || "Failed to send magic link");
+          }
+
+          showMessage(
+            "check your email for the sign-in link. it expires in 5 minutes.",
+            "success"
+          );
+          form.style.display = "none";
+        } catch (err) {
+          showMessage(
+            err instanceof Error ? err.message : "something went wrong",
+            "error"
+          );
+          submitBtn.disabled = false;
+          submitBtn.textContent = "send magic link";
+        }
       });
     </script>
   </body>

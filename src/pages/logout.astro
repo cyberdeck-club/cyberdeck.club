@@ -1,0 +1,88 @@
+---
+export const prerender = false;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Logging out - CyberDeck</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "InterVariable", system-ui, sans-serif;
+        background-color: #faf8f5;
+        color: #1a1a1a;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        margin: 0;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #1a0a1a;
+          color: #f5f0fa;
+        }
+      }
+      .logout-container {
+        background: white;
+        border: 3px solid #1a1a1a;
+        border-radius: 0;
+        box-shadow: 6px 6px 0 #1a1a1a;
+        padding: 2.5rem;
+        max-width: 420px;
+        width: 100%;
+        text-align: center;
+      }
+      @media (prefers-color-scheme: dark) {
+        .logout-container {
+          background: #2a1a2a;
+          border-color: #f5f0fa;
+          box-shadow: 6px 6px 0 #a855f7;
+        }
+      }
+      .logout-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin: 0 0 1rem 0;
+        text-transform: lowercase;
+        letter-spacing: -0.02em;
+      }
+      .logout-text {
+        font-size: 0.95rem;
+        opacity: 0.7;
+        margin: 0 0 1.5rem 0;
+      }
+      .redirect-msg {
+        font-size: 0.875rem;
+        opacity: 0.5;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="logout-container">
+      <h1 class="logout-title">signing out...</h1>
+      <p class="logout-text">you'll be redirected shortly.</p>
+      <p class="redirect-msg">if nothing happens, <a href="/">click here</a>.</p>
+    </div>
+
+    <script>
+      // Auto-submit the logout form on page load
+      (async () => {
+        try {
+          await fetch("/api/auth/sign-out", { method: "POST" });
+        } catch (e) {
+          console.error("Logout failed:", e);
+        }
+        // Redirect to home regardless of result
+        window.location.href = "/";
+      })();
+    </script>
+  </body>
+</html>
