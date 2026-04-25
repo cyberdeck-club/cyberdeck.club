@@ -1,0 +1,559 @@
+---
+/**
+ * Admin Dashboard
+ * Overview of site statistics and quick actions.
+ */
+
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import * as schema from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { desc, count, sql } from "drizzle-orm";
+
+export const prerender = false;
+
+// Get site statistics
+const db = Astro.locals.db;
+
+// Get user count by role
+const userStats = await db
+  .select({
+    role: schema.user.role,
+    count: count(),
+  })
+  .from(schema.user)
+  .groupBy(schema.user.role);
+
+// Get content counts
+const [
+  userCountResult,
+  threadCountResult,
+  postCountResult,
+  articleCountResult,
+  buildCountResult,
+  meetupCountResult,
+] = await Promise.all([
+  db.select({ count: count() }).from(schema.user),
+  db.select({ count: count() }).from(schema.forumThreads),
+  db.select({ count: count() }).from(schema.forumPosts),
+  db.select({ count: count() }).from(schema.wikiArticles),
+  db.select({ count: count() }).from(schema.builds),
+  db.select({ count: count() }).from(schema.meetups),
+]);
+
+const userCount = userCountResult[0]?.count ?? 0;
+const threadCount = threadCountResult[0]?.count ?? 0;
+const postCount = postCountResult[0]?.count ?? 0;
+const articleCount = articleCountResult[0]?.count ?? 0;
+const buildCount = buildCountResult[0]?.count ?? 0;
+const meetupCount = meetupCountResult[0]?.count ?? 0;
+
+// Recent activity - latest threads
+const recentThreads = await db
+  .select({
+    id: schema.forumThreads.id,
+    title: schema.forumThreads.title,
+    createdAt: schema.forumThreads.createdAt,
+    isLocked: schema.forumThreads.isLocked,
+    isPinned: schema.forumThreads.isPinned,
+    authorName: schema.user.name,
+  })
+  .from(schema.forumThreads)
+  .leftJoin(schema.user, eq(schema.forumThreads.authorId, schema.user.id))
+  .orderBy(desc(schema.forumThreads.createdAt))
+  .limit(5);
+
+// Recent wiki articles
+const recentArticles = await db
+  .select({
+    id: schema.wikiArticles.id,
+    title: schema.wikiArticles.title,
+    status: schema.wikiArticles.status,
+    updatedAt: schema.wikiArticles.updatedAt,
+    authorName: schema.user.name,
+  })
+  .from(schema.wikiArticles)
+  .leftJoin(schema.user, eq(schema.wikiArticles.authorId, schema.user.id))
+  .orderBy(desc(schema.wikiArticles.updatedAt))
+  .limit(5);
+
+const user = Astro.locals.user!;
+const userRole = (user as any).role;
+const isAdmin = userRole === "admin";
+---
+
+<AdminLayout title="Dashboard" section="dashboard">
+  <div class="admin-header">
+    <div>
+      <h1 class="admin-title">Admin Dashboard</h1>
+      <p class="admin-subtitle">Welcome back, {user.name}</p>
+    </div>
+    {isAdmin && (
+      <div class="admin-actions">
+        <Button variant="default" size="sm" id="refresh-stats">
+          <svg slot="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          Refresh
+        </Button>
+      </div>
+    )}
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon users">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{userCount}</span>
+        <span class="stat-label">Total Users</span>
+      </div>
+      <div class="stat-breakdown">
+        {userStats.map(stat => (
+          <span class="stat-role">{stat.role}: {stat.count}</span>
+        ))}
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon threads">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{threadCount}</span>
+        <span class="stat-label">Forum Threads</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon posts">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          <line x1="9" y1="9" x2="15" y2="9"/>
+          <line x1="9" y1="13" x2="13" y2="13"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{postCount}</span>
+        <span class="stat-label">Forum Posts</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon wiki">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{articleCount}</span>
+        <span class="stat-label">Wiki Articles</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon builds">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <line x1="3" y1="9" x2="21" y2="9"/>
+          <line x1="9" y1="21" x2="9" y2="9"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{buildCount}</span>
+        <span class="stat-label">Community Builds</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon meetups">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{meetupCount}</span>
+        <span class="stat-label">Meetups</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="section">
+    <h2 class="section-title">Quick Actions</h2>
+    <div class="quick-actions">
+      <a href="/admin/users" class="quick-action">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Manage Users
+      </a>
+      <a href="/admin/forum/threads" class="quick-action">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        Moderate Threads
+      </a>
+      <a href="/admin/wiki/articles" class="quick-action">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        Edit Wiki Articles
+      </a>
+      {isAdmin && (
+        <a href="/admin/static" class="quick-action">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Edit Static Pages
+        </a>
+      )}
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="two-column">
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">Recent Threads</h2>
+        <a href="/admin/forum/threads" class="section-link">View All</a>
+      </div>
+      {recentThreads.length > 0 ? (
+        <div class="activity-list">
+          {recentThreads.map(thread => (
+            <div class="activity-item">
+              <div class="activity-status">
+                {thread.isPinned === 1 && (
+                  <span class="badge pin" title="Pinned">📌</span>
+                )}
+                {thread.isLocked === 1 && (
+                  <span class="badge lock" title="Locked">🔒</span>
+                )}
+              </div>
+              <div class="activity-content">
+                <a href={`/admin/forum/threads?id=${thread.id}`} class="activity-title">
+                  {thread.title}
+                </a>
+                <span class="activity-meta">
+                  by {thread.authorName} • {new Date(thread.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p class="empty-state">No threads yet</p>
+      )}
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">Recent Wiki Articles</h2>
+        <a href="/admin/wiki/articles" class="section-link">View All</a>
+      </div>
+      {recentArticles.length > 0 ? (
+        <div class="activity-list">
+          {recentArticles.map(article => (
+            <div class="activity-item">
+              <div class="activity-status">
+                <span class:list={["badge", article.status]}>
+                  {article.status}
+                </span>
+              </div>
+              <div class="activity-content">
+                <a href={`/admin/wiki/articles?id=${article.id}`} class="activity-title">
+                  {article.title}
+                </a>
+                <span class="activity-meta">
+                  by {article.authorName || "Unknown"} • {new Date(article.updatedAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p class="empty-state">No articles yet</p>
+      )}
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .admin-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .admin-subtitle {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0.5rem 0 0;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 4px solid var(--color-primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 6px 6px 0 var(--color-primary);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stat-icon.users { background: rgba(231, 76, 133, 0.15); color: var(--color-primary); }
+  .stat-icon.threads { background: rgba(155, 89, 182, 0.15); color: var(--color-secondary); }
+  .stat-icon.posts { background: rgba(230, 126, 34, 0.15); color: var(--accent); }
+  .stat-icon.wiki { background: rgba(52, 152, 219, 0.15); color: #3498db; }
+  .stat-icon.builds { background: rgba(46, 204, 113, 0.15); color: #2ecc71; }
+  .stat-icon.meetups { background: rgba(241, 196, 15, 0.15); color: #f1c40f; }
+
+  .stat-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .stat-breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 2px solid var(--color-primary);
+  }
+
+  .stat-role {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .section {
+    background: var(--surface);
+    border: 4px solid var(--color-primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 6px 6px 0 var(--color-primary);
+    margin-bottom: 1.5rem;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .section-link {
+    font-size: 0.85rem;
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+
+  .section-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
+
+  .quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .quick-action {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: var(--surface);
+    border: 3px solid var(--color-primary);
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 4px 4px 0 var(--color-primary);
+  }
+
+  .quick-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--color-primary);
+    background: var(--color-primary);
+    color: white;
+  }
+
+  .two-column {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--color-bg);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+  }
+
+  .activity-item:hover {
+    border-color: var(--color-primary);
+  }
+
+  .activity-status {
+    display: flex;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .badge.pin { background: #f1c40f; color: #000; }
+  .badge.lock { background: #e74c3c; color: #fff; }
+  .badge.draft { background: #95a5a6; color: #fff; }
+  .badge.published { background: #2ecc71; color: #fff; }
+
+  .activity-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .activity-title {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+  }
+
+  .activity-title:hover {
+    color: var(--color-primary);
+  }
+
+  .activity-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .empty-state {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .admin-title {
+      font-size: 1.5rem;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .two-column {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  // Refresh stats functionality
+  document.getElementById('refresh-stats')?.addEventListener('click', () => {
+    window.location.reload();
+  });
+</script>

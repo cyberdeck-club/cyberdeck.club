@@ -3,16 +3,21 @@
  *
  * CRITICAL: getAuth() and getDb() MUST be called per-request.
  * Module-level singletons cause SQLite WAL-lock hangs in local dev.
+ *
+ * In @astrojs/cloudflare v13 / Astro v6, Workers env bindings are accessed via
+ * `import { env } from "cloudflare:workers"` — ctx.locals.runtime.env is gone.
  */
 
 import { defineMiddleware } from "astro:middleware";
+import { env } from "cloudflare:workers";
 import { getAuth } from "./lib/auth";
 import { getDb } from "./db/client";
 
 export const onRequest = defineMiddleware(async (ctx, next) => {
-  // Create per-request auth and db instances
-  const auth = getAuth(ctx.locals as any);
-  const db = getDb(ctx.locals as any);
+  // Create per-request auth and db instances using the Workers env binding
+  const cfEnv = env as App.Env;
+  const auth = getAuth(cfEnv);
+  const db = getDb(cfEnv);
 
   // Resolve session from cookie
   const sessionData = await auth.api.getSession({

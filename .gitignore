@@ -33,3 +33,5 @@ pnpm-debug.log*
 # Wrangler artifacts
 .wrangler/
 .reference/ellamae/
+
+.dev.vars

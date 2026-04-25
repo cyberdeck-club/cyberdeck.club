@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "./BaseLayout.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
 
 interface ImageData {
   url: string;
@@ -59,6 +60,7 @@ const formatCurrency = (amount: number) => {
 ---
 
 <BaseLayout title={title} description={description}>
+  <Wrapper variant="standard" class="py-8">
   <!-- Hero Section -->
   <section class="build-hero">
     <div class="hero-image" style={featuredImage?.url ? undefined : `background: ${defaultGradient}`}>
@@ -191,6 +193,7 @@ const formatCurrency = (amount: number) => {
       </aside>
     </div>
   </div>
+  </Wrapper>
 </BaseLayout>
 
 <style>

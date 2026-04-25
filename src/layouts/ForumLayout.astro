@@ -6,6 +6,7 @@
 
 import BaseLayout from "./BaseLayout.astro";
 import ForumSidebar from "@/components/ForumSidebar.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
 
 export const prerender = false;
 
@@ -25,7 +26,8 @@ const {
 ---
 
 <BaseLayout title={`${title} | Forum`} description={description}>
-  <div class="forum-layout">
+  <Wrapper variant="standard" class="py-8">
+    <div class="forum-layout">
     <!-- Mobile sidebar toggle -->
     <button class="mobile-sidebar-toggle" aria-label="Toggle navigation menu">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -55,6 +57,7 @@ const {
       <slot />
     </main>
   </div>
+  </Wrapper>
 </BaseLayout>
 
 <style>

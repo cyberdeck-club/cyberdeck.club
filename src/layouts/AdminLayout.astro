@@ -1,0 +1,372 @@
+---
+/**
+ * AdminLayout.astro
+ * Layout for admin pages with sidebar navigation and role-based access control.
+ * Requires moderator or admin role to access.
+ */
+
+import BaseLayout from "./BaseLayout.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+
+export const prerender = false;
+
+interface Props {
+  title: string;
+  description?: string;
+  section?: "dashboard" | "users" | "forum" | "wiki" | "static";
+}
+
+const { 
+  title, 
+  description = "CyberDeck Admin Panel",
+  section 
+} = Astro.props;
+
+// Auth check - redirect to login if not authenticated
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+// Role check - require moderator or admin
+const userRole = (user as any).role;
+const isAdmin = userRole === "admin";
+const isModerator = userRole === "moderator" || isAdmin;
+
+if (!isModerator) {
+  return Astro.redirect("/");
+}
+
+// Navigation items
+const navItems = [
+  { href: "/admin", label: "Dashboard", icon: "dashboard", section: "dashboard" },
+  { href: "/admin/users", label: "Users", icon: "users", section: "users" },
+  { href: "/admin/forum/threads", label: "Forum Threads", icon: "forum", section: "forum" },
+  { href: "/admin/wiki/articles", label: "Wiki Articles", icon: "wiki", section: "wiki" },
+  { href: "/admin/static", label: "Static Pages", icon: "pages", section: "static" },
+];
+
+// Current path for active state
+const currentPath = Astro.url.pathname;
+---
+
+<BaseLayout title={`${title} | Admin`} description={description}>
+  <Wrapper variant="standard" class="py-8">
+    <div class="admin-layout">
+      <!-- Mobile sidebar toggle -->
+      <button class="mobile-sidebar-toggle" aria-label="Toggle admin menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>Admin Menu</span>
+      </button>
+
+      <!-- Admin Sidebar -->
+      <aside class="admin-sidebar-wrapper">
+        <div class="admin-sidebar">
+          <!-- User info -->
+          <div class="admin-user">
+            <div class="admin-user-avatar">
+              {user.image ? (
+                <img src={user.image} alt={user.name} />
+              ) : (
+                <span class="admin-user-initials">{user.name?.charAt(0) || "?"}</span>
+              )}
+            </div>
+            <div class="admin-user-info">
+              <span class="admin-user-name">{user.name}</span>
+              <span class="admin-user-role">{userRole}</span>
+            </div>
+          </div>
+
+          <!-- Navigation -->
+          <nav class="admin-nav">
+            <span class="admin-nav-header">Navigation</span>
+            {navItems.map((item) => (
+              <a 
+                href={item.href} 
+                class:list={["admin-nav-item", { active: section === item.section || (section === "forum" && item.section === "forum") }]}
+              >
+                <span class="admin-nav-icon">
+                  {item.icon === "dashboard" && (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="7" height="9" rx="1"/>
+                      <rect x="14" y="3" width="7" height="5" rx="1"/>
+                      <rect x="14" y="12" width="7" height="9" rx="1"/>
+                      <rect x="3" y="16" width="7" height="5" rx="1"/>
+                    </svg>
+                  )}
+                  {item.icon === "users" && (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                  )}
+                  {item.icon === "forum" && (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  )}
+                  {item.icon === "wiki" && (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                      <line x1="8" y1="7" x2="16" y2="7"/>
+                      <line x1="8" y1="11" x2="14" y2="11"/>
+                    </svg>
+                  )}
+                  {item.icon === "pages" && (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/>
+                      <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                  )}
+                </span>
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          <!-- Back to site -->
+          <div class="admin-sidebar-footer">
+            <a href="/" class="admin-back-link">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back to Site
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="admin-content">
+        <slot />
+      </main>
+    </div>
+  </Wrapper>
+</BaseLayout>
+
+<style>
+  .admin-layout {
+    display: flex;
+    gap: 2.5rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    min-height: calc(100vh - 8rem);
+  }
+
+  .mobile-sidebar-toggle {
+    display: none;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border: 4px solid var(--color-primary);
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text);
+    cursor: pointer;
+    margin-bottom: 1.25rem;
+    box-shadow: 5px 5px 0 var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .mobile-sidebar-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 7px 7px 0 var(--color-primary);
+  }
+
+  .admin-sidebar-wrapper {
+    flex-shrink: 0;
+    width: 280px;
+    position: sticky;
+    top: 2rem;
+    height: fit-content;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+  }
+
+  .admin-sidebar {
+    background: var(--surface);
+    border: 4px solid var(--color-primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 6px 6px 0 var(--color-primary);
+  }
+
+  .admin-user {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 3px solid var(--color-primary);
+    margin-bottom: 1.5rem;
+  }
+
+  .admin-user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .admin-user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .admin-user-initials {
+    color: white;
+    font-weight: 700;
+    font-size: 1.25rem;
+  }
+
+  .admin-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .admin-user-name {
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .admin-user-role {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  .admin-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .admin-nav-header {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    padding-left: 0.75rem;
+  }
+
+  .admin-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+  }
+
+  .admin-nav-item:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: translateX(4px);
+  }
+
+  .admin-nav-item.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+  }
+
+  .admin-nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+
+  .admin-sidebar-footer {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 3px solid var(--color-primary);
+  }
+
+  .admin-back-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: color 0.2s ease;
+  }
+
+  .admin-back-link:hover {
+    color: var(--color-primary);
+  }
+
+  .admin-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .admin-sidebar-wrapper {
+      width: 260px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .admin-layout {
+      flex-direction: column;
+      padding: 1.5rem 1rem;
+    }
+
+    .mobile-sidebar-toggle {
+      display: flex;
+    }
+
+    .admin-sidebar-wrapper {
+      display: none;
+      width: 100%;
+      position: static;
+      max-height: none;
+    }
+
+    .admin-sidebar-wrapper.open {
+      display: block;
+    }
+  }
+</style>
+
+<script>
+  // Mobile sidebar toggle
+  const toggle = document.querySelector('.mobile-sidebar-toggle');
+  const sidebar = document.querySelector('.admin-sidebar-wrapper');
+
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+  }
+</script>

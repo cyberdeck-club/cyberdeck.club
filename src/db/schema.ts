@@ -242,3 +242,26 @@ export const meetupsRelations = relations(meetups, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// Static pages table - for editable static content
+export const staticPages = sqliteTable("static_pages", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  content: text("content"), // HTML or Markdown content
+  metaDescription: text("meta_description"),
+  metaImage: text("meta_image"),
+  featuredImage: text("featured_image"),
+  featuredImageAlt: text("featured_image_alt"),
+  status: text("status").notNull().default("published"), // published, draft
+  authorId: text("author_id").references(() => user.id),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const staticPagesRelations = relations(staticPages, ({ one }) => ({
+  author: one(user, {
+    fields: [staticPages.authorId],
+    references: [user.id],
+  }),
+}));

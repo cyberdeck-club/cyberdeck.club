@@ -142,6 +142,9 @@
   --border: var(--color-border-light);
   --text: var(--color-text-light);
   --text-muted: oklch(45% 0.01 50);
+  --accent: var(--color-accent);
+  --accent-border: var(--color-accent);
+  --accent-bg: var(--color-accent);
   background-color: var(--bg);
   color: var(--text);
 }
@@ -153,6 +156,9 @@
   --border: var(--color-border-dark);
   --text: var(--color-text-dark);
   --text-muted: oklch(65% 0.01 290);
+  --accent: var(--color-accent-800);
+  --accent-border: var(--color-accent-800);
+  --accent-bg: var(--color-accent-900);
   background-color: var(--bg);
   color: var(--text);
 }

@@ -14,19 +14,19 @@ const socialLinks = [
 ];
 ---
 
-<footer class="footer overflow-hidden mt-auto">
-  <div class="footer-main pt-12 pb-8">
+<footer class="footer overflow-hidden mt-auto border-t-8" style="border-color: var(--accent-border);">
+  <div class="footer-main pt-12 pb-8" style="background-color: var(--accent-bg);">
     <div class="max-w-6xl mx-auto px-6">
       <!-- Main footer content -->
       <div class="pb-12 grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-32 lg:pb-16">
         <!-- Brand column -->
         <div class="flex flex-col max-w-xl gap-6 lg:col-span-2">
           <div class="footer-brand">
-            <h2 class="footer-tagline text-3xl font-bold tracking-tight lg:text-4xl">
+            <h2 class="footer-tagline text-3xl font-bold tracking-tight lg:text-4xl text-white">
               Build. Hack. Connect.
             </h2>
-            <p class="footer-description mt-4 text-lg">
-              The community for cyberdeck builders, DIY enthusiasts, and retro-computing fans. 
+            <p class="footer-description mt-4 text-lg text-white/85">
+              The community for cyberdeck builders, DIY enthusiasts, and retro-computing fans.
               Share your builds, learn new skills, and connect with fellow makers.
             </p>
           </div>
@@ -53,10 +53,10 @@ const socialLinks = [
           role="navigation"
           aria-label="Footer navigation"
         >
-          <h3 class="footer-nav-title font-bold text-lg mb-2">Quick Links</h3>
+          <h3 class="footer-nav-title font-bold text-lg mb-2 text-white">Quick Links</h3>
           {footerLinks.map((link) => (
             <a
-              class="footer-nav-link transition-colors duration-200"
+              class="footer-nav-link transition-colors duration-200 text-white hover:text-primary"
               href={link.url}
               aria-label={link.ariaLabel}
             >
@@ -67,12 +67,12 @@ const socialLinks = [
       </div>
 
       <!-- Divider -->
-      <div class="footer-divider border-t"></div>
+      <div class="footer-divider border-t border-white/30"></div>
 
       <!-- Bottom bar -->
       <div class="pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-          <p class="footer-copyright text-sm">
+          <p class="footer-copyright text-sm text-white">
             © 2026 cyberdeck.club. Built with 💖 and too much caffeine.
           </p>
         </div>
@@ -80,11 +80,11 @@ const socialLinks = [
         <div class="flex items-center gap-6">
           <a
             href="/login"
-            class="footer-admin-link text-sm transition-colors duration-200"
+            class="footer-admin-link text-sm transition-colors duration-200 text-white hover:text-primary"
           >
             Admin Login
           </a>
-          <p class="footer-credit text-sm opacity-75">
+          <p class="footer-credit text-sm text-white/75">
             Built with 💖 by the cyberdeck community
           </p>
         </div>

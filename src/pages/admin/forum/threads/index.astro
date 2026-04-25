@@ -1,0 +1,501 @@
+---
+/**
+ * Forum Threads Moderation Page
+ * Lists all threads with moderation actions.
+ */
+
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import * as schema from "@/db/schema";
+import { eq, desc, like, or, and } from "drizzle-orm";
+
+export const prerender = false;
+
+// Get query params for filtering
+const url = new URL(Astro.request.url);
+const search = url.searchParams.get("search") || "";
+const statusFilter = url.searchParams.get("status") || "";
+const page = parseInt(url.searchParams.get("page") || "1", 10);
+const perPage = 25;
+
+// Build where clause
+const conditions = [];
+if (search) {
+  conditions.push(
+    like(schema.forumThreads.title, `%${search}%`)
+  );
+}
+if (statusFilter === "locked") {
+  conditions.push(eq(schema.forumThreads.isLocked, 1));
+} else if (statusFilter === "pinned") {
+  conditions.push(eq(schema.forumThreads.isPinned, 1));
+} else if (statusFilter === "open") {
+  conditions.push(eq(schema.forumThreads.isLocked, 0));
+}
+
+// Get threads with pagination
+const db = Astro.locals.db;
+const offset = (page - 1) * perPage;
+
+const threadsResult = await db
+  .select({
+    id: schema.forumThreads.id,
+    title: schema.forumThreads.title,
+    slug: schema.forumThreads.slug,
+    isLocked: schema.forumThreads.isLocked,
+    isPinned: schema.forumThreads.isPinned,
+    postCount: schema.forumThreads.postCount,
+    createdAt: schema.forumThreads.createdAt,
+    authorId: schema.forumThreads.authorId,
+    authorName: schema.user.name,
+    categoryName: schema.forumCategories.name,
+  })
+  .from(schema.forumThreads)
+  .leftJoin(schema.user, eq(schema.forumThreads.authorId, schema.user.id))
+  .leftJoin(schema.forumCategories, eq(schema.forumThreads.categoryId, schema.forumCategories.id))
+  .where(conditions.length > 0 ? and(...conditions) : undefined)
+  .orderBy(desc(schema.forumThreads.isPinned), desc(schema.forumThreads.createdAt))
+  .limit(perPage)
+  .offset(offset);
+
+const totalCountResult = await db
+  .select({ count: schema.forumThreads.id })
+  .from(schema.forumThreads)
+  .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+const totalThreads = totalCountResult.length;
+const totalPages = Math.ceil(totalThreads / perPage);
+---
+
+<AdminLayout title="Forum Threads" section="forum">
+  <div class="admin-header">
+    <div>
+      <h1 class="admin-title">Forum Threads</h1>
+      <p class="admin-subtitle">{totalThreads} threads</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form class="filters" method="get">
+    <div class="search-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input 
+        type="text" 
+        name="search" 
+        placeholder="Search threads..." 
+        value={search}
+        class="search-input"
+      />
+    </div>
+    
+    <select name="status" class="status-select">
+      <option value="">All Status</option>
+      <option value="pinned" selected={statusFilter === "pinned"}>Pinned</option>
+      <option value="locked" selected={statusFilter === "locked"}>Locked</option>
+      <option value="open" selected={statusFilter === "open"}>Open</option>
+    </select>
+    
+    <Button type="submit" variant="default" size="sm">Filter</Button>
+    <a href="/admin/forum/threads" class="btn-reset">
+      <Button variant="muted" size="sm">Reset</Button>
+    </a>
+  </form>
+
+  <!-- Threads Table -->
+  <div class="table-container">
+    <table class="threads-table">
+      <thead>
+        <tr>
+          <th>Thread</th>
+          <th>Category</th>
+          <th>Author</th>
+          <th>Posts</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {threadsResult.map(thread => (
+          <tr>
+            <td class="thread-cell">
+              <a href={`/forum/thread/${thread.id}`} target="_blank" class="thread-title">
+                {thread.title}
+              </a>
+            </td>
+            <td class="category-cell">{thread.categoryName || "Uncategorized"}</td>
+            <td class="author-cell">{thread.authorName || "Unknown"}</td>
+            <td class="count-cell">{thread.postCount || 0}</td>
+            <td>
+              <div class="status-badges">
+                {thread.isPinned === 1 && (
+                  <span class="status-badge pin" title="Pinned">📌</span>
+                )}
+                {thread.isLocked === 1 && (
+                  <span class="status-badge lock" title="Locked">🔒</span>
+                )}
+                {thread.isPinned === 0 && thread.isLocked === 0 && (
+                  <span class="status-badge open">✓</span>
+                )}
+              </div>
+            </td>
+            <td class="date-cell">
+              {new Date(thread.createdAt).toLocaleDateString()}
+            </td>
+            <td class="actions-cell">
+              <div class="action-buttons">
+                <button 
+                  class="action-btn pin-btn"
+                  data-thread-id={thread.id}
+                  data-current-pinned={thread.isPinned === 1}
+                  title={thread.isPinned === 1 ? "Unpin" : "Pin"}
+                >
+                  {thread.isPinned === 1 ? "📌" : "📍"}
+                </button>
+                <button 
+                  class="action-btn lock-btn"
+                  data-thread-id={thread.id}
+                  data-current-locked={thread.isLocked === 1}
+                  title={thread.isLocked === 1 ? "Unlock" : "Lock"}
+                >
+                  {thread.isLocked === 1 ? "🔓" : "🔒"}
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {totalPages > 1 && (
+    <div class="pagination">
+      {page > 1 && (
+        <a href={`?page=${page - 1}&search=${search}&status=${statusFilter}`} class="page-btn">
+          ← Previous
+        </a>
+      )}
+      
+      <span class="page-info">
+        Page {page} of {totalPages}
+      </span>
+      
+      {page < totalPages && (
+        <a href={`?page=${page + 1}&search=${search}&status=${statusFilter}`} class="page-btn">
+          Next →
+        </a>
+      )}
+    </div>
+  )}
+</AdminLayout>
+
+<style>
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .admin-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .admin-subtitle {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0.5rem 0 0;
+  }
+
+  .filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 3px solid var(--color-primary);
+    border-radius: 8px;
+    flex: 1;
+    max-width: 400px;
+  }
+
+  .search-box svg {
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 0.9rem;
+    color: var(--text);
+    outline: none;
+  }
+
+  .search-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .status-select {
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 3px solid var(--color-primary);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    min-width: 140px;
+  }
+
+  .btn-reset {
+    text-decoration: none;
+  }
+
+  .table-container {
+    background: var(--surface);
+    border: 4px solid var(--color-primary);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 6px 6px 0 var(--color-primary);
+  }
+
+  .threads-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .threads-table th {
+    text-align: left;
+    padding: 1rem 1.25rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    background: var(--color-bg);
+    border-bottom: 3px solid var(--color-primary);
+  }
+
+  .threads-table td {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 2px solid var(--color-bg);
+    vertical-align: middle;
+  }
+
+  .threads-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .threads-table tr:hover td {
+    background: var(--color-bg);
+  }
+
+  .thread-cell {
+    max-width: 300px;
+  }
+
+  .thread-title {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+  }
+
+  .thread-title:hover {
+    color: var(--color-primary);
+  }
+
+  .category-cell, .author-cell {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  .count-cell {
+    text-align: center;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .status-badges {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .status-badge {
+    font-size: 0.9rem;
+  }
+
+  .date-cell {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .actions-cell {
+    min-width: 100px;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .action-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg);
+    border: 2px solid var(--color-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .action-btn:hover {
+    background: var(--color-primary);
+    transform: translateY(-2px);
+  }
+
+  .action-btn.loading {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .page-btn {
+    padding: 0.5rem 1rem;
+    background: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .page-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 var(--color-primary);
+  }
+
+  .page-info {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .threads-table {
+      display: block;
+      overflow-x: auto;
+    }
+
+    .filters {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-box {
+      max-width: none;
+    }
+  }
+</style>
+
+<script>
+  // Handle pin toggle
+  document.querySelectorAll('.pin-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const target = e.target as HTMLElement;
+      const threadId = target.dataset.threadId;
+      const currentPinned = target.dataset.currentPinned === 'true';
+      
+      if (!threadId) return;
+      
+      target.classList.add('loading');
+      
+      try {
+        const response = await fetch(`/api/admin/forum/threads/${threadId}/pin`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pinned: !currentPinned })
+        });
+
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          const data = await response.json();
+          alert(`Failed: ${data.error}`);
+          target.classList.remove('loading');
+        }
+      } catch (err) {
+        alert('Failed to update thread');
+        target.classList.remove('loading');
+      }
+    });
+  });
+
+  // Handle lock toggle
+  document.querySelectorAll('.lock-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const target = e.target as HTMLElement;
+      const threadId = target.dataset.threadId;
+      const currentLocked = target.dataset.currentLocked === 'true';
+      
+      if (!threadId) return;
+      
+      target.classList.add('loading');
+      
+      try {
+        const response = await fetch(`/api/admin/forum/threads/${threadId}/lock`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ locked: !currentLocked })
+        });
+
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          const data = await response.json();
+          alert(`Failed: ${data.error}`);
+          target.classList.remove('loading');
+        }
+      } catch (err) {
+        alert('Failed to update thread');
+        target.classList.remove('loading');
+      }
+    });
+  });
+</script>

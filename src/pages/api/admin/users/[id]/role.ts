@@ -90,13 +90,10 @@ export const PUT: APIRoute = async (ctx) => {
   }
 
   try {
-    // Note: Better Auth stores additional fields like `role` in the user table
-    // but the Drizzle schema type doesn't include them. Use sql`` to bypass
-    // type checking for this runtime-only column.
-    await db
-      .update(schema.user)
-      .set({ role: sql`${role}` })
-      .where(eq(schema.user.id, targetUserId));
+    // Better Auth additionalFields (role, bio) are stored in the user table but
+    // the generated auth-schema.ts doesn't include them in the Drizzle column map.
+    // Use a raw SQL statement to update the column directly.
+    await db.run(sql`UPDATE "user" SET "role" = ${role} WHERE "id" = ${targetUserId}`);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

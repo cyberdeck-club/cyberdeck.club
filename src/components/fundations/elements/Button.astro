@@ -1,0 +1,165 @@
+---
+// Define prop types for better type checking
+type ButtonProps = {
+  variant?: keyof typeof variantClass;
+  size?: keyof typeof sizes;
+  onlyIconSize?: keyof typeof iconSizes;
+  iconOnly?: boolean;
+  gap?: keyof typeof gapMap;
+  isLink?: boolean;
+  class?: string;
+  // allow any other HTML attributes
+  [key: string]: any;
+};
+
+const {
+  variant = "default",
+  size = "base",
+  onlyIconSize,
+  iconOnly = false,
+  gap,
+  isLink = false,
+  class: className,
+  ...rest
+} = Astro.props as ButtonProps;
+
+// Default button - uses primary (hot pink) colors
+const defaultClass = [
+  "text-white",
+  "bg-primary",
+  "shadow-primary",
+  "border-primary",
+  "hover:bg-primary-hover",
+  "focus:bg-primary-hover",
+  "focus:text-white",
+  "focus:shadow-none",
+];
+
+// Accent button - uses accent (warm coral) colors
+const accentClass = [
+  "text-white",
+  "bg-accent",
+  "shadow-accent",
+  "border-accent",
+  "hover:opacity-90",
+  "focus:opacity-90",
+  "focus:text-white",
+  "focus:shadow-none",
+];
+
+// Secondary button - uses secondary (electric lavender) colors
+const secondaryClass = [
+  "text-white",
+  "bg-secondary",
+  "shadow-secondary",
+  "border-secondary",
+  "hover:opacity-90",
+  "focus:opacity-90",
+  "focus:text-white",
+  "focus:shadow-none",
+];
+
+// Muted/outline button
+const mutedClass = [
+  "text-primary",
+  "bg-transparent",
+  "shadow-primary",
+  "border-primary",
+  "hover:bg-primary",
+  "hover:text-white",
+  "focus:bg-primary-hover",
+  "focus:text-white",
+  "focus:shadow-none",
+];
+
+// Size classes
+const sizes = {
+  xxs: ["h-8", "px-5", "py-2", "text-xs", "shadow-xs"],
+  xs: ["h-9", "px-6", "py-3", "text-xs", "shadow-xs"],
+  sm: ["h-10", "px-6", "py-3", "text-sm", "shadow-sm"],
+  base: ["h-11", "px-8", "py-4", "text-sm", "shadow"],
+  md: ["h-12", "px-8", "py-4", "text-base", "shadow"],
+  lg: ["h-13", "px-8", "py-4", "text-lg", "shadow"],
+  xl: ["h-14", "px-8", "py-4", "text-lg", "shadow"],
+};
+
+// Icon size classes
+const iconSizes = {
+  xxs: ["size-8", "py-2", "text-xs", "shadow-xs"],
+  xs: ["size-9", "text-xs", "shadow-xs"],
+  sm: ["size-10", "text-sm", "shadow-sm"],
+  base: ["size-11", "text-sm", "shadow"],
+  md: ["size-12", "text-md", "shadow"],
+  lg: ["size-13", "text-lg", "shadow"],
+  xl: ["size-14", "text-lg", "shadow"],
+};
+
+// Gap classes
+const gapMap = {
+  xs: ["gap-2"],
+  sm: ["gap-4"],
+  base: ["gap-8"],
+  md: ["gap-10"],
+  lg: ["gap-12"],
+};
+
+const variantClass = {
+  default: defaultClass,
+  accent: accentClass,
+  secondary: secondaryClass,
+  muted: mutedClass,
+  none: [],
+};
+
+// Ensure proper typing when indexing class maps
+const sizeClass = iconOnly ? iconSizes[size as keyof typeof iconSizes] : sizes[size as keyof typeof sizes] || [];
+const gapClass = !iconOnly && gap ? gapMap[gap as keyof typeof gapMap] : [];
+const additionalClasses = className ? className.split(" ") : [];
+const baseClass = [
+  "flex",
+  "font-semibold",
+  "ease-in-out",
+  "text-center",
+  "items-center",
+  "duration-500",
+  "border-2",
+  "rounded-full",
+  "transition-all",
+  "justify-center",
+  "focus:outline-none",
+  "focus:translate-y-1",
+];
+---
+
+{
+  isLink ? (
+    <a
+      href={rest.href}
+      class:list={[
+        baseClass,
+        variantClass[variant] || variantClass.default,
+        sizeClass,
+        gapClass,
+        additionalClasses,
+      ]}
+      {...rest}
+    >
+      <slot name="icon" />
+      <slot />
+    </a>
+  ) : (
+    <button
+      class:list={[
+        baseClass,
+        variantClass[variant] || variantClass.default,
+        sizeClass,
+        gapClass,
+        additionalClasses,
+      ]}
+      {...rest}
+    >
+      <slot name="icon" />
+      <slot />
+    </button>
+  )
+}

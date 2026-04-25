@@ -1,0 +1,505 @@
+---
+/**
+ * User Management Page
+ * Lists all users and allows admins to manage roles.
+ */
+
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import * as schema from "@/db/schema";
+import { eq, desc, like, or, and } from "drizzle-orm";
+
+export const prerender = false;
+
+// Get current user for self-reference
+const currentUser = Astro.locals.user!;
+const currentUserRole = (currentUser as any).role;
+const isAdmin = currentUserRole === "admin";
+
+// Get query params for filtering
+const url = new URL(Astro.request.url);
+const search = url.searchParams.get("search") || "";
+const roleFilter = url.searchParams.get("role") || "";
+const page = parseInt(url.searchParams.get("page") || "1", 10);
+const perPage = 20;
+
+// Build where clause
+const conditions = [];
+if (search) {
+  conditions.push(
+    or(
+      like(schema.user.name, `%${search}%`),
+      like(schema.user.email, `%${search}%`)
+    )
+  );
+}
+if (roleFilter) {
+  conditions.push(eq(schema.user.role, roleFilter));
+}
+
+// Get users with pagination
+const db = Astro.locals.db;
+const offset = (page - 1) * perPage;
+
+const usersResult = await db
+  .select({
+    id: schema.user.id,
+    name: schema.user.name,
+    email: schema.user.email,
+    role: schema.user.role,
+    emailVerified: schema.user.emailVerified,
+    image: schema.user.image,
+    createdAt: schema.user.createdAt,
+  })
+  .from(schema.user)
+  .where(conditions.length > 0 ? and(...conditions) : undefined)
+  .orderBy(desc(schema.user.createdAt))
+  .limit(perPage)
+  .offset(offset);
+
+const totalCountResult = await db
+  .select({ count: schema.user.id })
+  .from(schema.user)
+  .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+const totalUsers = totalCountResult.length;
+const totalPages = Math.ceil(totalUsers / perPage);
+
+// Helper for role badge colors
+function getRoleBadgeClass(role: string) {
+  switch (role) {
+    case "admin": return "role-admin";
+    case "moderator": return "role-moderator";
+    default: return "role-member";
+  }
+}
+---
+
+<AdminLayout title="User Management" section="users">
+  <div class="admin-header">
+    <div>
+      <h1 class="admin-title">User Management</h1>
+      <p class="admin-subtitle">{totalUsers} total users</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form class="filters" method="get">
+    <div class="search-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input 
+        type="text" 
+        name="search" 
+        placeholder="Search users..." 
+        value={search}
+        class="search-input"
+      />
+    </div>
+    
+    <select name="role" class="role-select">
+      <option value="">All Roles</option>
+      <option value="member" selected={roleFilter === "member"}>Member</option>
+      <option value="moderator" selected={roleFilter === "moderator"}>Moderator</option>
+      <option value="admin" selected={roleFilter === "admin"}>Admin</option>
+    </select>
+    
+    <Button type="submit" variant="default" size="sm">Filter</Button>
+    <a href="/admin/users" class="btn-reset">
+      <Button variant="muted" size="sm">Reset</Button>
+    </a>
+  </form>
+
+  <!-- Users Table -->
+  <div class="table-container">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Joined</th>
+          {isAdmin && <th>Actions</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {usersResult.map(user => (
+          <tr>
+            <td class="user-cell">
+              <div class="user-avatar">
+                {user.image ? (
+                  <img src={user.image} alt={user.name} />
+                ) : (
+                  <span class="user-initials">{user.name?.charAt(0) || "?"}</span>
+                )}
+              </div>
+              <span class="user-name">{user.name}</span>
+              {!user.emailVerified && (
+                <span class="unverified-badge" title="Email not verified">⚠️</span>
+              )}
+            </td>
+            <td class="email-cell">{user.email}</td>
+            <td>
+              <span class={`role-badge ${getRoleBadgeClass(user.role || "member")}`}>
+                {user.role || "member"}
+              </span>
+            </td>
+            <td class="date-cell">
+              {new Date(user.createdAt).toLocaleDateString()}
+            </td>
+            {isAdmin && (
+              <td class="actions-cell">
+                {user.id !== currentUser.id ? (
+                  <select 
+                    class="role-change-select"
+                    data-user-id={user.id}
+                    data-current-role={user.role}
+                  >
+                    <option value="member" selected={user.role === "member"}>Member</option>
+                    <option value="moderator" selected={user.role === "moderator"}>Moderator</option>
+                    <option value="admin" selected={user.role === "admin"}>Admin</option>
+                  </select>
+                ) : (
+                  <span class="self-badge">You</span>
+                )}
+              </td>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {totalPages > 1 && (
+    <div class="pagination">
+      {page > 1 && (
+        <a href={`?page=${page - 1}&search=${search}&role=${roleFilter}`} class="page-btn">
+          ← Previous
+        </a>
+      )}
+      
+      <span class="page-info">
+        Page {page} of {totalPages}
+      </span>
+      
+      {page < totalPages && (
+        <a href={`?page=${page + 1}&search=${search}&role=${roleFilter}`} class="page-btn">
+          Next →
+        </a>
+      )}
+    </div>
+  )}
+</AdminLayout>
+
+<style>
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .admin-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .admin-subtitle {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0.5rem 0 0;
+  }
+
+  .filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 3px solid var(--color-primary);
+    border-radius: 8px;
+    flex: 1;
+    max-width: 400px;
+  }
+
+  .search-box svg {
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 0.9rem;
+    color: var(--text);
+    outline: none;
+  }
+
+  .search-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .role-select {
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 3px solid var(--color-primary);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    min-width: 140px;
+  }
+
+  .btn-reset {
+    text-decoration: none;
+  }
+
+  .table-container {
+    background: var(--surface);
+    border: 4px solid var(--color-primary);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 6px 6px 0 var(--color-primary);
+  }
+
+  .users-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .users-table th {
+    text-align: left;
+    padding: 1rem 1.25rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    background: var(--color-bg);
+    border-bottom: 3px solid var(--color-primary);
+  }
+
+  .users-table td {
+    padding: 1rem 1.25rem;
+    border-bottom: 2px solid var(--color-bg);
+    vertical-align: middle;
+  }
+
+  .users-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .users-table tr:hover td {
+    background: var(--color-bg);
+  }
+
+  .user-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .user-initials {
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .user-name {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .unverified-badge {
+    font-size: 0.85rem;
+  }
+
+  .email-cell {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .role-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .role-admin {
+    background: var(--color-primary);
+    color: white;
+  }
+
+  .role-moderator {
+    background: var(--color-secondary);
+    color: white;
+  }
+
+  .role-member {
+    background: var(--color-bg);
+    color: var(--text);
+    border: 2px solid var(--text-muted);
+  }
+
+  .date-cell {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  .actions-cell {
+    min-width: 160px;
+  }
+
+  .role-change-select {
+    padding: 0.4rem 0.6rem;
+    background: var(--surface);
+    border: 2px solid var(--color-primary);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .self-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    background: var(--color-bg);
+    border: 2px solid var(--text-muted);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .page-btn {
+    padding: 0.5rem 1rem;
+    background: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .page-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 var(--color-primary);
+  }
+
+  .page-info {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .users-table {
+      display: block;
+      overflow-x: auto;
+    }
+
+    .filters {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-box {
+      max-width: none;
+    }
+  }
+</style>
+
+<script>
+  // Handle role change
+  document.querySelectorAll('.role-change-select').forEach(select => {
+    select.addEventListener('change', async (e) => {
+      const target = e.target as HTMLSelectElement;
+      const userId = target.dataset.userId;
+      const newRole = target.value;
+      const currentRole = target.dataset.currentRole;
+
+      if (!userId) return;
+
+      if (!confirm(`Change user role from "${currentRole}" to "${newRole}"?`)) {
+        // Revert selection
+        target.value = currentRole || "member";
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/admin/users/${userId}/role`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: newRole })
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          alert(`Failed: ${data.error}`);
+          target.value = currentRole || "member";
+        } else {
+          // Update the badge
+          const row = target.closest('tr');
+          const badge = row?.querySelector('.role-badge');
+          if (badge) {
+            badge.textContent = newRole;
+            badge.className = `role-badge role-${newRole}`;
+          }
+        }
+      } catch (err) {
+        alert('Failed to update role');
+        target.value = currentRole || "member";
+      }
+    });
+  });
+</script>

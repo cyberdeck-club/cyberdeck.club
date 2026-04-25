@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "./BaseLayout.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
 
 interface Props {
   title: string;
@@ -62,6 +63,7 @@ const formattedEndTime = dateEnd ? formatTime(dateEnd) : null;
 ---
 
 <BaseLayout title={title} description={description}>
+  <Wrapper variant="standard" class="py-8">
   <!-- Hero Section -->
   <section class="meetup-hero">
     <div class="hero-sparkles">
@@ -188,6 +190,7 @@ const formattedEndTime = dateEnd ? formatTime(dateEnd) : null;
       </aside>
     </div>
   </section>
+  </Wrapper>
 </BaseLayout>
 
 <style>

@@ -1,0 +1,26 @@
+---
+interface Props {
+  variant?: "standard" | "standardPaddingless" | "prose";
+  class?: string;
+  id?: string;
+}
+const { variant = "standard", class: extraClass = "", id } = Astro.props;
+
+// Map each variant to its specific classes using CSS variables for dark mode support
+const variantClasses = {
+  // Standard wrapper with accent border (uses CSS variable for dark mode)
+  standard:
+    "mx-auto 2xl:max-w-7xl w-full max-w-screen border-x-8 px-8",
+  standardPaddingless:
+    "mx-auto 2xl:max-w-7xl w-full max-w-screen border-x-8",
+  prose:
+    "text-xl prose prose-xl text-accent-900 prose-a:font-normal prose-a:text-accent-800 hover:prose-a:text-accent-900 prose-h1:text-accent-900 prose-h2:text-accent-900 prose-img:shadow-lg prose-headings:font-medium prose-blockquote:border-2 prose-blockquote:bg-yellow-500 prose-img:rounded-3xl prose-img:border-2 prose-img:border-accent-900 prose-blockquote:p-12 prose-blockquote:border-accent-900 prose-blockquote:rounded-3xl prose-blockquote:shadow-lg prose-pre:font-mono max-w-none prose-pre:border",
+};
+
+// Combine the classes for the specified variant with any extra classes
+const classes = `${variantClasses[variant]} ${extraClass}`.trim();
+---
+
+<div class={classes} id={id} style="border-color: var(--accent-border);">
+  <slot />
+</div>

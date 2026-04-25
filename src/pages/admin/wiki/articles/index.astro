@@ -1,0 +1,486 @@
+---
+/**
+ * Wiki Articles Management Page
+ * Lists all wiki articles with edit/view actions.
+ */
+
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import * as schema from "@/db/schema";
+import { eq, desc, like, or, and } from "drizzle-orm";
+
+export const prerender = false;
+
+// Get query params for filtering
+const url = new URL(Astro.request.url);
+const search = url.searchParams.get("search") || "";
+const statusFilter = url.searchParams.get("status") || "";
+const categoryFilter = url.searchParams.get("category") || "";
+const page = parseInt(url.searchParams.get("page") || "1", 10);
+const perPage = 20;
+
+const db = Astro.locals.db;
+
+// Build where clause
+const conditions = [];
+if (search) {
+  conditions.push(
+    or(
+      like(schema.wikiArticles.title, `%${search}%`),
+      like(schema.wikiArticles.content, `%${search}%`)
+    )
+  );
+}
+if (statusFilter) {
+  conditions.push(eq(schema.wikiArticles.status, statusFilter));
+}
+if (categoryFilter) {
+  conditions.push(eq(schema.wikiArticles.categoryId, categoryFilter));
+}
+
+// Get categories for filter dropdown
+const categories = await db
+  .select()
+  .from(schema.wikiCategories)
+  .orderBy(schema.wikiCategories.sortOrder);
+
+// Get articles with pagination
+const offset = (page - 1) * perPage;
+
+const articlesResult = await db
+  .select({
+    id: schema.wikiArticles.id,
+    title: schema.wikiArticles.title,
+    slug: schema.wikiArticles.slug,
+    status: schema.wikiArticles.status,
+    viewCount: schema.wikiArticles.viewCount,
+    createdAt: schema.wikiArticles.createdAt,
+    updatedAt: schema.wikiArticles.updatedAt,
+    authorName: schema.user.name,
+    categoryName: schema.wikiCategories.name,
+  })
+  .from(schema.wikiArticles)
+  .leftJoin(schema.user, eq(schema.wikiArticles.authorId, schema.user.id))
+  .leftJoin(schema.wikiCategories, eq(schema.wikiArticles.categoryId, schema.wikiCategories.id))
+  .where(conditions.length > 0 ? and(...conditions) : undefined)
+  .orderBy(desc(schema.wikiArticles.updatedAt))
+  .limit(perPage)
+  .offset(offset);
+
+const totalCountResult = await db
+  .select({ count: schema.wikiArticles.id })
+  .from(schema.wikiArticles)
+  .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+const totalArticles = totalCountResult.length;
+const totalPages = Math.ceil(totalArticles / perPage);
+
+// Status badge helper
+function getStatusBadgeClass(status: string) {
+  switch (status) {
+    case "published": return "status-published";
+    case "draft": return "status-draft";
+    case "archived": return "status-archived";
+    default: return "status-draft";
+  }
+}
+---
+
+<AdminLayout title="Wiki Articles" section="wiki">
+  <div class="admin-header">
+    <div>
+      <h1 class="admin-title">Wiki Articles</h1>
+      <p class="admin-subtitle">{totalArticles} articles</p>
+    </div>
+    <div class="header-actions">
+      <a href="/wiki" target="_blank" class="view-site-link">
+        <Button variant="muted" size="sm">
+          <svg slot="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          View Wiki
+        </Button>
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form class="filters" method="get">
+    <div class="search-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input 
+        type="text" 
+        name="search" 
+        placeholder="Search articles..." 
+        value={search}
+        class="search-input"
+      />
+    </div>
+    
+    <select name="status" class="filter-select">
+      <option value="">All Status</option>
+      <option value="published" selected={statusFilter === "published"}>Published</option>
+      <option value="draft" selected={statusFilter === "draft"}>Draft</option>
+      <option value="archived" selected={statusFilter === "archived"}>Archived</option>
+    </select>
+    
+    <select name="category" class="filter-select">
+      <option value="">All Categories</option>
+      {categories.map(cat => (
+        <option value={cat.id} selected={categoryFilter === cat.id}>{cat.name}</option>
+      ))}
+    </select>
+    
+    <Button type="submit" variant="default" size="sm">Filter</Button>
+    <a href="/admin/wiki/articles" class="btn-reset">
+      <Button variant="muted" size="sm">Reset</Button>
+    </a>
+  </form>
+
+  <!-- Articles Table -->
+  <div class="table-container">
+    <table class="articles-table">
+      <thead>
+        <tr>
+          <th>Article</th>
+          <th>Category</th>
+          <th>Author</th>
+          <th>Status</th>
+          <th>Views</th>
+          <th>Updated</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {articlesResult.map(article => (
+          <tr>
+            <td class="article-cell">
+              <a href={`/wiki/${article.categoryName?.toLowerCase()}/${article.slug}`} target="_blank" class="article-title">
+                {article.title}
+              </a>
+            </td>
+            <td class="category-cell">{article.categoryName || "Uncategorized"}</td>
+            <td class="author-cell">{article.authorName || "Unknown"}</td>
+            <td>
+              <span class={`status-badge ${getStatusBadgeClass(article.status)}`}>
+                {article.status}
+              </span>
+            </td>
+            <td class="views-cell">{article.viewCount || 0}</td>
+            <td class="date-cell">
+              {new Date(article.updatedAt).toLocaleDateString()}
+            </td>
+            <td class="actions-cell">
+              <a 
+                href={`/wiki/${article.categoryName?.toLowerCase()}/${article.slug}`} 
+                target="_blank" 
+                class="action-btn view-btn"
+                title="View article"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </a>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {totalPages > 1 && (
+    <div class="pagination">
+      {page > 1 && (
+        <a href={`?page=${page - 1}&search=${search}&status=${statusFilter}&category=${categoryFilter}`} class="page-btn">
+          ← Previous
+        </a>
+      )}
+      
+      <span class="page-info">
+        Page {page} of {totalPages}
+      </span>
+      
+      {page < totalPages && (
+        <a href={`?page=${page + 1}&search=${search}&status=${statusFilter}&category=${categoryFilter}`} class="page-btn">
+          Next →
+        </a>
+      )}
+    </div>
+  )}
+</AdminLayout>
+
+<style>
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .admin-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .admin-subtitle {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0.5rem 0 0;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .view-site-link {
+    text-decoration: none;
+  }
+
+  .filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 3px solid var(--color-primary);
+    border-radius: 8px;
+    flex: 1;
+    max-width: 400px;
+  }
+
+  .search-box svg {
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 0.9rem;
+    color: var(--text);
+    outline: none;
+  }
+
+  .search-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .filter-select {
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 3px solid var(--color-primary);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    min-width: 140px;
+  }
+
+  .btn-reset {
+    text-decoration: none;
+  }
+
+  .table-container {
+    background: var(--surface);
+    border: 4px solid var(--color-primary);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 6px 6px 0 var(--color-primary);
+  }
+
+  .articles-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .articles-table th {
+    text-align: left;
+    padding: 1rem 1.25rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    background: var(--color-bg);
+    border-bottom: 3px solid var(--color-primary);
+  }
+
+  .articles-table td {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 2px solid var(--color-bg);
+    vertical-align: middle;
+  }
+
+  .articles-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .articles-table tr:hover td {
+    background: var(--color-bg);
+  }
+
+  .article-cell {
+    max-width: 300px;
+  }
+
+  .article-title {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+  }
+
+  .article-title:hover {
+    color: var(--color-primary);
+  }
+
+  .category-cell, .author-cell {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .status-published {
+    background: #2ecc71;
+    color: white;
+  }
+
+  .status-draft {
+    background: #f39c12;
+    color: white;
+  }
+
+  .status-archived {
+    background: #95a5a6;
+    color: white;
+  }
+
+  .views-cell {
+    text-align: center;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .date-cell {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .actions-cell {
+    min-width: 80px;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .action-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg);
+    border: 2px solid var(--color-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: var(--text);
+  }
+
+  .action-btn:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .view-btn:hover {
+    background: var(--color-secondary);
+    border-color: var(--color-secondary);
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .page-btn {
+    padding: 0.5rem 1rem;
+    background: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .page-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 var(--color-primary);
+  }
+
+  .page-info {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .articles-table {
+      display: block;
+      overflow-x: auto;
+    }
+
+    .filters {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-box {
+      max-width: none;
+    }
+  }
+</style>

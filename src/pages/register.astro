@@ -1,0 +1,10 @@
+---
+/**
+ * /register redirects to /login.
+ * With magic-link auth, registration and login are the same flow —
+ * entering your email sends a magic link that creates your account if new.
+ */
+export const prerender = false;
+
+return Astro.redirect("/login", 302);
+---

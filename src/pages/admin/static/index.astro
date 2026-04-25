@@ -1,0 +1,627 @@
+---
+/**
+ * Static Pages Management Page
+ * Edit static pages content from database.
+ */
+
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import * as schema from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
+
+export const prerender = false;
+
+// Get current user for role checking
+const currentUser = Astro.locals.user!;
+const currentUserRole = (currentUser as any).role;
+const isAdmin = currentUserRole === "admin";
+
+// Get static pages from DB
+const db = Astro.locals.db;
+const pages = await db
+  .select({
+    id: schema.staticPages.id,
+    slug: schema.staticPages.slug,
+    title: schema.staticPages.title,
+    status: schema.staticPages.status,
+    metaDescription: schema.staticPages.metaDescription,
+    updatedAt: schema.staticPages.updatedAt,
+    authorName: schema.user.name,
+  })
+  .from(schema.staticPages)
+  .leftJoin(schema.user, eq(schema.staticPages.authorId, schema.user.id))
+  .orderBy(desc(schema.staticPages.updatedAt));
+
+// URL params for editing
+const url = new URL(Astro.request.url);
+const editSlug = url.searchParams.get("edit");
+const isCreating = url.searchParams.get("create") === "true";
+---
+
+<AdminLayout title="Static Pages" section="static">
+  <div class="admin-header">
+    <div>
+      <h1 class="admin-title">Static Pages</h1>
+      <p class="admin-subtitle">{pages.length} pages</p>
+    </div>
+    {isAdmin && (
+      <a href="?create=true" class="create-btn">
+        <Button variant="default" size="sm">
+          <svg slot="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          New Page
+        </Button>
+      </a>
+    )}
+  </div>
+
+  <!-- Page Editor Panel (shown when editing/creating) -->
+  {(editSlug || isCreating) && (
+    <div class="editor-panel">
+      <div class="editor-header">
+        <h2>{editSlug ? `Edit: ${editSlug}` : "Create New Page"}</h2>
+        <a href="/admin/static" class="close-btn">×</a>
+      </div>
+      <form id="page-form" class="editor-form">
+        <input type="hidden" name="id" id="page-id" value="" />
+        
+        <div class="form-group">
+          <label for="page-slug">Slug</label>
+          <input 
+            type="text" 
+            id="page-slug" 
+            name="slug" 
+            placeholder="e.g., about, homepage-hero"
+            required
+            pattern="[a-z0-9-]+"
+          />
+          <span class="hint">Lowercase letters, numbers, and hyphens only</span>
+        </div>
+
+        <div class="form-group">
+          <label for="page-title">Title</label>
+          <input 
+            type="text" 
+            id="page-title" 
+            name="title" 
+            placeholder="Page title"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="page-content">Content (HTML)</label>
+          <textarea 
+            id="page-content" 
+            name="content" 
+            rows="12"
+            placeholder="<p>Your content here...</p>"
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="page-meta-description">Meta Description</label>
+            <input 
+              type="text" 
+              id="page-meta-description" 
+              name="metaDescription" 
+              placeholder="SEO description"
+              maxlength="160"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="page-status">Status</label>
+            <select id="page-status" name="status">
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="page-featured-image">Featured Image URL</label>
+          <input 
+            type="url" 
+            id="page-featured-image" 
+            name="featuredImage" 
+            placeholder="https://..."
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="page-featured-image-alt">Featured Image Alt Text</label>
+          <input 
+            type="text" 
+            id="page-featured-image-alt" 
+            name="featuredImageAlt" 
+            placeholder="Description of the image"
+          />
+        </div>
+
+        <div class="form-actions">
+          <Button type="submit" variant="default" id="save-btn">
+            Save Page
+          </Button>
+          {editSlug && (
+            <Button type="button" variant="muted" id="delete-btn" class="delete-btn">
+              Delete Page
+            </Button>
+          )}
+        </div>
+      </form>
+    </div>
+  )}
+
+  <!-- Pages List -->
+  <div class="pages-list">
+    {pages.length > 0 ? (
+      <div class="table-container">
+        <table class="pages-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Slug</th>
+              <th>Status</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pages.map(page => (
+              <tr>
+                <td class="title-cell">
+                  <span class="page-title">{page.title}</span>
+                </td>
+                <td class="slug-cell">
+                  <code>/{page.slug}</code>
+                </td>
+                <td>
+                  <span class={`status-badge ${page.status}`}>
+                    {page.status}
+                  </span>
+                </td>
+                <td class="date-cell">
+                  {new Date(page.updatedAt * 1000).toLocaleDateString()}
+                </td>
+                <td class="actions-cell">
+                  <a href={`?edit=${page.slug}`} class="edit-link">
+                    <Button variant="muted" size="xs">Edit</Button>
+                  </a>
+                  <a href={`/${page.slug}`} target="_blank" class="view-link">
+                    <Button variant="muted" size="xs">View</Button>
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <h3>No static pages yet</h3>
+        <p>Create your first static page to get started.</p>
+        {isAdmin && (
+          <a href="?create=true">
+            <Button variant="default">Create Page</Button>
+          </a>
+        )}
+      </div>
+    )}
+  </div>
+</AdminLayout>
+
+<style>
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .admin-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .admin-subtitle {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0.5rem 0 0;
+  }
+
+  .create-btn {
+    text-decoration: none;
+  }
+
+  /* Editor Panel */
+  .editor-panel {
+    background: var(--surface);
+    border: 4px solid var(--color-primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 6px 6px 0 var(--color-primary);
+  }
+
+  .editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 3px solid var(--color-primary);
+  }
+
+  .editor-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+  }
+
+  .close-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg);
+    border: 2px solid var(--color-primary);
+    border-radius: 8px;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--text);
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .close-btn:hover {
+    background: var(--color-primary);
+    color: white;
+  }
+
+  .editor-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.75rem 1rem;
+    background: var(--color-bg);
+    border: 3px solid var(--color-primary);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: var(--text);
+    font-family: inherit;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-secondary);
+    box-shadow: 4px 4px 0 var(--color-secondary);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 150px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.85rem;
+  }
+
+  .hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--color-primary);
+  }
+
+  .form-actions .delete-btn {
+    background: #e74c3c;
+    border-color: #e74c3c;
+    color: white;
+  }
+
+  .form-actions .delete-btn:hover {
+    background: #c0392b;
+    border-color: #c0392b;
+  }
+
+  /* Pages Table */
+  .table-container {
+    background: var(--surface);
+    border: 4px solid var(--color-primary);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 6px 6px 0 var(--color-primary);
+  }
+
+  .pages-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .pages-table th {
+    text-align: left;
+    padding: 1rem 1.25rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    background: var(--color-bg);
+    border-bottom: 3px solid var(--color-primary);
+  }
+
+  .pages-table td {
+    padding: 1rem 1.25rem;
+    border-bottom: 2px solid var(--color-bg);
+    vertical-align: middle;
+  }
+
+  .pages-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .pages-table tr:hover td {
+    background: var(--color-bg);
+  }
+
+  .title-cell {
+    max-width: 200px;
+  }
+
+  .page-title {
+    font-weight: 600;
+    color: var(--text);
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .slug-cell code {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--color-bg);
+    border-radius: 4px;
+    color: var(--color-primary);
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .status-badge.published {
+    background: #2ecc71;
+    color: white;
+  }
+
+  .status-badge.draft {
+    background: #f39c12;
+    color: white;
+  }
+
+  .date-cell {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .actions-cell {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .edit-link, .view-link {
+    text-decoration: none;
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--surface);
+    border: 4px solid var(--color-primary);
+    border-radius: 12px;
+    box-shadow: 6px 6px 0 var(--color-primary);
+  }
+
+  .empty-icon {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: var(--text);
+  }
+
+  .empty-state p {
+    color: var(--text-muted);
+    margin: 0 0 1.5rem 0;
+  }
+
+  @media (max-width: 768px) {
+    .pages-table {
+      display: block;
+      overflow-x: auto;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+      flex-direction: column;
+    }
+  }
+</style>
+
+<script>
+  // Load page data when editing
+  const urlParams = new URLSearchParams(window.location.search);
+  const editSlug = urlParams.get('edit');
+  const isCreating = urlParams.get('create') === 'true';
+
+  if (editSlug) {
+    loadPage(editSlug);
+  }
+
+  async function loadPage(slug: string) {
+    try {
+      const response = await fetch(`/api/admin/static-pages/${slug}`);
+      if (response.ok) {
+        const page = await response.json();
+        
+        (document.getElementById('page-id') as HTMLInputElement).value = page.id;
+        (document.getElementById('page-slug') as HTMLInputElement).value = page.slug;
+        (document.getElementById('page-slug') as HTMLInputElement).readOnly = true;
+        (document.getElementById('page-title') as HTMLInputElement).value = page.title;
+        (document.getElementById('page-content') as HTMLTextAreaElement).value = page.content || '';
+        (document.getElementById('page-meta-description') as HTMLInputElement).value = page.metaDescription || '';
+        (document.getElementById('page-status') as HTMLSelectElement).value = page.status;
+        (document.getElementById('page-featured-image') as HTMLInputElement).value = page.featuredImage || '';
+        (document.getElementById('page-featured-image-alt') as HTMLInputElement).value = page.featuredImageAlt || '';
+      }
+    } catch (err) {
+      console.error('Failed to load page:', err);
+      alert('Failed to load page data');
+    }
+  }
+
+  // Save page
+  document.getElementById('page-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const data = {
+      slug: formData.get('slug') as string,
+      title: formData.get('title') as string,
+      content: formData.get('content') as string,
+      metaDescription: formData.get('metaDescription') as string,
+      status: formData.get('status') as string,
+      featuredImage: formData.get('featuredImage') as string,
+      featuredImageAlt: formData.get('featuredImageAlt') as string,
+    };
+
+    const pageId = (document.getElementById('page-id') as HTMLInputElement).value;
+    
+    try {
+      const url = pageId && !isCreating 
+        ? `/api/admin/static-pages/${pageId}` 
+        : '/api/admin/static-pages';
+      
+      const method = pageId && !isCreating ? 'PUT' : 'PUT';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        window.location.href = '/admin/static';
+      } else {
+        const error = await response.json();
+        alert(`Failed: ${error.error}`);
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Page';
+      }
+    } catch (err) {
+      alert('Failed to save page');
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Page';
+    }
+  });
+
+  // Delete page
+  document.getElementById('delete-btn')?.addEventListener('click', async () => {
+    const pageId = (document.getElementById('page-id') as HTMLInputElement).value;
+    
+    if (!pageId) return;
+    
+    if (!confirm('Are you sure you want to delete this page? This cannot be undone.')) {
+      return;
+    }
+
+    const deleteBtn = document.getElementById('delete-btn') as HTMLButtonElement;
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = 'Deleting...';
+
+    try {
+      const response = await fetch(`/api/admin/static-pages/${pageId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        window.location.href = '/admin/static';
+      } else {
+        const error = await response.json();
+        alert(`Failed: ${error.error}`);
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = 'Delete Page';
+      }
+    } catch (err) {
+      alert('Failed to delete page');
+      deleteBtn.disabled = false;
+      deleteBtn.textContent = 'Delete Page';
+    }
+  });
+</script>

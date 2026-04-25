@@ -177,8 +177,8 @@ export const prerender = false;
   <body>
     <div class="login-container">
       <div class="login-header">
-        <h1 class="login-title">sign in</h1>
-        <p class="login-subtitle">enter your email to receive a magic link</p>
+        <h1 class="login-title">sign in / register</h1>
+        <p class="login-subtitle">enter your email — we'll send a magic link to sign in or create your account</p>
       </div>
 
       <div id="message" class="message" style="display: none;">
@@ -233,10 +233,15 @@ export const prerender = false;
             body: JSON.stringify({ email, callbackURL: siteUrl }),
           });
 
-          const data = await res.json();
-
           if (!res.ok) {
-            throw new Error(data.error?.message || "Failed to send magic link");
+            let errorMessage = "Failed to send magic link";
+            try {
+              const data = await res.json();
+              errorMessage = data.error?.message || errorMessage;
+            } catch {
+              // response body not JSON — use default message
+            }
+            throw new Error(errorMessage);
           }
 
           showMessage(

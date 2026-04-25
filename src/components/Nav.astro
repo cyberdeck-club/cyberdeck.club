@@ -16,7 +16,8 @@ const currentPath = Astro.url.pathname;
 
 <div id="nav-wrapper" class="fixed inset-x-0 top-0 z-50 w-full mx-auto">
   <div
-    class="nav-bar py-4 px-6 border-b-4 md:border-b-8"
+    class="nav-bar py-4 px-6 border-y-8"
+    style="border-color: var(--accent-border);"
   >
     <div
       id="navigation-wrapper"
@@ -187,25 +188,25 @@ const currentPath = Astro.url.pathname;
 
 <script>
   function initNav() {
-    const menuToggle = document.getElementById('menu-toggle');
-    const navMenu = document.getElementById('navigation-menu');
+    const menuToggle = document.getElementById('menu-toggle')!;
+    const navMenu = document.getElementById('navigation-menu')!;
     const body = document.body;
 
     if (!menuToggle || !navMenu) return;
 
     function openMenu() {
-      navMenu.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-4');
-      navMenu.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
-      navMenu.setAttribute('aria-hidden', 'false');
-      menuToggle.setAttribute('aria-expanded', 'true');
+      navMenu!.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-4');
+      navMenu!.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
+      navMenu!.setAttribute('aria-hidden', 'false');
+      menuToggle!.setAttribute('aria-expanded', 'true');
       body.classList.add('menu-open');
     }
 
     function closeMenu() {
-      navMenu.classList.add('opacity-0', 'pointer-events-none', '-translate-y-4');
-      navMenu.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
-      navMenu.setAttribute('aria-hidden', 'true');
-      menuToggle.setAttribute('aria-expanded', 'false');
+      navMenu!.classList.add('opacity-0', 'pointer-events-none', '-translate-y-4');
+      navMenu!.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
+      navMenu!.setAttribute('aria-hidden', 'true');
+      menuToggle!.setAttribute('aria-expanded', 'false');
       body.classList.remove('menu-open');
     }
 

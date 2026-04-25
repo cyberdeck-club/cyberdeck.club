@@ -4,17 +4,17 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
-	"migrations_dir": "./drizzle/migrations",
-	"assets": {
-		"directory": "./dist"
-	},
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "cyberdeck-db-local",
-			"database_id": "c3b354ad-3b83-4fca-b15e-a590c0b452e3"
+			"database_name": "cyberdeck-db",
+			"database_id": "c3b354ad-3b83-4fca-b15e-a590c0b452e3",
+			"migrations_dir": "./drizzle/migrations"
 		},
 	],
+	"vars": {
+		"PUBLIC_BASE_URL": "http://localhost:8787"
+	},
 	// "r2_buckets": [
 	//   {
 	//     "binding": "MEDIA",

@@ -9,9 +9,19 @@ import * as schema from "./schema";
  * wrapping the D1 binding. This avoids WAL-lock contention that occurs
  * with module-level singletons under local SQLite (Miniflare).
  *
- * @param env - App.Globals from Cloudflare Workers / Astro
- * @returns Drizzle client bound to env.DB
+ * In @astrojs/cloudflare v13 / Astro v6, pass the result of
+ * `import { env } from "cloudflare:workers"` directly.
+ *
+ * @param cfEnv - App.Env from `import { env } from "cloudflare:workers"`
+ * @returns Drizzle client bound to the D1 DB binding
  */
-export function getDb(env: App.Globals): DrizzleD1Database<typeof schema> {
-  return drizzle(env.DB, { schema });
+export function getDb(cfEnv: App.Env): DrizzleD1Database<typeof schema> {
+  const dbBinding = cfEnv.DB;
+  if (!dbBinding) {
+    throw new Error(
+      `[getDb] D1 binding "DB" not found in env. ` +
+      `Check wrangler.jsonc d1_databases binding name and that platformProxy is enabled in astro.config.mjs.`
+    );
+  }
+  return drizzle(dbBinding, { schema });
 }

@@ -22,6 +22,10 @@ const threadResult = await getForumThread(db, id);
 const notFound = !threadResult || threadResult.length === 0;
 
 let threadData = notFound ? null : threadResult[0];
+if (!threadData) {
+  return Astro.redirect("/forum");
+}
+const td = threadData;
 let postsResult: Awaited<ReturnType<typeof getForumPosts>> = [];
 
 // Fetch posts if thread exists
@@ -72,19 +76,21 @@ function formatRelativeTime(timestamp: number | null): string {
   </ForumLayout>
 ) : (
   <ForumLayout
-    title={threadData.thread.title}
-    description={`Forum thread: ${threadData.thread.title}`}
-    currentCategory={threadData.categorySlug}
+    title={td.thread.title}
+    description={`Forum thread: ${td.thread.title}`}
+    currentCategory={td.categorySlug}
     breadcrumb={[
-      { label: threadData.categoryName, href: `/forum/${threadData.categorySlug}` },
-      { label: threadData.thread.title, href: `/forum/thread/${threadData.thread.id}` }
+      { label: td.categoryName, href: `/forum/${td.categorySlug}` },
+      { label: td.thread.title, href: `/forum/thread/${td.thread.id}` }
     ]}
   >
+  // Ensure threadData is non-null within this block
+  // Removed duplicate td declaration; using td defined earlier
     <article class="thread-view">
       {/* Thread Header */}
       <header class="thread-header">
         <div class="thread-badges">
-          <a href={`/forum/${threadData.categorySlug}`} class="category-badge">
+          <a href={`/forum/${td.categorySlug}`} class="category-badge">
             {threadData.categoryName}
           </a>
           {threadData.thread.isPinned === 1 && <span class="badge pin">📌 Pinned</span>}
@@ -124,7 +130,7 @@ function formatRelativeTime(timestamp: number | null): string {
               <div class="post-header">
                 <span class="post-time">{formatRelativeTime(threadData.thread.createdAt)}</span>
               </div>
-              <div class="post-body" set:html={marked.parse(threadData.thread.body ?? "")} />
+              <div class="post-body" set:html={marked.parse(td.thread.content ?? "")} />
             </div>
           </div>
 

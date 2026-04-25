@@ -6,6 +6,7 @@
 
 import BaseLayout from "./BaseLayout.astro";
 import WikiSidebar from "@/components/WikiSidebar.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
 
 interface Props {
   title: string;
@@ -23,7 +24,8 @@ const {
 ---
 
 <BaseLayout title={title} description={description}>
-  <div class="wiki-layout">
+  <Wrapper variant="standard" class="py-8">
+    <div class="wiki-layout">
     <!-- Mobile sidebar toggle -->
     <button class="mobile-sidebar-toggle" id="wiki-sidebar-toggle" aria-label="Toggle navigation menu">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -53,6 +55,7 @@ const {
       <slot />
     </article>
   </div>
+  </Wrapper>
 </BaseLayout>
 
 <script>
