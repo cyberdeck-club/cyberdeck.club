@@ -84,8 +84,6 @@ function formatRelativeTime(timestamp: number | null): string {
       { label: td.thread.title, href: `/forum/thread/${td.thread.id}` }
     ]}
   >
-  // Ensure threadData is non-null within this block
-  // Removed duplicate td declaration; using td defined earlier
     <article class="thread-view">
       {/* Thread Header */}
       <header class="thread-header">

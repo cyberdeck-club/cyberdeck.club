@@ -13,6 +13,7 @@ import { getAuth } from "../../../lib/auth";
  */
 
 export const ALL: APIRoute = async (ctx) => {
+  console.log('[Auth API] Received request:', ctx.request.method, ctx.request.url);
   const auth = getAuth(env as App.Env);
   return auth.handler(ctx.request);
 };

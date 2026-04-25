@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro build && wrangler dev",
+    "dev": "concurrently \"astro build --watch\" \"wrangler pages dev ./dist --live-reload\"",
+    "dev:build": "astro build && wrangler dev",
     "start": "astro build && wrangler dev",
     "build": "astro build",
     "preview": "wrangler pages dev ./dist",
@@ -14,12 +15,14 @@
     "auth:generate": "better-auth generate --output src/db/auth-schema.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply cyberdeck-db --local",
-    "db:migrate:prod": "wrangler d1 migrations apply cyberdeck-db --remote",
+    "db:migrate:beta": "wrangler d1 migrations apply cyberdeck-db-beta --env beta --remote",
+    "db:migrate:prod": "wrangler d1 migrations apply cyberdeck-db --env prod --remote",
     "db:exec": "wrangler d1 execute cyberdeck-db --local",
-    "db:exec:prod": "wrangler d1 execute cyberdeck-db --remote",
+    "db:exec:beta": "wrangler d1 execute cyberdeck-db-beta --env beta --remote",
+    "db:exec:prod": "wrangler d1 execute cyberdeck-db --env prod --remote",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
-    "db:reset": "rm -rf .wrangler/state/v3/d1 && wrangler d1 migrations apply cyberdeck-db --local",
+    "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate && npm run db:seed",
     "lint": "astro check"
   },
   "dependencies": {
@@ -46,6 +49,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",
+    "concurrently": "^9.2.1",
     "drizzle-kit": "0.31.10",
     "typescript": "^5.9.3"
   },

@@ -1,0 +1,160 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment (beta|prod)'
+        required: true
+        default: 'beta'
+        type: choice
+        options:
+          - beta
+          - prod
+      github_pages_branch:
+        description: 'GitHub Pages branch to serve from (for fallback only)'
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build job - runs for all push and dispatch events
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build
+        run: npm run build
+        env:
+          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # Deploy to Beta - auto-deploys on push to main
+  # ---------------------------------------------------------------------------
+  deploy-beta:
+    name: Deploy to Beta
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'beta')
+    environment:
+      name: beta
+      url: https://beta.cyberdeck.club
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Run D1 migrations (Beta)
+        run: |
+          npx wrangler d1 migrations apply cyberdeck-db-beta --env beta --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy to Cloudflare Pages (Beta)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=cyberdeck-club --branch=beta --commit-message="${{ github.event.head_commit.message || 'Push to main' }}"
+
+  # ---------------------------------------------------------------------------
+  # Deploy to Production - manual dispatch only
+  # ---------------------------------------------------------------------------
+  deploy-prod:
+    name: Deploy to Production
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+    environment:
+      name: production
+      url: https://cyberdeck.club
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Run D1 migrations (Production)
+        run: |
+          npx wrangler d1 migrations apply cyberdeck-db --env prod --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy to Cloudflare Pages (Production)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=cyberdeck-club --branch=production --commit-message="${{ github.event.head_commit.message || 'Manual production deploy' }}"
+
+  # ---------------------------------------------------------------------------
+  # GitHub Pages Fallback - switches Cloudflare Pages to serve from gh-pages
+  # ---------------------------------------------------------------------------
+  github-pages-fallback:
+    name: GitHub Pages Fallback
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.github_pages_branch != ''
+    environment:
+      name: production
+      url: https://cyberdeck.club
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.github_pages_branch }}
+          sparse-checkout: |
+            index.html
+            404.html
+          sparse-checkout-cone-mode: false
+
+      - name: Deploy to Cloudflare Pages from GitHub Pages branch
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy . --project-name=cyberdeck-club --branch=gh-pages --commit-message="Fallback deploy from ${{ github.event.inputs.github_pages_branch }}"

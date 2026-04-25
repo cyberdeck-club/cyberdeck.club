@@ -1,0 +1,152 @@
+[
+  {
+    "id": "t1",
+    "slug": "welcome-to-cyberdeck-club",
+    "status": "published",
+    "data": {
+      "title": "Welcome to cyberdeck.club! Introduce Yourself 💜",
+      "category": "introductions",
+      "author": "$ref:byline-divine_circuitry",
+      "reply_count": 4,
+      "view_count": 523,
+      "is_pinned": true,
+      "is_locked": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Hey everyone! Welcome to cyberdeck.club — a community for women, femmes, queers, and folks historically underrepresented in STEM who are passionate about building cyberdecks.\n\nThis is a space where you can share your builds, ask for help, learn new skills, and connect with other makers who get it. Whether you've built twenty decks or you're still figuring out what a Raspberry Pi is, you belong here.\n\nDrop a reply and tell us:\n- Your name or handle\n- Where you're based (if you're comfortable sharing)\n- What got you interested in cyberdecks\n- What you're currently working on (or dreaming about building)\n\nNo build is too small, no question is too basic, and no aesthetic is wrong. Let's go! 🌈✨"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "t2",
+    "slug": "thrift-store-finds-thread",
+    "status": "published",
+    "data": {
+      "title": "The Thrift Store Finds Thread 🛒",
+      "category": "parts-and-sourcing",
+      "author": "$ref:byline-solderqueen",
+      "reply_count": 3,
+      "view_count": 312,
+      "is_pinned": true,
+      "is_locked": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "One of the best parts of cyberdeck building is finding the perfect enclosure or component at a thrift store, garage sale, or free pile. This thread is for sharing your best finds!\n\nI'll start: I found this incredible 1970s Samsonite briefcase at Goodwill for $6. It's hard-shell, has that gorgeous avocado green color, and is exactly the right depth for a Pi 5 + 10-inch screen + mechanical keyboard. The interior already had this amazing velvet lining that I'm keeping because it's perfect.\n\nWhat have you found lately? Post photos if you have them!"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "t3",
+    "slug": "first-build-pelican-1200-pi5",
+    "status": "published",
+    "data": {
+      "title": "My First Build: Pelican 1200 + Pi 5 (help needed with display)",
+      "category": "build-help",
+      "author": "$ref:byline-glitchgrl",
+      "reply_count": 3,
+      "view_count": 187,
+      "is_pinned": false,
+      "is_locked": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Hi everyone! I'm working on my first cyberdeck build and could use some advice.\n\nI have:\n- Raspberry Pi 5 (8GB)\n- Pelican 1200 case (got it from a camera store going-out-of-business sale for $15!)\n- Keychron K7 keyboard (low profile, fits perfectly)\n- Anker 20000mAh USB-C PD power bank\n\nWhat I need help with: choosing a display. The interior dimensions of the Pelican 1200 give me roughly 9.5\" x 7\" to work with for the screen (mounted in the lid). I'm torn between:\n\n1. A 7-inch Waveshare IPS touchscreen — fits easily but feels small\n2. An 8.9-inch Elecrow display — tighter fit but more usable screen real estate\n\nHas anyone used either of these in a Pelican 1200? I'm worried about the 8.9\" one not leaving enough bezel room for mounting.\n\nAlso — any tips for mounting a screen in the lid? I've seen people use velcro, 3D printed brackets, and just straight-up hot glue. What works best?"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "t4",
+    "slug": "solarpunk-deck-build-log",
+    "status": "published",
+    "data": {
+      "title": "Build Log: My Solarpunk Bamboo Deck 🌿",
+      "category": "show-and-tell",
+      "author": "$ref:byline-circuitfae",
+      "reply_count": 3,
+      "view_count": 278,
+      "is_pinned": false,
+      "is_locked": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "I've been working on this for about three months and I'm finally ready to share. Meet Fernweh — my solarpunk-inspired cyberdeck built into a thrifted bamboo tea box.\n\n## The Concept\nI wanted a deck that felt warm and organic, something that wouldn't look out of place on a mossy log in a forest. I also wanted it to be genuinely solar-powered for light tasks.\n\n## The Guts\n- Raspberry Pi Zero 2W (chosen for ultra-low power draw)\n- 5.5\" Waveshare e-ink display (gorgeous in sunlight, sips power)\n- BBQ20KBD BlackBerry keyboard module\n- PiSugar 2 Pro with 5000mAh battery\n- 10W folding solar panel (external, connected via USB-C)\n\n## The Enclosure\nThe bamboo tea box came from a thrift store for $4. I sanded the interior, lined it with cork, and used brass standoffs for mounting. The hinge already worked perfectly for the clamshell design. I burned a fern pattern into the lid with a wood-burning tool.\n\n## What It Does\nIt's my distraction-free writing machine. The e-ink screen and tiny keyboard make it perfect for journaling and drafting. Battery lasts about 12 hours on the PiSugar alone, and the solar panel can keep it topped up on a sunny day.\n\nI'll post more photos as I refine the cable management. Would love to hear your thoughts!"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "t5",
+    "slug": "favorite-cyberpunk-books",
+    "status": "published",
+    "data": {
+      "title": "What Cyberpunk/Solarpunk Books Are You Reading?",
+      "category": "off-topic",
+      "author": "$ref:byline-bytewitch",
+      "reply_count": 3,
+      "view_count": 156,
+      "is_pinned": false,
+      "is_locked": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "I just finished re-reading Synners by Pat Cadigan and honestly it hits different now that I'm actually building my own hardware. The way she writes about the relationship between humans and their machines feels so real.\n\nCurrent reading list:\n- *A Memory Called Empire* by Arkady Martine (more space opera than cyberpunk but the themes of identity and technology are 🤌)\n- *The Actual Star* by Monica Byrne (solarpunk-adjacent, beautiful)\n- *Infomocracy* by Malka Older (near-future political thriller with amazing tech worldbuilding)\n\nWhat are you all reading? I'm especially looking for sci-fi by women, queer authors, and authors of color. Bonus points if it features cool hardware."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "t6",
+    "slug": "group-buy-bbq20kbd",
+    "status": "published",
+    "data": {
+      "title": "Interest Check: BBQ20KBD Group Buy",
+      "category": "parts-and-sourcing",
+      "author": "$ref:byline-circuitfae",
+      "reply_count": 2,
+      "view_count": 198,
+      "is_pinned": false,
+      "is_locked": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Hey friends! The BBQ20KBD (BlackBerry Q20 keyboard breakout board by Solder Party) is such a popular component for compact builds, but it's often out of stock or the shipping costs more than the board.\n\nWould anyone be interested in doing a group buy? If we get 10+ people we could order directly from the manufacturer at a discount and split shipping.\n\nThe BBQ20KBD gives you:\n- Full QWERTY BlackBerry keyboard\n- I2C and UART interfaces\n- Built-in trackpad\n- USB-C connector\n- ~$30 per unit at group pricing\n\nDrop a reply if you're in and roughly where you're located (for shipping logistics). If there's enough interest I'll reach out to Solder Party about bulk pricing."
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

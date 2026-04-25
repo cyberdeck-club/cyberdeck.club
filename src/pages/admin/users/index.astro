@@ -70,6 +70,7 @@ function getRoleBadgeClass(role: string) {
   switch (role) {
     case "admin": return "role-admin";
     case "moderator": return "role-moderator";
+    case "maker": return "role-maker";
     default: return "role-member";
   }
 }
@@ -102,6 +103,7 @@ function getRoleBadgeClass(role: string) {
     <select name="role" class="role-select">
       <option value="">All Roles</option>
       <option value="member" selected={roleFilter === "member"}>Member</option>
+      <option value="maker" selected={roleFilter === "maker"}>Maker</option>
       <option value="moderator" selected={roleFilter === "moderator"}>Moderator</option>
       <option value="admin" selected={roleFilter === "admin"}>Admin</option>
     </select>
@@ -371,6 +373,11 @@ function getRoleBadgeClass(role: string) {
 
   .role-moderator {
     background: var(--color-secondary);
+    color: white;
+  }
+
+  .role-maker {
+    background: var(--color-info);
     color: white;
   }
 

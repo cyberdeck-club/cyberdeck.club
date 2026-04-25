@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1",
+    "slug": "divine_circuitry",
+    "displayName": "divine_circuitry",
+    "role": "admin"
+  },
+  {
+    "id": "2",
+    "slug": "solderqueen",
+    "displayName": "SolderQueen",
+    "role": "maker"
+  },
+  {
+    "id": "3",
+    "slug": "bytewitch",
+    "displayName": "ByteWitch",
+    "role": "moderator"
+  },
+  {
+    "id": "4",
+    "slug": "circuitfae",
+    "displayName": "CircuitFae",
+    "role": "maker"
+  },
+  {
+    "id": "5",
+    "slug": "glitchgrl",
+    "displayName": "GlitchGrl",
+    "role": "member"
+  }
+]

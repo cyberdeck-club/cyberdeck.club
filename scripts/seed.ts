@@ -1,7 +1,7 @@
 /**
  * cyberdeck.club seed script
  *
- * Populates the local D1 database with seed data from seed/seed.json.
+ * Populates the local D1 database with seed data from seed/*.json files.
  * Run with: npx tsx scripts/seed.ts
  *
  * Uses wrangler d1 execute for bulk inserts (D1 interactive transactions not supported).
@@ -16,99 +16,122 @@ import { execSync } from "child_process";
 
 // ── Types ────────────────────────────────────────────────────────────────────────
 
-interface SeedData {
+interface SeedManifest {
   version: string;
   meta: { name: string; description: string; author: string };
-  taxonomies: Array<{
-    name: string;
-    label: string;
-    terms: Array<{ slug: string; label: string }>;
-  }>;
-  bylines: Array<{ id: string; slug: string; displayName: string }>;
-  content: {
-    wiki_articles: Array<{
-      id: string;
-      slug: string;
-      status: string;
-      data: {
-        title: string;
-        category: string;
-        excerpt?: string;
-        author: string;
-        view_count: number;
-        content: PortableTextBlock[];
-      };
-      taxonomies?: { "wiki-category"?: string[] };
-    }>;
-    forum_threads: Array<{
-      id: string;
-      slug: string;
-      status: string;
-      data: {
-        title: string;
-        category: string;
-        author: string;
-        reply_count: number;
-        view_count: number;
-        is_pinned: boolean;
-        is_locked: boolean;
-        content: PortableTextBlock[];
-      };
-      taxonomies?: { "forum-category"?: string[] };
-    }>;
-    forum_posts: Array<{
-      id: string;
-      data: {
-        thread_id: string;
-        author: string;
-        is_deleted: boolean;
-        content: PortableTextBlock[];
-      };
-    }>;
-    meetup_events: Array<{
-      id: string;
-      slug: string;
-      status: string;
-      data: {
-        title: string;
-        description: PortableTextBlock[];
-        location_name: string;
-        location_lat: number;
-        location_lng: number;
-        date_start: string;
-        date_end: string;
-        organizer: string;
-        max_attendees: number;
-        rsvp_count: number;
-        region: string;
-      };
-    }>;
-    builds: Array<{
-      id: string;
-      slug: string;
-      status: string;
-      data: {
-        title: string;
-        description: string;
-        featured_image?: string;
-        gallery?: string;
-        parts_list?: string;
-        compute_platform?: string;
-        estimated_cost?: number;
-        difficulty?: string;
-        build_time?: string;
-        builder: string;
-        tags?: string;
-      };
-      taxonomies?: { "build-tag"?: string[] };
-    }>;
+  files: {
+    users: string;
+    taxonomies: string;
+    wiki_articles: string;
+    forum_threads: string;
+    forum_posts: string;
+    builds: string;
+    meetups: string;
   };
+}
+
+interface SeedUser {
+  id: string;
+  slug: string;
+  displayName: string;
+  role: string;
+  bio?: string;
+}
+
+interface TaxonomyTerm {
+  slug: string;
+  label: string;
+  description?: string;
+}
+
+interface Taxonomy {
+  name: string;
+  label: string;
+  terms: TaxonomyTerm[];
 }
 
 interface PortableTextBlock {
   _type: "block";
   style?: string;
   children: Array<{ _type: "span"; text: string }>;
+}
+
+interface WikiArticle {
+  id: string;
+  slug: string;
+  status: string;
+  data: {
+    title: string;
+    category: string;
+    excerpt?: string;
+    author: string;
+    view_count: number;
+    content: PortableTextBlock[];
+  };
+}
+
+interface ForumThread {
+  id: string;
+  slug: string;
+  status: string;
+  data: {
+    title: string;
+    category: string;
+    author: string;
+    reply_count: number;
+    view_count: number;
+    is_pinned: boolean;
+    is_locked: boolean;
+    content: PortableTextBlock[];
+  };
+}
+
+interface ForumPost {
+  id: string;
+  data: {
+    thread_id: string;
+    author: string;
+    is_deleted: boolean;
+    content: PortableTextBlock[];
+  };
+}
+
+interface MeetupEvent {
+  id: string;
+  slug: string;
+  status: string;
+  data: {
+    title: string;
+    description: PortableTextBlock[];
+    location_name: string;
+    location_lat: number;
+    location_lng: number;
+    date_start: string;
+    date_end: string;
+    organizer: string;
+    max_attendees: number;
+    rsvp_count: number;
+    region: string;
+  };
+}
+
+interface Build {
+  id: string;
+  slug: string;
+  status: string;
+  data: {
+    title: string;
+    description: string;
+    featured_image?: string | null;
+    gallery?: string | null;
+    parts_list?: string | null;
+    compute_platform?: string;
+    estimated_cost?: number;
+    difficulty?: string;
+    build_time?: string;
+    builder: string;
+    tags?: string;
+  };
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────
@@ -142,7 +165,7 @@ function sqlStr(val: unknown): string {
 
 // ── Wrangler exec ─────────────────────────────────────────────────────────────
 
-const DB_NAME = "cyberdeck-db-local";
+const DB_NAME = "DB";
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 function execSql(sql: string): void {
@@ -164,18 +187,32 @@ function execSqlBatch(sqls: string[]): void {
   }
 }
 
-// ── Script ─────────────────────────────────────────────────────────────────────
+// ── Load seed files ───────────────────────────────────────────────────────────
 
-const seedPath = resolve(PROJECT_ROOT, "seed/seed.json");
+const SEED_DIR = resolve(PROJECT_ROOT, "seed");
 
-// Load seed data
-const seedRaw = readFileSync(seedPath, "utf8");
-const seed: SeedData = JSON.parse(seedRaw);
+function loadSeedFile<T>(filename: string): T {
+  const filePath = resolve(SEED_DIR, filename);
+  const raw = readFileSync(filePath, "utf8");
+  return JSON.parse(raw) as T;
+}
 
-// Build byline → userId map
-const bylineToUserId = new Map<string, string>();
-for (const byline of seed.bylines) {
-  bylineToUserId.set(byline.slug, uid());
+// Load manifest
+const manifest = loadSeedFile<SeedManifest>("seed.json");
+
+// Load individual seed files
+const users = loadSeedFile<SeedUser[]>(manifest.files.users);
+const taxonomies = loadSeedFile<Taxonomy[]>(manifest.files.taxonomies);
+const wikiArticles = loadSeedFile<WikiArticle[]>(manifest.files.wiki_articles);
+const forumThreads = loadSeedFile<ForumThread[]>(manifest.files.forum_threads);
+const forumPosts = loadSeedFile<ForumPost[]>(manifest.files.forum_posts);
+const builds = loadSeedFile<Build[]>(manifest.files.builds);
+const meetupEvents = loadSeedFile<MeetupEvent[]>(manifest.files.meetups);
+
+// Build user slug → userId map
+const userSlugToId = new Map<string, string>();
+for (const u of users) {
+  userSlugToId.set(u.slug, uid());
 }
 
 // Track IDs for cross-table references
@@ -194,16 +231,16 @@ function seedAuth(): void {
 
   const sqls: string[] = [];
 
-  // Create users from bylines
-  for (const byline of seed.bylines) {
-    const userId = bylineToUserId.get(byline.slug)!;
+  // Create users
+  for (const u of users) {
+    const userId = userSlugToId.get(u.slug)!;
     sqls.push(
-      `INSERT OR REPLACE INTO "user" (id, name, email, email_verified, created_at, updated_at) VALUES (` +
-      `${sqlStr(userId)}, ${sqlStr(byline.displayName)}, ${sqlStr(`${byline.slug}@cyberdeck.club`)}, 1, ${nowEpoch}, ${nowEpoch})`
+      `INSERT OR REPLACE INTO "user" (id, name, email, email_verified, role, bio, created_at, updated_at) VALUES (` +
+      `${sqlStr(userId)}, ${sqlStr(u.displayName)}, ${sqlStr(`${u.slug}@aster.hn`)}, 1, ${sqlStr(u.role)}, ${sqlStr(u.bio ?? null)}, ${nowEpoch}, ${nowEpoch})`
     );
 
-    // Create session for first user (test user)
-    if (byline.slug === "neonpunk") {
+    // Create session for admin user (test user)
+    if (u.slug === "divine_circuitry") {
       const sessionId = uid();
       const token = `test-session-${uid()}`;
       const expiresAt = now.getTime() + thirtyDaysMs;
@@ -215,13 +252,13 @@ function seedAuth(): void {
   }
 
   execSqlBatch(sqls);
-  console.log(`  Created ${seed.bylines.length} users`);
+  console.log(`  Created ${users.length} users`);
 }
 
 function seedWikiCategories(): void {
   console.log("Seeding wiki categories...");
 
-  const wikiTax = seed.taxonomies.find((t) => t.name === "wiki-category");
+  const wikiTax = taxonomies.find((t) => t.name === "wiki-category");
   if (!wikiTax) return;
 
   const now = Date.now();
@@ -233,7 +270,7 @@ function seedWikiCategories(): void {
     wikiCategoryIds.set(term.slug, id);
     sqls.push(
       `INSERT OR REPLACE INTO wiki_categories (id, slug, name, description, sort_order, created_at) VALUES (` +
-      `${sqlStr(id)}, ${sqlStr(term.slug)}, ${sqlStr(term.label)}, NULL, ${i}, ${now})`
+      `${sqlStr(id)}, ${sqlStr(term.slug)}, ${sqlStr(term.label)}, ${sqlStr(term.description ?? null)}, ${i}, ${now})`
     );
   }
 
@@ -247,7 +284,7 @@ function seedWikiArticles(): void {
   const now = Date.now();
   const sqls: string[] = [];
 
-  for (const article of seed.content.wiki_articles) {
+  for (const article of wikiArticles) {
     const articleId = uid();
     const authorId = resolveBylineRef(article.data.author);
     const content = portableTextToString(article.data.content);
@@ -266,13 +303,13 @@ function seedWikiArticles(): void {
   }
 
   execSqlBatch(sqls);
-  console.log(`  Created ${seed.content.wiki_articles.length} wiki articles`);
+  console.log(`  Created ${wikiArticles.length} wiki articles`);
 }
 
 function seedForumCategories(): void {
   console.log("Seeding forum categories...");
 
-  const forumTax = seed.taxonomies.find((t) => t.name === "forum-category");
+  const forumTax = taxonomies.find((t) => t.name === "forum-category");
   if (!forumTax) return;
 
   const now = Date.now();
@@ -284,7 +321,7 @@ function seedForumCategories(): void {
     forumCategoryIds.set(term.slug, id);
     sqls.push(
       `INSERT OR REPLACE INTO forum_categories (id, slug, name, description, sort_order, created_at) VALUES (` +
-      `${sqlStr(id)}, ${sqlStr(term.slug)}, ${sqlStr(term.label)}, NULL, ${i}, ${now})`
+      `${sqlStr(id)}, ${sqlStr(term.slug)}, ${sqlStr(term.label)}, ${sqlStr(term.description ?? null)}, ${i}, ${now})`
     );
   }
 
@@ -298,7 +335,7 @@ function seedForumThreads(): void {
   const now = Date.now();
   const sqls: string[] = [];
 
-  for (const thread of seed.content.forum_threads) {
+  for (const thread of forumThreads) {
     const threadId = uid();
     threadIds.set(thread.id, threadId);
     const authorId = resolveBylineRef(thread.data.author);
@@ -311,7 +348,7 @@ function seedForumThreads(): void {
   }
 
   execSqlBatch(sqls);
-  console.log(`  Created ${seed.content.forum_threads.length} forum threads`);
+  console.log(`  Created ${forumThreads.length} forum threads`);
 }
 
 function seedForumPosts(): void {
@@ -320,7 +357,7 @@ function seedForumPosts(): void {
   const now = Date.now();
   const sqls: string[] = [];
 
-  for (const post of seed.content.forum_posts) {
+  for (const post of forumPosts) {
     const authorId = resolveBylineRef(post.data.author);
     const content = portableTextToString(post.data.content);
     const threadId = threadIds.get(post.data.thread_id) ?? post.data.thread_id;
@@ -332,7 +369,7 @@ function seedForumPosts(): void {
   }
 
   execSqlBatch(sqls);
-  console.log(`  Created ${seed.content.forum_posts.length} forum posts`);
+  console.log(`  Created ${forumPosts.length} forum posts`);
 }
 
 function seedMeetups(): void {
@@ -341,7 +378,7 @@ function seedMeetups(): void {
   const now = Date.now();
   const sqls: string[] = [];
 
-  for (const meetup of seed.content.meetup_events) {
+  for (const meetup of meetupEvents) {
     const organizerId = resolveBylineRef(meetup.data.organizer);
     const description = portableTextToString(meetup.data.description);
     const startsAt = parseIsoToEpoch(meetup.data.date_start);
@@ -354,7 +391,7 @@ function seedMeetups(): void {
   }
 
   execSqlBatch(sqls);
-  console.log(`  Created ${seed.content.meetup_events.length} meetups`);
+  console.log(`  Created ${meetupEvents.length} meetups`);
 }
 
 function seedBuilds(): void {
@@ -363,7 +400,7 @@ function seedBuilds(): void {
   const now = Date.now();
   const sqls: string[] = [];
 
-  for (const build of seed.content.builds) {
+  for (const build of builds) {
     const builderId = resolveBylineRef(build.data.builder);
 
     sqls.push(
@@ -373,7 +410,7 @@ function seedBuilds(): void {
   }
 
   execSqlBatch(sqls);
-  console.log(`  Created ${seed.content.builds.length} builds`);
+  console.log(`  Created ${builds.length} builds`);
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────────
@@ -381,11 +418,12 @@ function seedBuilds(): void {
 function resolveBylineRef(ref: string): string | null {
   if (!ref.startsWith("$ref:byline-")) return null;
   const slug = ref.slice(12);
-  return bylineToUserId.get(slug) ?? null;
+  return userSlugToId.get(slug) ?? null;
 }
 
 function main() {
-  console.log("🌱 Starting seed...\n");
+  console.log(`🌱 Starting seed: ${manifest.meta.name}\n`);
+  console.log(`   ${manifest.meta.description}\n`);
 
   try {
     seedAuth();

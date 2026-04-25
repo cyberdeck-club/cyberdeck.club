@@ -1,0 +1,64 @@
+[
+  {
+    "name": "wiki-category",
+    "label": "Wiki Categories",
+    "terms": [
+      {
+        "slug": "getting-started",
+        "label": "Getting Started",
+        "description": "Beginner guides, first builds, and foundational knowledge for new deck builders"
+      },
+      {
+        "slug": "hardware",
+        "label": "Hardware",
+        "description": "Single-board computers, displays, keyboards, batteries, and other components"
+      },
+      {
+        "slug": "software",
+        "label": "Software",
+        "description": "Operating systems, tools, and software setups for cyberdecks"
+      },
+      {
+        "slug": "design",
+        "label": "Design & Upcycling",
+        "description": "Enclosure sourcing, thrifting finds, upcycled housings, 3D printing, and case modding techniques"
+      },
+      {
+        "slug": "culture",
+        "label": "Culture & Community",
+        "description": "Cyberdeck history, cyberpunk aesthetics, solarpunk values, and inclusive maker culture"
+      }
+    ]
+  },
+  {
+    "name": "forum-category",
+    "label": "Forum Categories",
+    "terms": [
+      {
+        "slug": "introductions",
+        "label": "Introductions",
+        "description": "Say hi! Tell us about yourself, your interests, and what brought you here"
+      },
+      {
+        "slug": "build-help",
+        "label": "Build Help",
+        "description": "Questions, troubleshooting, and advice for your cyberdeck projects"
+      },
+      {
+        "slug": "show-and-tell",
+        "label": "Show & Tell",
+        "description": "Share your builds, works-in-progress, and project updates"
+      },
+      {
+        "slug": "parts-and-sourcing",
+        "label": "Parts & Sourcing",
+        "description": "Where to find components, group buys, and deals"
+      },
+      {
+        "slug": "off-topic",
+        "label": "Off-Topic",
+        "description": "General chat, sci-fi book club, cyberpunk media, and everything else"
+      }
+    ]
+  }
+]

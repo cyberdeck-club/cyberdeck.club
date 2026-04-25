@@ -6,6 +6,11 @@ interface Props {
 
 const { class: className = "" } = Astro.props;
 const user = Astro.locals.user;
+const userRole = (user as any)?.role || '';
+const isMember = userRole === "member";
+const isMaker = userRole === "maker";
+const isModerator = userRole === "moderator";
+const isAdmin = userRole === "admin";
 ---
 
 {user ? (
@@ -29,6 +34,9 @@ const user = Astro.locals.user;
         <div class="dropdown-header">
           <span class="dropdown-email">{user.email}</span>
         </div>
+        {(isModerator || isAdmin) && (<div class="dropdown-header">
+          <a href="/admin" class="dropdown-link">Admin Dashboard</a>
+        </div>)}
         <hr class="dropdown-divider" />
         <button type="button" class="dropdown-item dropdown-logout" id="logout-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -218,14 +226,14 @@ const user = Astro.locals.user;
     gap: 0.25rem;
   }
 
-  .dropdown-email {
+  .dropdown-email, .dropdown-link {
     font-size: 0.875rem;
     font-weight: 500;
     color: #1a1a1a;
   }
 
   @media (prefers-color-scheme: dark) {
-    .dropdown-email {
+    .dropdown-email, .dropdown-link {
       color: #f5f0fa;
     }
   }
@@ -304,6 +312,8 @@ const user = Astro.locals.user;
 </style>
 
 <script>
+  import { authClient } from "../lib/auth-client";
+
   // Toggle dropdown on click
   const trigger = document.getElementById('user-menu-toggle');
   const dropdown = document.getElementById('user-dropdown');
@@ -334,23 +344,17 @@ const user = Astro.locals.user;
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
+      console.log('[UserMenu] Logout button clicked');
       try {
-        const response = await fetch('/api/auth/signout', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          // Redirect to home page after logout
-          window.location.href = '/';
+        const { error } = await authClient.signOut();
+        if (error) {
+          console.error('[UserMenu] Logout failed:', error);
         } else {
-          console.error('Logout failed:', response.status);
+          console.log('[UserMenu] Logout successful, redirecting');
+          window.location.href = '/';
         }
-      } catch (error) {
-        console.error('Logout error:', error);
+      } catch (err) {
+        console.error('[UserMenu] Logout error:', err);
       }
     });
   }

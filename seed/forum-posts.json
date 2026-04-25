@@ -1,0 +1,344 @@
+[
+  {
+    "id": "p1",
+    "data": {
+      "thread_id": "t1",
+      "author": "$ref:byline-solderqueen",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Hi everyone! I'm SolderQueen, based in Portland, OR. I got into cyberdecks after seeing Jay Doscher's Recovery Kit on Hackaday a few years ago and thinking 'I could do that but make it cute.'\n\nCurrently on my fourth build — a thrifted vintage train case from a 1960s cosmetics set, gutted and fitted with a Pi 5 and a split Corne keyboard. The mirror inside the lid is getting replaced with a 10-inch display. It's giving retro-glam cyberpunk and I'm obsessed.\n\nSo happy this community exists. The main cyberdeck spaces online can be... a lot. Nice to have a spot that feels like home. 💖"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p2",
+    "data": {
+      "thread_id": "t1",
+      "author": "$ref:byline-bytewitch",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Hey! ByteWitch here, they/them, coming to you from Brooklyn. I'm a security researcher by day and a hardware tinkerer by night.\n\nI got into cyberdecks because I needed a portable pentesting rig and thought 'why not make it look like a prop from Hackers (1995)?' That was two years and five builds ago. Now I mostly build decks as gifts for friends who are getting into infosec.\n\nCurrently working on a deck built into a thrifted aluminum camera case with dual screens — one for terminal work, one for network visualization. It's excessive and I love it."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p3",
+    "data": {
+      "thread_id": "t1",
+      "author": "$ref:byline-circuitfae",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Hello! I'm CircuitFae (she/they), joining from Asheville, NC. I'm an environmental scientist who got into cyberdecks through the solarpunk community.\n\nI build low-power, solar-compatible decks for field work — data logging, species identification with camera modules, and writing research notes off-grid. My builds tend to use e-ink displays and repurposed wooden enclosures.\n\nReally excited about this space. I've been craving a cyberdeck community that centers sustainability and accessibility alongside the cool tech. 🌿"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p4",
+    "data": {
+      "thread_id": "t1",
+      "author": "$ref:byline-glitchgrl",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Hi!! I'm GlitchGrl, she/her, Austin TX! Total beginner here — I just ordered my first Raspberry Pi last week and I have NO idea what I'm doing but I'm so excited.\n\nI found this community through a TikTok about someone building a cyberdeck in a lunchbox and immediately fell down the rabbit hole. I'm an artist and I've been sketching enclosure designs in my notebook for days.\n\nMy dream build is a cyberdeck in a vintage jewelry box with an ortholinear keyboard and a ton of LEDs. Is that possible? I have so many questions 😅"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p5",
+    "data": {
+      "thread_id": "t2",
+      "author": "$ref:byline-circuitfae",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Amazing find! I love the idea of keeping the velvet lining.\n\nMy best thrift score was a wooden artist's supply box from a Habitat for Humanity ReStore — $3. It had these beautiful dovetail joints and a removable tray that's now my keyboard shelf. The top compartment holds the Pi and screen perfectly.\n\nAlso snagged a working Logitech K380 keyboard at Goodwill for $5 last month. Bluetooth, multi-device switching, and it was basically new. Always check the electronics section!"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p6",
+    "data": {
+      "thread_id": "t2",
+      "author": "$ref:byline-glitchgrl",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "This is SO inspiring. I went thrifting yesterday specifically because of this thread and found:\n\n- A metal lunchbox (Star Wars, slightly dented, $2)\n- A leather dopp kit / travel bag ($4) — the zipper is perfect and it's the right size for a Pi Zero build\n- Two USB keyboards ($3 each)\n- A portable DVD player ($8) — the screen still works!! Planning to harvest it\n\nTotal: $20 for enough parts to start TWO builds. Thrift store cyberdeck supremacy! 🎉"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p7",
+    "data": {
+      "thread_id": "t2",
+      "author": "$ref:byline-bytewitch",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "The portable DVD player harvest is genius! Those screens are usually 7-9 inches and already have a driver board. If it has a composite or HDMI input, you might not even need to do any rewiring.\n\nMy pro tip for thrift stores: check the musical instrument section. I once found a gutted effects pedal enclosure that was the PERFECT size for a Pi Zero + tiny OLED screen. Made the cutest little status display / mini terminal.\n\nAlso: estate sales. Older folks often have vintage electronics in incredible condition. I got a fully functional 1980s Tandy portable computer case for $5 at an estate sale. The original hardware was dead but the case is immaculate."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p8",
+    "data": {
+      "thread_id": "t3",
+      "author": "$ref:byline-solderqueen",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Welcome to the hobby! Great choice on the Pelican 1200 — it's a solid starter case.\n\nI've used the 7-inch Waveshare in a Pelican 1200 and honestly it works great. The 'extra space' around the screen isn't wasted — you can mount status LEDs, a small speaker, or even a secondary OLED for system stats.\n\nFor mounting, I recommend **M3 standoffs with small L-brackets** screwed into the lid foam. Way more secure than velcro and you can still remove the screen if needed. Hot glue works but makes future upgrades painful.\n\nHere's my mounting approach:\n1. Remove the lid foam\n2. Cut a piece of thin plywood or acrylic to fit the lid interior\n3. Mount the screen to the panel with standoffs\n4. Secure the panel to the lid with adhesive-backed standoffs or small bolts through the lid\n\nYou got this! 💪"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p9",
+    "data": {
+      "thread_id": "t3",
+      "author": "$ref:byline-circuitfae",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Go with the 7-inch for your first build! Here's my reasoning:\n\n1. Easier to mount with more margin for error\n2. Less power draw = longer battery life on that Anker bank\n3. You'll learn so much on this build that your *next* deck can be the one where you push the limits\n\nThe Waveshare 7-inch IPS with capacitive touch is specifically great because:\n- Touch means you can use it without a mouse\n- IPS viewing angles are excellent (important when the screen is at an angle in the lid)\n- Powered directly from the Pi's USB port, no extra power cable needed\n\nFor your second build, you can always upgrade to a bigger screen in a bigger case. The best first build is one you actually finish! 🌟"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p10",
+    "data": {
+      "thread_id": "t3",
+      "author": "$ref:byline-divine_circuitry",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Seconding the 7-inch recommendation. I made the mistake of cramming a too-big screen into my first build and spent more time fighting the fit than actually enjoying the deck.\n\nOne thing to add: whatever display you choose, **test the full setup on your desk before mounting anything**. Connect the Pi, screen, keyboard, and power bank, boot it up, and use it for an hour. You'll quickly discover if the screen size works for your use case. I know someone who built a whole deck around a 5-inch screen and then realized they couldn't read anything on it 😅\n\nAlso — that going-out-of-business camera store deal for the Pelican is the kind of find we live for. Well done!"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p11",
+    "data": {
+      "thread_id": "t4",
+      "author": "$ref:byline-divine_circuitry",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Fernweh is STUNNING. The wood-burned fern on the bamboo lid is such a beautiful touch. And the name! (For anyone who doesn't know, Fernweh is a German word meaning an ache for distant places — wanderlust but deeper.)\n\nThe e-ink + solar combo is really smart for a writing machine. How's the refresh rate on the Waveshare e-ink for actual typing? I've always worried it would be too laggy to feel natural.\n\nAlso curious: did you seal the bamboo? I'd worry about moisture/humidity affecting a natural material enclosure over time."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p12",
+    "data": {
+      "thread_id": "t4",
+      "author": "$ref:byline-solderqueen",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "I'm literally gasping at this build. The bamboo tea box enclosure is *inspired*. I love seeing builds that don't try to look like they fell out of a sci-fi movie — this feels like it grew in a forest and I mean that as the highest compliment.\n\nThe cork lining is a great choice too — natural insulation and vibration dampening. Did you glue it or use contact adhesive?\n\nThis is making me want to do a wooden build next. I've been eyeing a thrifted cigar box that might work..."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p13",
+    "data": {
+      "thread_id": "t4",
+      "author": "$ref:byline-glitchgrl",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "This is SO COOL. The e-ink display is such a vibe. It looks like a little magical book! 📖✨\n\nOkay new dream build: a wooden deck in a thrifted jewelry box with an e-ink screen for writing and sketching. Adding this to my list.\n\nQuestion: is the Pi Zero 2W powerful enough for basic web browsing too, or is it really just for terminal/text work? I love the low-power concept but I'd want to at least be able to look things up occasionally."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p14",
+    "data": {
+      "thread_id": "t5",
+      "author": "$ref:byline-solderqueen",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Synners is incredible! Pat Cadigan doesn't get enough love as the Queen of Cyberpunk.\n\nMy recent reads:\n- *A Psalm for the Wild-Built* by Becky Chambers — tiny solarpunk novella that feels like a warm hug. Made me want to build a deck and go live in the woods.\n- *Light From Uncommon Stars* by Ryka Aoki — trans girl, violin, aliens, and donuts. Trust me, it works.\n- *The City We Became* by N.K. Jemisin — not exactly cyberpunk but the way she writes about cities as living systems scratches the same itch\n- *Autonomous* by Annalee Newitz — pharmaceutical piracy, robot sentience, and queer relationships in a corporate dystopia. Very cyberdeck energy."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p15",
+    "data": {
+      "thread_id": "t5",
+      "author": "$ref:byline-circuitfae",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Ooh great picks! For the solarpunk angle:\n\n- *The Ministry for the Future* by Kim Stanley Robinson — dense but incredible climate fiction\n- *Semiosis* by Sue Burke — plants and humans co-evolving, quiet and beautiful\n- *Walkaway* by Cory Doctorow — literally about people building community tech outside corporate systems. Extremely cyberdeck energy.\n- *The Sunlight Pilgrims* by Jenni Fagan — Scottish climate fiction, trans characters, gorgeous prose\n\nAlso seconding *A Psalm for the Wild-Built* — it genuinely changed how I think about my relationship with technology. Building things with care and intention, not just consumption."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p16",
+    "data": {
+      "thread_id": "t5",
+      "author": "$ref:byline-glitchgrl",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "I just started *Neuromancer* because I felt like I should, but honestly it's a little hard to get into? Does it get better? The prose style is wild.\n\nMeanwhile I've been binge-reading *Murderbot Diaries* by Martha Wells and it is EVERYTHING. An anxiety-ridden security robot who just wants to watch soap operas? In this economy? Extremely relatable.\n\nAlso want to shout out *Pet* by Akwaeke Emezi — YA but beautifully written, about a trans boy in a future utopia that might not be as perfect as it seems. Short and devastating."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p17",
+    "data": {
+      "thread_id": "t6",
+      "author": "$ref:byline-glitchgrl",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "I'm in! Austin, TX. I've been wanting one of these for a tiny palmtop build I'm planning. Would love to get in on group pricing."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "p18",
+    "data": {
+      "thread_id": "t6",
+      "author": "$ref:byline-solderqueen",
+      "is_deleted": false,
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Count me in — Portland, OR. I actually want two if the pricing works out. One for my current build and one to keep as a spare.\n\nI've used the BBQ20KBD in three builds now and it's honestly the best tiny keyboard option out there. The trackpad integration is clutch for builds where you don't want to deal with a separate pointing device."
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

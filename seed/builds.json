@@ -1,0 +1,74 @@
+[
+  {
+    "id": "b1",
+    "slug": "the-recovery-kit-remix",
+    "status": "published",
+    "data": {
+      "title": "The Recovery Kit Remix",
+      "description": "A Pelican 1300 cyberdeck inspired by Jay Doscher's iconic Recovery Kit, rebuilt with a Pi 5, a thrifted mechanical keyboard, and a focus on accessibility. Features tool-free component swapping and a modular internal layout.",
+      "featured_image": null,
+      "gallery": null,
+      "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi 5 (8GB)\n- **Display**: Waveshare 10.1\" IPS touchscreen\n- **Keyboard**: Thrifted Redragon K552 mechanical (red switches, compact TKL)\n- **Case**: Pelican 1300 (orange — found at a ham radio swap meet for $20)\n- **Power**: Baseus 65W USB-C PD 20,000mAh power bank\n- **Cooling**: Noctua NF-A4x10 40mm fan\n- **Mounting**: Brass standoffs, velcro straps for battery, 3D-printed screen bracket\n- **Extras**: USB hub, Ethernet panel mount, power switch with LED indicator\n\n## Total Cost: ~$185 (not counting thrifted parts)",
+      "compute_platform": "Raspberry Pi 5",
+      "estimated_cost": 185,
+      "difficulty": "beginner",
+      "build_time": "2 weekends",
+      "builder": "$ref:byline-solderqueen",
+      "tags": "pelican,raspberry-pi,beginner,thrifted"
+    }
+  },
+  {
+    "id": "b2",
+    "slug": "fernweh-solarpunk-bamboo-deck",
+    "status": "published",
+    "data": {
+      "title": "Fernweh — Solarpunk Bamboo Writing Deck",
+      "description": "An ultra-low-power cyberdeck built into a thrifted bamboo tea box, featuring an e-ink display, BlackBerry keyboard, and solar charging capability. Designed as a distraction-free writing machine for off-grid field work.",
+      "featured_image": null,
+      "gallery": null,
+      "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi Zero 2W\n- **Display**: Waveshare 5.65\" e-ink (7-color, but used in B/W mode for speed)\n- **Keyboard**: BBQ20KBD (BlackBerry Q20 breakout by Solder Party)\n- **Case**: Thrifted bamboo tea box ($4 from Goodwill)\n- **Power**: PiSugar 2 Pro with 5000mAh battery\n- **Solar**: 10W folding USB-C solar panel (Anker)\n- **Interior**: Cork shelf liner, brass M2.5 standoffs\n- **Decoration**: Wood-burned fern pattern on lid, tung oil finish\n\n## Total Cost: ~$95",
+      "compute_platform": "Raspberry Pi Zero 2W",
+      "estimated_cost": 95,
+      "difficulty": "intermediate",
+      "build_time": "3 weeks (including finishing the wood)",
+      "builder": "$ref:byline-circuitfae",
+      "tags": "solarpunk,e-ink,pi-zero,thrifted,solar,writing-machine"
+    }
+  },
+  {
+    "id": "b3",
+    "slug": "hex-witch-pentesting-rig",
+    "status": "published",
+    "data": {
+      "title": "Hex Witch — Dual-Screen Pentesting Rig",
+      "description": "A security-focused cyberdeck built into a thrifted aluminum camera case. Features dual displays, a full mechanical keyboard, and a suite of wireless hacking tools. Kali Linux on a Pi 5 with external WiFi adapters and a HackRF SDR.",
+      "featured_image": null,
+      "gallery": null,
+      "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi 5 (8GB) + NVMe HAT with 256GB SSD\n- **Primary Display**: 10.1\" Elecrow HDMI IPS touchscreen\n- **Secondary Display**: 3.5\" Pimoroni HyperPixel (system stats / network viz)\n- **Keyboard**: Thrifted Keychron K2 wireless mechanical\n- **Case**: Aluminum camera case (thrifted from estate sale, $12)\n- **Power**: 2x Anker 10,000mAh USB-C PD banks (hot-swappable)\n- **Wireless**: Alfa AWUS036ACH (dual-band WiFi), HackRF One SDR\n- **Extras**: USB-C hub, panel-mount USB/Ethernet, internal USB fan\n\n## Total Cost: ~$340",
+      "compute_platform": "Raspberry Pi 5",
+      "estimated_cost": 340,
+      "difficulty": "advanced",
+      "build_time": "1 month",
+      "builder": "$ref:byline-bytewitch",
+      "tags": "security,kali,dual-screen,thrifted,pentesting"
+    }
+  },
+  {
+    "id": "b4",
+    "slug": "stardust-lunchbox-deck",
+    "status": "published",
+    "data": {
+      "title": "Stardust — Holographic Lunchbox Deck",
+      "description": "A colorful, maximalist cyberdeck built into a thrifted metal lunchbox. Features holographic vinyl wrapping, RGB LED strips, a 7-inch touchscreen, and a custom-painted ortholinear keyboard. Pure queer joy in a portable package.",
+      "featured_image": null,
+      "gallery": null,
+      "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi 5 (4GB)\n- **Display**: 7\" Waveshare IPS capacitive touchscreen\n- **Keyboard**: BM40 ortholinear kit (Gateron milky yellow switches, custom keycaps)\n- **Case**: Vintage metal lunchbox (thrifted, $3) + holographic vinyl wrap\n- **Power**: Anker 10,000mAh USB-C PD bank\n- **Lighting**: WS2812B LED strip (10 LEDs), controlled via GPIO\n- **Interior**: Craft foam lining, custom foam-core component trays\n- **Extras**: Trans flag stickers, custom boot splash screen\n\n## Total Cost: ~$130",
+      "compute_platform": "Raspberry Pi 5",
+      "estimated_cost": 130,
+      "difficulty": "intermediate",
+      "build_time": "2 weeks",
+      "builder": "$ref:byline-glitchgrl",
+      "tags": "colorful,lunchbox,ortholinear,thrifted,leds,queer"
+    }
+  }
+]

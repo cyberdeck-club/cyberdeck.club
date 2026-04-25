@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import * as schema from "../../../db/schema";
+import { sql, eq } from "drizzle-orm";
 
 /**
  * POST /api/builds
@@ -74,6 +75,11 @@ export const POST: APIRoute = async (ctx) => {
       createdAt: now,
       updatedAt: now,
     });
+    // Promote to maker after first build
+    const userBuilds = await db.select().from(schema.builds).where(eq(schema.builds.authorId, userId)).all();
+    if (userBuilds.length === 1) {
+      await db.run(sql`UPDATE "user" SET "role" = 'maker' WHERE "id" = ${userId} AND "role" = 'member'`);
+    }
 
     return new Response(JSON.stringify({ id, slug }), {
       status: 201,

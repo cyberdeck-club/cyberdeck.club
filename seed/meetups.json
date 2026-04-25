@@ -1,0 +1,114 @@
+[
+  {
+    "id": "m1",
+    "slug": "portland-cyberdeck-social-june-2026",
+    "status": "published",
+    "data": {
+      "title": "Portland Cyberdeck Social — June 2026",
+      "description": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Bring your deck, bring your WIP, bring your curiosity! Our monthly cyberdeck social is a casual hangout where we share builds, troubleshoot together, and geek out about hardware.\n\nAll skill levels welcome — from first-timers to seasoned builders. We'll have a soldering station available for small repairs and modifications.\n\nThis month's theme: **Thrifted & Upcycled Enclosures**. Bring your best thrift store finds and let's brainstorm builds together!\n\nLight snacks provided. The space is wheelchair accessible with gender-neutral restrooms."
+            }
+          ]
+        }
+      ],
+      "location_name": "Double Union Hackerspace, San Francisco, CA",
+      "location_lat": 37.7628,
+      "location_lng": -122.4194,
+      "date_start": "2026-06-14T14:00:00-07:00",
+      "date_end": "2026-06-14T17:00:00-07:00",
+      "organizer": "$ref:byline-solderqueen",
+      "max_attendees": 25,
+      "rsvp_count": 12,
+      "region": "west-coast"
+    }
+  },
+  {
+    "id": "m2",
+    "slug": "cyberdeck-build-night-nyc-july-2026",
+    "status": "published",
+    "data": {
+      "title": "NYC Cyberdeck Build Night 🌃",
+      "description": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "A hands-on build night in Brooklyn! Bring a project to work on, or come empty-handed and we'll help you get started on your first build.\n\nWe'll have:\n- Spare Raspberry Pi boards to borrow for the evening\n- A communal parts bin (take a part, leave a part)\n- Soldering irons, multimeters, and basic tools\n- A projector for show-and-tell presentations\n\nThis is an inclusive, beginner-friendly event. No experience necessary — just enthusiasm.\n\nThe venue is ADA accessible. Masks optional but encouraged. We keep the group small and cozy."
+            }
+          ]
+        }
+      ],
+      "location_name": "Wonderville Arcade, Brooklyn, NY",
+      "location_lat": 40.7064,
+      "location_lng": -73.9230,
+      "date_start": "2026-07-19T18:00:00-04:00",
+      "date_end": "2026-07-19T21:00:00-04:00",
+      "organizer": "$ref:byline-bytewitch",
+      "max_attendees": 20,
+      "rsvp_count": 8,
+      "region": "east-coast"
+    }
+  },
+  {
+    "id": "m3",
+    "slug": "virtual-show-and-tell-may-2026",
+    "status": "published",
+    "data": {
+      "title": "Virtual Show & Tell — May 2026 (Online)",
+      "description": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Can't make it to an in-person event? Join us online! Our monthly virtual show-and-tell is a relaxed video call where members share their latest builds, ask for feedback, and help each other troubleshoot.\n\nFormat:\n- 5-10 minute presentations (sign up in advance or go impromptu)\n- Open Q&A after each presentation\n- Casual hangout / co-working time at the end\n\nCamera optional — some folks just hold their deck up to the webcam, others share screen. Whatever works for you!\n\nWe use Jitsi (no account required). Link will be posted in the forum the morning of the event."
+            }
+          ]
+        }
+      ],
+      "location_name": "Online (Jitsi)",
+      "location_lat": 0,
+      "location_lng": 0,
+      "date_start": "2026-05-10T15:00:00-04:00",
+      "date_end": "2026-05-10T17:00:00-04:00",
+      "organizer": "$ref:byline-divine_circuitry",
+      "max_attendees": 50,
+      "rsvp_count": 18,
+      "region": "online"
+    }
+  },
+  {
+    "id": "m4",
+    "slug": "appalachian-maker-retreat-august-2026",
+    "status": "published",
+    "data": {
+      "title": "Appalachian Maker Retreat: Cyberdecks in the Woods 🌲",
+      "description": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "A weekend retreat for cyberdeck builders in the beautiful Appalachian mountains of western North Carolina. Two days of building, learning, and connecting with nature.\n\nActivities:\n- Group build session: everyone starts and finishes a simple Pi Zero deck\n- Solarpunk workshop: solar charging and low-power computing\n- Thrift store field trip to local shops in Asheville\n- Campfire show-and-tell under the stars\n- Optional: morning hike to test your off-grid decks in the wild\n\nCabin accommodations included. Vegetarian/vegan meals provided. The retreat space has limited mobility access — please reach out if you have specific needs and we'll do our best to accommodate.\n\nSpaces are limited to keep the group intimate. Priority given to first-time attendees."
+            }
+          ]
+        }
+      ],
+      "location_name": "Mountain Light Retreat Center, Asheville, NC",
+      "location_lat": 35.5951,
+      "location_lng": -82.5515,
+      "date_start": "2026-08-15T14:00:00-04:00",
+      "date_end": "2026-08-17T12:00:00-04:00",
+      "organizer": "$ref:byline-circuitfae",
+      "max_attendees": 15,
+      "rsvp_count": 6,
+      "region": "southeast"
+    }
+  }
+]

@@ -20,11 +20,12 @@
 
 ## User Roles
 
-The app uses a three-tier role system stored on the `user` table:
+The app uses a four-tier role system stored on the `user` table:
 
 | Role | Description |
 |------|-------------|
 | `member` | Default role for all new sign-ups |
+| `maker` | Has submitted one build, can create forum threads, create wiki pages, comment like a member, manage own content |
 | `moderator` | Can view and manage content (forum, wiki, static pages) |
 | `admin` | Full access; auto-assigned to the email matching `ADMIN_EMAIL` env var on first sign-up |
 

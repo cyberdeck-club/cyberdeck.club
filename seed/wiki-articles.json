@@ -1,0 +1,348 @@
+[
+  {
+    "id": "w1",
+    "slug": "what-is-a-cyberdeck",
+    "status": "published",
+    "data": {
+      "title": "What Is a Cyberdeck?",
+      "category": "getting-started",
+      "view_count": 342,
+      "author": "$ref:byline-divine_circuitry",
+      "excerpt": "A cyberdeck is a custom-built portable computer that blends DIY electronics, creative design, and retro-futuristic aesthetics. Learn what makes a deck a deck.",
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "A cyberdeck is a custom-built portable computer — part art project, part functional tool, part statement piece. The term originates from William Gibson's 1984 novel *Neuromancer*, where characters used handheld devices to jack into cyberspace. Today's cyberdecks are real, tangible machines built by makers who want something more personal than a mass-produced laptop."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## What Makes a Cyberdeck?\n\nThere's no single definition, but most cyberdecks share a few traits:\n\n- **Custom enclosure** — Pelican cases, 3D-printed shells, repurposed lunchboxes, vintage electronics housings, or entirely scratch-built frames\n- **Single-board computer (SBC)** — Raspberry Pi is the most popular, but many builders use LattePanda, Radxa, or Framework boards\n- **Integrated display** — From tiny 5-inch screens to ultrawide panels\n- **Keyboard** — Mechanical keyboards, split ergonomic layouts, or even repurposed BlackBerry keyboards for ultra-compact builds\n- **Portable power** — Battery packs, USB-C PD banks, or custom LiPo setups\n- **Personality** — This is the secret ingredient. Every deck reflects its builder."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Why Build a Cyberdeck?\n\nPeople build cyberdecks for all kinds of reasons:\n\n- **Learning electronics** — Soldering, wiring, power management, and Linux administration\n- **Creative expression** — Designing something that looks and feels uniquely yours\n- **Practical use** — Field computing, pentesting, ham radio, off-grid work, or just a really cool writing machine\n- **Community** — Joining a global movement of builders who share designs, help each other troubleshoot, and celebrate each other's work\n\nYou don't need to be an expert to start. Many first-time builders create beautiful, functional decks with off-the-shelf parts and no soldering at all."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Cyberdeck Culture\n\nWhile the term has cyberpunk roots, the cyberdeck community has grown far beyond any single aesthetic. You'll find solarpunk decks built for sustainability, cottagecore decks in wooden enclosures, and sleek minimalist builds that wouldn't look out of place in a design museum. What unites them all is the ethos: **build it yourself, make it yours, share what you learn.**"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "w2",
+    "slug": "your-first-cyberdeck",
+    "status": "published",
+    "data": {
+      "title": "Your First Cyberdeck: A Beginner's Guide",
+      "category": "getting-started",
+      "view_count": 287,
+      "author": "$ref:byline-solderqueen",
+      "excerpt": "Ready to build your first deck? This guide walks you through planning, parts selection, and assembly — no soldering required.",
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Building your first cyberdeck can feel overwhelming, but it doesn't have to be. This guide breaks the process into manageable steps so you can go from idea to working deck at your own pace."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Step 1: Decide What It's For\n\nBefore buying anything, ask yourself what you want your deck to do:\n\n- **General computing** — Web browsing, writing, coding\n- **Creative work** — Music production, digital art, writing\n- **Security research** — Pentesting, network analysis\n- **Off-grid computing** — Solar-powered, long battery life\n- **Just vibes** — You want to build something cool and that's reason enough\n\nYour answer shapes everything: which SBC to pick, how big the screen should be, what kind of battery you need, and how rugged the case needs to be."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Step 2: Choose Your Brain (SBC)\n\nThe single-board computer is the heart of your deck. Here are the most popular options:\n\n| Board | CPU | RAM | Price | Best For |\n|-------|-----|-----|-------|----------|\n| Raspberry Pi 5 | ARM Cortex-A76 | 4–8 GB | ~$60–80 | Best all-around starter |\n| Raspberry Pi Zero 2W | ARM Cortex-A53 | 512 MB | ~$15 | Ultra-compact builds |\n| LattePanda Mu | Intel N100 | 8 GB | ~$160 | x86 compatibility |\n| Radxa X2L | Intel J4125 | 4–8 GB | ~$80 | Budget x86 |\n| Orange Pi 5 | RK3588S | 4–16 GB | ~$60–100 | High performance ARM |\n\nFor beginners, we recommend the **Raspberry Pi 5** — it has the largest community, the most tutorials, and an excellent ecosystem of compatible accessories."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Step 3: Pick a Screen\n\nDisplay size depends on your use case and enclosure:\n\n- **5–7 inch** — Compact, great for Pelican 1150/1170 builds\n- **10–11 inch** — Sweet spot for general use, fits Pelican 1200/1300\n- **12–14 inch** — Near-laptop experience, needs a larger case\n\nLook for displays with HDMI input and ideally USB touch support. Waveshare, Elecrow, and Pimoroni make great options specifically designed for SBCs."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Step 4: Enclosure\n\nYour case is where the creativity really shines:\n\n- **Pelican / Harbor Freight cases** — The classic choice. Waterproof, rugged, available in many sizes. Apache cases from Harbor Freight are a great budget alternative.\n- **3D printed** — Total design freedom. Check Printables and Thingiverse for existing designs you can modify.\n- **Repurposed containers** — Ammo cans, briefcases, lunchboxes, vintage radio housings, cigar boxes — if it has space, it can be a deck.\n- **Wooden enclosures** — Beautiful for solarpunk or cottagecore aesthetics. Bamboo and walnut are popular choices.\n\n## Step 5: Put It Together\n\nMost beginner builds require nothing more than a screwdriver, some standoffs, and double-sided mounting tape. Lay out all your components before committing to any cuts or holes. Test everything *before* it goes into the case.\n\nAnd remember: your first deck doesn't have to be perfect. It just has to be **yours**. 💜"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "w3",
+    "slug": "choosing-the-right-sbc",
+    "status": "published",
+    "data": {
+      "title": "Choosing the Right Single-Board Computer",
+      "category": "hardware",
+      "view_count": 198,
+      "author": "$ref:byline-circuitfae",
+      "excerpt": "Raspberry Pi, LattePanda, Radxa, Orange Pi — a deep dive into the SBCs that power modern cyberdecks.",
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "The single-board computer (SBC) you choose defines what your cyberdeck can do. This guide compares the most popular options across performance, power consumption, software support, and deck-building practicality."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## ARM vs x86\n\nThe first big decision is architecture:\n\n- **ARM boards** (Raspberry Pi, Orange Pi, Radxa Rock) run Linux beautifully, sip power, and have huge communities. They can't run Windows natively or most x86 software without emulation.\n- **x86 boards** (LattePanda, Radxa X2L, GMKtec) can run Windows, full desktop Linux, and any standard PC software. They draw more power and generate more heat.\n\nIf you primarily use Linux and want maximum battery life, go ARM. If you need specific Windows apps or x86 compatibility, go x86."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## The Raspberry Pi Ecosystem\n\nThe Pi 5 remains the gold standard for cyberdeck builds in 2026:\n\n- Massive community with thousands of tutorials\n- Official accessories (camera, display, HATs) that just work\n- Excellent GPIO for hardware hacking\n- Raspberry Pi OS is polished and beginner-friendly\n- The Compute Module 5 (CM5) is ideal for custom carrier board designs\n\nThe main drawback is occasional stock shortages, though supply has stabilized significantly since 2024."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Power Considerations\n\nBattery life is crucial for a portable deck. Here's a rough guide:\n\n| Board | Idle | Load | 20,000mAh Runtime |\n|-------|------|------|-------------------|\n| Pi Zero 2W | 0.5W | 2W | ~40+ hours |\n| Pi 5 | 3W | 8W | ~5–10 hours |\n| Orange Pi 5 | 3W | 12W | ~4–8 hours |\n| LattePanda Mu | 6W | 15W | ~3–5 hours |\n| Radxa X2L | 5W | 12W | ~4–6 hours |\n\nRemember: screen, keyboard backlighting, and USB peripherals add to total draw. Plan your power budget carefully and test real-world runtime before relying on your deck in the field."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "w4",
+    "slug": "cyberdeck-operating-systems",
+    "status": "published",
+    "data": {
+      "title": "Operating Systems for Your Cyberdeck",
+      "category": "software",
+      "view_count": 156,
+      "author": "$ref:byline-bytewitch",
+      "excerpt": "From Raspberry Pi OS to Kali Linux to custom tiling window managers — picking the right OS for your deck.",
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Your cyberdeck's operating system shapes the entire user experience. Here's a breakdown of popular choices and what makes each one shine."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Beginner-Friendly\n\n- **Raspberry Pi OS** — The default choice for Pi-based decks. Full desktop environment, great hardware support, massive community. Start here if you're new to Linux.\n- **Ubuntu Desktop (ARM)** — Familiar if you've used Ubuntu on a PC. Heavier than Pi OS but more mainstream software available.\n- **Fedora Workstation** — Modern, well-maintained, with good ARM support. Great for developers.\n\n## Cyberdeck-Optimized\n\n- **DietPi** — Ultra-lightweight distro that boots fast and uses minimal resources. Perfect for decks with limited RAM.\n- **Armbian** — Community-driven, supports a huge range of SBCs beyond Raspberry Pi. Excellent for Orange Pi, Radxa, and others.\n\n## Security & Hacking\n\n- **Kali Linux** — The pentesting standard. Full suite of security tools pre-installed. Available for ARM and x86.\n- **Parrot OS** — Lighter alternative to Kali with a focus on privacy and development tools alongside security.\n\n## Aesthetic & Ricing\n\nMany deck builders use tiling window managers for that authentic cyberpunk feel:\n\n- **i3wm** — Keyboard-driven, highly configurable, low resource usage\n- **Sway** — Wayland-native tiling WM, modern and smooth\n- **Hyprland** — Eye-candy tiling WM with animations and effects\n\nPair any of these with a terminal like **kitty** or **alacritty**, a status bar like **waybar** or **polybar**, and a color scheme like **catppuccin** or **tokyo-night** for maximum vibes. 🌈"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "w5",
+    "slug": "thrifting-and-upcycling-enclosures",
+    "status": "published",
+    "data": {
+      "title": "Thrifting & Upcycling Cyberdeck Enclosures",
+      "category": "design",
+      "view_count": 245,
+      "author": "$ref:byline-solderqueen",
+      "excerpt": "The best cyberdeck enclosures aren't bought new — they're found. A guide to thrift store treasure hunting and upcycling everyday objects into deck housings.",
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "Some of the most iconic cyberdecks ever built started life as something else entirely: a vintage suitcase, a discarded radio, a cash register, a cigar box. Upcycling isn't just budget-friendly — it gives your deck a story, reduces e-waste, and produces builds that are genuinely one-of-a-kind."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Where to Thrift\n\n- **Goodwill / Salvation Army / Value Village** — Bags, briefcases, electronics housings, keyboards ($3–10 each). The bag section is an underrated gold mine for cases.\n- **Estate sales & garage sales** — Vintage electronics, tool boxes, industrial equipment, typewriter cases\n- **Habitat for Humanity ReStores** — Tool boxes, electrical boxes, interesting hardware\n- **Free piles & Buy Nothing groups** — People discard amazing enclosures all the time\n- **E-waste recycling centers** — Some allow you to take items before they're processed\n- **Your own closet** — That old laptop with a broken motherboard? The screen, keyboard, and chassis are all reusable\n\n## What to Look For\n\nWhen scanning thrift store shelves, keep an eye out for:\n\n- **Briefcases and attache cases** — Classic cyberdeck material. Leather, aluminum, or hard-shell all work.\n- **Lunch boxes** — Metal ones are especially cool. Vintage character lunchboxes add personality.\n- **Wooden boxes** — Jewelry boxes, tea boxes, cigar boxes, wine crates\n- **Camera cases and bags** — Already padded, often have compartments\n- **Old radios and electronics** — Gutted, they provide retro enclosures with built-in speaker grilles and knobs\n- **Toolboxes** — Rugged, spacious, often have removable trays perfect for component mounting\n- **Typewriter cases** — Gorgeous, and the right size for a keyboard + screen layout\n- **VHS/DVD players** — Flat form factor, plenty of ventilation, already have port cutouts"
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Upcycling Tips\n\n1. **Don't force it** — Let the enclosure guide the layout. Work with the shape, not against it.\n2. **Preserve character** — Scratches, patina, stickers, and wear tell a story. You don't have to make it look new.\n3. **Reinforce where needed** — Hot glue, epoxy putty, and L-brackets can shore up weak spots\n4. **Ventilation matters** — Drill or cut vent holes if the enclosure is sealed. A step drill bit is your friend for clean round holes.\n5. **Line it** — Craft foam, cork shelf liner, or felt protect components from rattling and look great\n6. **Keyboard hunting** — Thrift store keyboards are $3–10 and come in every size. Wireless ones save you from internal wiring.\n7. **Test electronics first** — If you're salvaging a screen or keyboard, plug it in before you build around it\n\n## The Philosophy\n\nThrifting and upcycling align perfectly with cyberdeck values: reject mass production, find beauty in the discarded, build with intention. Every upcycled enclosure is a tiny act of resistance against throwaway culture.\n\nPlus, there's nothing quite like the feeling of finding the *perfect* thrift store briefcase and knowing exactly what it's going to become. 🛒✨"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "w6",
+    "slug": "history-of-cyberdeck-culture",
+    "status": "published",
+    "data": {
+      "title": "From Neuromancer to Now: A History of Cyberdeck Culture",
+      "category": "culture",
+      "view_count": 203,
+      "author": "$ref:byline-divine_circuitry",
+      "excerpt": "How a fictional device from a 1984 novel became a global maker movement — and why inclusivity is at its heart.",
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "The cyberdeck has traveled a remarkable path from science fiction prop to real-world maker movement. Understanding that history helps us build a community that's intentional about who it serves and who it welcomes."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## The Fiction\n\nWilliam Gibson coined the term \"cyberdeck\" in *Neuromancer* (1984). In his dystopian future, a cyberdeck was a device used to interface directly with cyberspace — a visual, navigable representation of the world's data. The aesthetic was gritty, corporate-controlled, and deeply unequal.\n\nCyberpunk fiction — from Gibson to Pat Cadigan's *Synners* to the *Shadowrun* RPG — imagined technology as both tool of oppression and means of resistance. This duality lives on in the maker movement."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## The Movement\n\nThe modern cyberdeck movement took off around 2019-2020, catalyzed by:\n\n- **Jay Doscher's Recovery Kit** — A Raspberry Pi in a Pelican case that went viral on Reddit and Hackaday. It proved the concept was accessible.\n- **r/cyberDeck** — The Reddit community grew rapidly, sharing builds and inspiring newcomers.\n- **Pandemic making** — With more time at home, people turned to creative hardware projects.\n- **Affordable SBCs** — The Raspberry Pi 4 made powerful portable computing cheap.\n\n## Beyond Cyberpunk\n\nWhile the cyberpunk aesthetic dominates, the community has expanded to embrace:\n\n- **Solarpunk** — Sustainable, solar-powered decks built for ecological harmony\n- **Cottagecore** — Wooden enclosures, natural materials, cozy computing\n- **Retro** — Amber CRT aesthetics, clicky keyboards, terminal-only interfaces\n- **Minimalist** — Clean lines, neutral colors, functional beauty\n- **Queer maximalism** — Holographic, colorful, unapologetically fabulous"
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Why Inclusivity Matters\n\nThe maker movement has historically struggled with inclusivity. Hackerspaces have often defaulted to cultures that alienate women, queer people, and people of color. Feminist hackerspaces like **Double Union** (San Francisco), **Seattle Attic**, and the **TransHackFeminist** movement have shown that intentionally inclusive spaces produce better outcomes for everyone.\n\nCyberdeck.club exists in this tradition. We believe the best technology is built by diverse communities. When we say 'build it yourself,' we mean *everyone* — not just those who already feel at home in a server room.\n\nThe cyberdeck is a perfect symbol for this ethos: it's anti-corporate, deeply personal, endlessly customizable, and there's no wrong way to build one. Your deck is yours. 💖"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "w7",
+    "slug": "battery-and-power-management",
+    "status": "published",
+    "data": {
+      "title": "Battery & Power Management for Cyberdecks",
+      "category": "hardware",
+      "view_count": 178,
+      "author": "$ref:byline-circuitfae",
+      "excerpt": "USB-C PD, LiPo cells, UPS HATs, and solar panels — everything you need to keep your deck running off-grid.",
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "A truly portable cyberdeck needs reliable, safe power. This guide covers the main approaches from simple to advanced."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## USB Power Banks (Easiest)\n\nThe simplest approach: plug a USB power bank into your SBC.\n\n- **Pros**: No wiring, safe, replaceable, widely available\n- **Cons**: Can't easily monitor charge level, may not deliver enough amps for power-hungry boards, pass-through charging varies by bank\n- **Recommended**: Anker or Baseus 65W USB-C PD banks with 20,000+ mAh\n\n## UPS HATs (Intermediate)\n\nPurpose-built boards that sit between your battery and your SBC:\n\n- **PiSugar 3** — Compact, attaches directly to Pi, includes RTC and software for graceful shutdown\n- **Waveshare UPS HAT** — Supports 18650 cells, includes charge controller and fuel gauge\n- **Pimoroni LiPo SHIM** — Tiny and simple, great for compact builds\n\n## Custom LiPo Packs (Advanced)\n\n⚠️ **Safety warning**: LiPo batteries can be dangerous if mishandled. Always use a proper BMS (Battery Management System), never puncture or over-discharge cells, and store safely.\n\n- Use **18650 or 21700** cells in a holder with a BMS board\n- Add a **boost converter** (5V) or **buck converter** for your SBC's input voltage\n- Include an **inline fuse** for safety\n- Consider a **fuel gauge IC** (MAX17048) for battery level monitoring\n\n## Solar Charging\n\nFor the solarpunk builders:\n\n- A **10–20W folding solar panel** can trickle-charge a USB power bank\n- Won't power a deck directly (too intermittent) but extends your off-grid time\n- Look for panels with USB-A or USB-C output\n- Pair with a power bank that supports pass-through charging"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "w8",
+    "slug": "keyboard-guide",
+    "status": "published",
+    "data": {
+      "title": "Keyboards for Cyberdeck Builds",
+      "category": "hardware",
+      "view_count": 221,
+      "author": "$ref:byline-glitchgrl",
+      "excerpt": "Mechanical, membrane, ortholinear, split, thumb-board — finding the perfect input device for your deck.",
+      "content": [
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "The keyboard is arguably the most important part of your cyberdeck — it's the component you'll touch the most. Choosing the right one involves balancing size, feel, connectivity, and aesthetics."
+            }
+          ]
+        },
+        {
+          "_type": "block",
+          "children": [
+            {
+              "_type": "span",
+              "text": "## Form Factors\n\n### Full-size and TKL (75%+)\nBest for larger cases (Pelican 1400+). Provides the most comfortable typing experience but takes up significant case real estate. Great for desk-primary decks.\n\n### 60% and 65%\nThe sweet spot for most cyberdecks. Compact enough to fit in medium cases while retaining arrow keys (65%) or relying on layers (60%). Popular choices: **Anne Pro 2**, **Keychron K6**, **GK61**.\n\n### 40% and Ortholinear\nUltra-compact, grid-layout keyboards perfect for small builds. Requires comfort with multiple layers. The **Planck** and **BM40** are beloved by the cyberdeck community.\n\n### Split Keyboards\nErgonomic and unique-looking. The **Corne**, **Lily58**, and **Sofle** can be mounted on either side of a screen for a dramatically different deck layout.\n\n### Thumb-boards\nBlackBerry-style mini keyboards for the tiniest builds. The **BBQ20KBD** by Solder Party (using a BlackBerry Q20 keyboard) is a favorite for palm-sized decks and has I2C/UART connectivity.\n\n## Wireless vs Wired\n\n- **Wired (USB)** — Simple, reliable, no batteries to manage. One less thing to charge.\n- **Bluetooth** — Clean look, no cable clutter, but adds latency and needs its own battery\n- **2.4GHz dongle** — Low latency wireless, but uses a USB port\n\nFor integrated builds, wired usually wins. For detachable keyboards (where you pull the keyboard out to type on a table), Bluetooth is nice.\n\n## Budget-Friendly Options\n\nYou don't need to spend $150 on a mechanical keyboard:\n- Thrift store keyboards ($3–10) are perfect for a first build\n- Silicone roll-up keyboards are flexible and ultra-thin for tight cases\n- Repurposed laptop keyboards can be wired with a USB controller"
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

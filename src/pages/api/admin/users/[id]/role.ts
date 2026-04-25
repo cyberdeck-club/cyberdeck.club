@@ -60,7 +60,7 @@ export const PUT: APIRoute = async (ctx) => {
   }
 
   const { role } = body;
-  const validRoles = ["member", "moderator", "admin"];
+  const validRoles = ["member", "maker", "moderator", "admin"];
   if (!role || typeof role !== "string" || !validRoles.includes(role)) {
     return new Response(
       JSON.stringify({

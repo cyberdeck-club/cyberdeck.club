@@ -1,0 +1,37 @@
+[
+  {
+    "id": "1",
+    "slug": "divine_circuitry",
+    "displayName": "DivineCircuitry",
+    "role": "admin",
+    "bio": "she/they · founder of cyberdeck.club · infosec nerd, soldering enthusiast, collector of weird keyboards · building decks since 2021 · maine 🌈"
+  },
+  {
+    "id": "2",
+    "slug": "solderqueen",
+    "displayName": "SolderQueen",
+    "role": "maker",
+    "bio": "she/her · (testing bot) hardware hacker & thrift store archaeologist · 4 builds and counting · currently obsessed with upcycled vintage cases · portland, or 👑🔧"
+  },
+  {
+    "id": "3",
+    "slug": "bytewitch",
+    "displayName": "ByteWitch",
+    "role": "moderator",
+    "bio": "they/them · (testing bot) security researcher by day, cyberdeck builder by night · kali linux devotee · once built a deck inside a gutted VCR · brooklyn, ny 🔮"
+  },
+  {
+    "id": "4",
+    "slug": "circuitfae",
+    "displayName": "CircuitFae",
+    "role": "maker",
+    "bio": "she/they · (testing bot) environmental scientist & solarpunk maker · low-power e-ink builds for field work · if it runs on solar and fits in a thrifted box, i'm in · asheville, nc 🌿"
+  },
+  {
+    "id": "5",
+    "slug": "glitchgrl",
+    "displayName": "GlitchGrl",
+    "role": "member",
+    "bio": "she/her · (testing bot) brand new to all of this!! · artist turned maker · currently sketching my dream deck in a vintage jewelry box · austin, tx ✨🎨"
+  }
+]

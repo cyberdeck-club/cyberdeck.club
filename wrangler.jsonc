@@ -4,14 +4,47 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+
+	// Default environment (local dev)
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "cyberdeck-db",
 			"database_id": "c3b354ad-3b83-4fca-b15e-a590c0b452e3",
 			"migrations_dir": "./drizzle/migrations"
-		},
+		}
 	],
+
+	// Beta environment (auto-deploys on push to main)
+	"env": {
+		"beta": {
+			"vars": {
+				"PUBLIC_BASE_URL": "https://beta.cyberdeck.club"
+			},
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "cyberdeck-db-beta",
+					"database_id": "<your-beta-d1-database-id>",
+					"migrations_dir": "./drizzle/migrations"
+				}
+			]
+		},
+		// Production environment (manual dispatch only)
+		"prod": {
+			"vars": {
+				"PUBLIC_BASE_URL": "https://cyberdeck.club"
+			},
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "cyberdeck-db",
+					"database_id": "<your-prod-d1-database-id>",
+					"migrations_dir": "./drizzle/migrations"
+				}
+			]
+		}
+	},
 	"vars": {
 		"PUBLIC_BASE_URL": "http://localhost:8787"
 	},

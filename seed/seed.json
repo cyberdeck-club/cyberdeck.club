@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "meta": {
+    "name": "cyberdeck.club Seed Data",
+    "description": "Sample content for the cyberdeck.club community platform — wiki articles, forum discussions, builds, and meetups tailored for women, femmes, queers, and people historically underrepresented in STEM.",
+    "author": "cyberdeck.club team"
+  },
+  "files": {
+    "users": "users.json",
+    "taxonomies": "taxonomies.json",
+    "wiki_articles": "wiki-articles.json",
+    "forum_threads": "forum-threads.json",
+    "forum_posts": "forum-posts.json",
+    "builds": "builds.json",
+    "meetups": "meetups.json"
+  }
+}
