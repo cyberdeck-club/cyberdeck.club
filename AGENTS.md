@@ -2,12 +2,12 @@
 
 ## Overview
 
-`cyberdeck.club` is a community platform for **women, femmes, queers, and people historically under‑represented in STEM and tech** who are passionate about cyberdecks. It combines a **wiki**, **forum**, **build showcase**, and **meetup calendar** into a single, cohesive, fun, and colorful application. The site is built with **Astro 6** (SSR with island architecture), uses **Better Auth** for magic‑link authentication, **Drizzle ORM** for type‑safe database access, and runs on **Cloudflare Pages** with a **D1** SQLite‑compatible database.
+`cyberdeck.club` is a community platform for **women, femmes, queers, and people historically under‑represented in STEM and tech** who are passionate about cyberdecks. It combines a **wiki**, **forum**, **build showcase**, and **meetup calendar** into a single, cohesive, fun, and colorful application. The site is built with **Astro 6** (SSR with island architecture), uses **Better Auth** for magic‑link authentication, **Drizzle ORM** for type‑safe database access, and runs on **Cloudflare Workers** with a **D1** SQLite‑compatible database.
 
 ## Architecture
 
 - **Frontend** – Astro components (`src/components/**`) render pages and interactive islands (**React only** via `@astrojs/react`). Tailwind CSS v4 provides vibrant, approachable styling (`src/styles/global.css`).
-- **API Layer** – Cloudflare Pages Functions (`src/pages/api/**`) expose REST‑style endpoints for authentication, wiki, forum, builds, meetups, and static pages.
+- **API Layer** – Astro API routes (`src/pages/api/**`) expose REST‑style endpoints for authentication, wiki, forum, builds, meetups, and static pages, running as Cloudflare Workers.
 - **Middleware** – `src/middleware.ts` runs on every request: creates per‑request auth and DB instances, resolves the Better Auth session, and injects `locals.user`, `locals.session`, and `locals.db` for use in pages and API routes.
 - **Auth** – Better Auth (`src/lib/auth.ts`) is a **per-request factory** (`getAuth(cfEnv)`) — not a module-level singleton — to avoid SQLite WAL-lock issues. It handles magic‑link sign‑in via Resend. `better-auth.config.ts` (root) is used **only** for schema generation (`npm auth:generate`).
 - **Database** – Drizzle ORM (`src/db/**`) defines schema in two files:
@@ -16,7 +16,7 @@
   - DB client factory: `src/db/client.ts` (`getDb(cfEnv)`) — also per-request
   - Migrations live in `drizzle/migrations/`
 - **D1 Binding** – The database is accessed via the Cloudflare `DB` binding (not a `DATABASE_URL`). Configured in `wrangler.jsonc`.
-- **Deployment** – `wrangler.jsonc` configures the deployment; `npm deploy` runs `astro build && wrangler pages deploy ./dist` to publish to **Cloudflare Pages**.
+- **Deployment** – `wrangler.jsonc` configures the deployment; `npm deploy` runs `astro build && wrangler deploy` to publish to **Cloudflare Workers**.
 
 ## User Roles
 
@@ -53,7 +53,7 @@ The app uses a four-tier role system stored on the `user` table:
 ## Deployment
 
 - **Build** – `npm build` compiles Astro pages and bundles the Worker script.
-- **Deploy** – `npm deploy` runs `astro build && wrangler pages deploy ./dist` to publish to Cloudflare Pages.
+- **Deploy** – `npm deploy` runs `astro build && wrangler deploy` to publish to Cloudflare Workers.
 - **Environment** – Required variables (set in `.env` locally or Cloudflare dashboard in production):
   - `BETTER_AUTH_SECRET` – Secret for Better Auth session signing
   - `RESEND_API_KEY` – Resend API key for magic-link email delivery

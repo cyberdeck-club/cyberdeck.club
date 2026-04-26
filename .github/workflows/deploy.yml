@@ -14,11 +14,6 @@ on:
         options:
           - beta
           - prod
-      github_pages_branch:
-        description: 'GitHub Pages branch to serve from (for fallback only)'
-        required: false
-        type: string
-        default: ''
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -55,8 +50,6 @@ jobs:
 
       - name: Build
         run: npm run build
-        env:
-          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -67,6 +60,7 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Deploy to Beta - auto-deploys on push to main
+  # Creates/updates a separate Worker named "cyberdeck-club-beta"
   # ---------------------------------------------------------------------------
   deploy-beta:
     name: Deploy to Beta
@@ -103,22 +97,21 @@ jobs:
           wranglerVersion: "4"
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 migrations apply cyberdeck-db-beta --env preview --remote
+          command: d1 migrations apply cyberdeck-db-beta --env beta --remote
 
-      # Deploy with --branch=beta so Cloudflare Pages treats this as a
-      # Preview deployment, which picks up Preview-environment bindings
-      # (e.g. the beta D1 database). Using --branch=main would make this
-      # a Production deployment instead.
-      - name: Deploy to Cloudflare Pages (Beta)
+      # Deploys to a separate Worker named "cyberdeck-club-beta"
+      # using the env.beta config from wrangler.jsonc
+      - name: Deploy to Cloudflare Workers (Beta)
         uses: cloudflare/wrangler-action@v3
         with:
           wranglerVersion: "4"
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=cyberdeck-club --branch=main --commit-message="${{ github.event.head_commit.message || 'Push to main' }}"
+          command: deploy --env beta
 
   # ---------------------------------------------------------------------------
   # Deploy to Production - manual dispatch only
+  # Updates the main Worker named "cyberdeck-club"
   # ---------------------------------------------------------------------------
   deploy-prod:
     name: Deploy to Production
@@ -155,41 +148,14 @@ jobs:
           wranglerVersion: "4"
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 migrations apply cyberdeck-db --env production --remote
+          command: d1 migrations apply cyberdeck-db --remote
 
-      - name: Deploy to Cloudflare Pages (Production)
+      # Deploys to the main Worker named "cyberdeck-club"
+      # using top-level config from wrangler.jsonc
+      - name: Deploy to Cloudflare Workers (Production)
         uses: cloudflare/wrangler-action@v3
         with:
           wranglerVersion: "4"
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=cyberdeck-club --branch=main --commit-message="${{ github.event.head_commit.message || 'Manual production deploy' }}"
-
-  # ---------------------------------------------------------------------------
-  # GitHub Pages Fallback - switches Cloudflare Pages to serve from gh-pages
-  # ---------------------------------------------------------------------------
-  github-pages-fallback:
-    name: GitHub Pages Fallback
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.github_pages_branch != ''
-    environment:
-      name: production
-      url: https://cyberdeck.club
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.inputs.github_pages_branch }}
-          sparse-checkout: |
-            index.html
-            404.html
-          sparse-checkout-cone-mode: false
-
-      - name: Deploy to Cloudflare Pages from GitHub Pages branch
-        uses: cloudflare/wrangler-action@v3
-        with:
-          wranglerVersion: "4"
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name=cyberdeck-club --branch=gh-pages --commit-message="Fallback deploy from ${{ github.event.inputs.github_pages_branch }}"
+          command: deploy

@@ -1,36 +1,48 @@
 {
 	"name": "cyberdeck-club",
+	"main": "dist/_worker.js",
 	"compatibility_date": "2026-02-24",
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
-	"pages_build_output_dir": "./dist",
 
-	// ─── Default D1 binding (used by local dev: `wrangler pages dev`) ───
+	// ─── Static assets (served alongside the Worker) ────────────────────
+	"assets": {
+		"directory": "./dist"
+	},
+
+	// ─── Production D1 binding ──────────────────────────────────────────
+	// Top-level config = production. Used by:
+	//   • `wrangler deploy` (production deploy)
+	//   • `wrangler dev` (local dev, uses local D1 by default)
+	//   • `wrangler d1 migrations apply cyberdeck-db --remote`
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "cyberdeck-db-local",
-			"database_id": "c3b354ad-3b83-4fca-b15e-a590c0b452e3",
+			"database_name": "cyberdeck-db",
+			"database_id": "608a63bd-c950-4e0c-bd94-08e189267194",
 			"migrations_dir": "./drizzle/migrations"
 		}
 	],
 
-	// ─── Pages environments ────────────────────────────────────────────
-	// Cloudflare Pages recognizes exactly two environment names:
-	//   • "production" — applied to production deploys (--branch=main)
-	//   • "preview"    — applied to preview deploys (--branch=beta, etc.)
+	// ─── Production vars ────────────────────────────────────────────────
+	"vars": {
+		"PUBLIC_BASE_URL": "https://cyberdeck.club"
+	},
+
+	// ─── Beta environment ───────────────────────────────────────────────
+	// `wrangler deploy --env beta` creates a separate Worker named
+	// "cyberdeck-club-beta" with its own D1 binding, vars, and secrets.
 	//
-	// These blocks serve double duty:
-	//   1. Pages deploys pick up the correct D1 binding automatically
-	//   2. CLI commands like `wrangler d1 migrations apply --env preview`
-	//      resolve the correct database ID
+	// Secrets (BETTER_AUTH_SECRET, RESEND_API_KEY, etc.) must be set
+	// separately for each environment via:
+	//   wrangler secret put BETTER_AUTH_SECRET            # production
+	//   wrangler secret put BETTER_AUTH_SECRET --env beta # beta
 	//
-	// Secrets (BETTER_AUTH_SECRET, RESEND_API_KEY, etc.) must still be
-	// set in the Cloudflare dashboard under Workers & Pages →
-	// cyberdeck-club → Settings → Bindings (per environment).
+	// Or via the dashboard: Workers & Pages → cyberdeck-club(-beta) →
+	// Settings → Variables & Secrets.
 	"env": {
-		"preview": {
+		"beta": {
 			"d1_databases": [
 				{
 					"binding": "DB",
@@ -42,25 +54,7 @@
 			"vars": {
 				"PUBLIC_BASE_URL": "https://beta.cyberdeck.club"
 			}
-		},
-		"production": {
-			"d1_databases": [
-				{
-					"binding": "DB",
-					"database_name": "cyberdeck-db",
-					"database_id": "608a63bd-c950-4e0c-bd94-08e189267194",
-					"migrations_dir": "./drizzle/migrations"
-				}
-			],
-			"vars": {
-				"PUBLIC_BASE_URL": "https://cyberdeck.club"
-			}
 		}
-	},
-
-	// ─── Default vars (local dev only) ──────────────────────────────────
-	"vars": {
-		"PUBLIC_BASE_URL": "http://localhost:8787"
 	}
 
 	// "r2_buckets": [

@@ -2,23 +2,27 @@
 
 ## Overview
 
-cyberdeck.club uses a GitHub Actions workflow for CI/CD deployment to **Cloudflare Pages**. The project uses Astro with the Cloudflare adapter, deploying via `wrangler pages deploy`.
+cyberdeck.club uses a GitHub Actions workflow for CI/CD deployment to **Cloudflare Workers**. The project uses Astro with the Cloudflare adapter, deploying via `wrangler deploy`.
 
 ## Environments
 
-| Environment | URL | Trigger | CF Pages Environment |
-|-------------|-----|---------|----------------------|
-| **Beta** | https://beta.cyberdeck.club | Push to `main` | Preview |
-| **Production** | https://cyberdeck.club | Manual workflow dispatch | Production |
+| Environment | Worker Name | URL | Trigger | Wrangler Config |
+|-------------|------------|-----|---------|-----------------|
+| **Beta** | `cyberdeck-club-beta` | https://beta.cyberdeck.club | Push to `main` | `env.beta` |
+| **Production** | `cyberdeck-club` | https://cyberdeck.club | Manual workflow dispatch | Top-level |
 
-### How Cloudflare Pages Environments Work
+### How Workers Environments Work
 
-Cloudflare Pages has **two built-in environments**: **Production** and **Preview**. These are managed in the Cloudflare dashboard — not via `wrangler.jsonc` `env` blocks (those are a Workers-only concept).
+With Cloudflare Workers, each environment creates a **separate Worker**:
 
-- **Production** — Serves the production domain (`cyberdeck.club`). The deploy that matches the "production branch" configured in the Pages project.
-- **Preview** — Serves preview/beta domains (`beta.cyberdeck.club`). Any deploy from a non-production branch goes here.
+- **Production** (top-level config) — Worker named `cyberdeck-club`, deployed with `wrangler deploy`
+- **Beta** (`env.beta` config) — Worker named `cyberdeck-club-beta`, deployed with `wrangler deploy --env beta`
 
-The `env.preview` and `env.production` blocks in `wrangler.jsonc` configure bindings for each Pages environment. They are used both by `wrangler pages deploy` (to apply the correct bindings) and by D1 CLI commands (to resolve the correct database ID).
+Each Worker has its own:
+- D1 database binding (configured in `wrangler.jsonc`)
+- Environment variables (configured in `wrangler.jsonc` under `vars`)
+- Secrets (configured via `wrangler secret put` or the Cloudflare dashboard)
+- Custom domain (configured in the Cloudflare dashboard)
 
 ## Deployment Architecture
 
@@ -26,16 +30,15 @@ The `env.preview` and `env.production` blocks in `wrangler.jsonc` configure bind
 flowchart LR
     A[Push to main] --> B{Build Job}
     B --> C[Deploy Beta]
-    C --> D[beta.cyberdeck.club]
+    C --> D[cyberdeck-club-beta]
+    D --> E[beta.cyberdeck.club]
     
-    E[Workflow Dispatch] --> B
-    E --> F{Environment?}
-    F -->|beta| C
-    F -->|prod| G[Deploy Prod]
-    G --> H[cyberdeck.club]
-    
-    I[Workflow Dispatch] --> J[GitHub Pages Fallback]
-    J --> K[Switch to gh-pages branch]
+    F[Workflow Dispatch] --> B
+    F --> G{Environment?}
+    G -->|beta| C
+    G -->|prod| H[Deploy Prod]
+    H --> I[cyberdeck-club]
+    I --> J[cyberdeck.club]
 ```
 
 ## Prerequisites
@@ -46,7 +49,7 @@ Configure these secrets in your GitHub repository (**Settings** → **Secrets an
 
 | Secret | Description | Where to Find |
 |--------|-------------|---------------|
-| `CLOUDFLARE_API_TOKEN` | API token for Cloudflare Workers/Pages | Cloudflare Dashboard → Profile → API Tokens |
+| `CLOUDFLARE_API_TOKEN` | API token for Cloudflare Workers | Cloudflare Dashboard → Profile → API Tokens |
 | `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID | Cloudflare Dashboard → Overview (right sidebar) |
 
 #### Creating the Cloudflare API Token
@@ -55,41 +58,46 @@ Configure these secrets in your GitHub repository (**Settings** → **Secrets an
 2. Navigate to **My Profile** → **API Tokens**
 3. Click **Create Token** → Use the **Edit Cloudflare Workers** template
 4. Ensure these permissions are included:
-   - `Cloudflare Pages: Edit`
+   - `Workers Scripts: Edit`
    - `D1: Edit` (for automated migrations)
    - `Account Settings: Read`
 5. Set account resources to "Include" your account
 6. Copy the generated token and add it to GitHub Secrets
 
-### 2. GitHub Repository Variables
+### 2. Worker Secrets
 
-Set these in **Settings** → **Variables** → **Actions**:
+Secrets cannot be stored in `wrangler.jsonc`. Set them for **each Worker** separately:
 
-| Variable | Value | Description |
-|----------|-------|-------------|
-| `PUBLIC_BASE_URL` | `https://cyberdeck.club` | Used at build time for Astro |
+```bash
+# Production Worker (cyberdeck-club)
+wrangler secret put BETTER_AUTH_SECRET
+wrangler secret put RESEND_API_KEY
+wrangler secret put ADMIN_EMAIL
 
-### 3. Cloudflare Pages Dashboard — Secrets
+# Beta Worker (cyberdeck-club-beta)
+wrangler secret put BETTER_AUTH_SECRET --env beta
+wrangler secret put RESEND_API_KEY --env beta
+wrangler secret put ADMIN_EMAIL --env beta
+```
 
-D1 database bindings and `PUBLIC_BASE_URL` are configured in `wrangler.jsonc` via `env.production` and `env.preview` blocks. However, **encrypted secrets** cannot be stored in `wrangler.jsonc` — they must be configured in the Cloudflare dashboard.
+Or via the dashboard: **Workers & Pages** → click the worker → **Settings** → **Variables & Secrets**.
 
-**Navigation:** Workers & Pages → `cyberdeck-club` → **Settings** → **Bindings**
+### 3. Custom Domains
 
-> ⚠️ **Look for the environment dropdown** at the top of the bindings page. It lets you switch between **Production** and **Preview**. This dropdown can scroll out of view — scroll up if you don't see it.
+Configure custom domains for each Worker in the Cloudflare dashboard:
 
-Configure these secrets for **each environment separately**:
+| Worker | Custom Domain |
+|--------|--------------|
+| `cyberdeck-club` | `cyberdeck.club` |
+| `cyberdeck-club-beta` | `beta.cyberdeck.club` |
 
-| Name | Type | Production | Preview |
-|------|------|-----------|---------|
-| `BETTER_AUTH_SECRET` | Secret (encrypted) | *your-prod-secret* | *your-beta-secret* |
-| `RESEND_API_KEY` | Secret (encrypted) | *your-key* | *your-key* |
-| `RESEND_FROM_ADDRESS` | Variable | `CyberDeck <noreply@cyberdeck.club>` | `CyberDeck <noreply@cyberdeck.club>` |
-| `EMAIL_FROM` | Variable | `CyberDeck <noreply@cyberdeck.club>` | `CyberDeck <noreply@cyberdeck.club>` |
-| `ADMIN_EMAIL` | Variable | *your-admin-email* | *your-admin-email* |
+**Navigation:** Workers & Pages → click the worker → **Settings** → **Domains & Routes**
 
-The following are **already configured** in `wrangler.jsonc` and do not need dashboard configuration:
-- `DB` (D1 binding) — `cyberdeck-db` for production, `cyberdeck-db-beta` for preview
-- `PUBLIC_BASE_URL` — `https://cyberdeck.club` for production, `https://beta.cyberdeck.club` for preview
+### What's Already in `wrangler.jsonc`
+
+The following are configured in code and don't need dashboard setup:
+- `DB` (D1 binding) — `cyberdeck-db` for production, `cyberdeck-db-beta` for beta
+- `PUBLIC_BASE_URL` — `https://cyberdeck.club` for production, `https://beta.cyberdeck.club` for beta
 
 ## Deployment Methods
 
@@ -104,10 +112,10 @@ git push origin main
 ```
 
 The workflow will:
-1. Build the project
+1. Build the project (`astro build`)
 2. Checkout `wrangler.jsonc` and `drizzle/migrations/` (sparse checkout)
-3. Run D1 migrations against `cyberdeck-db-beta` via `--env preview`
-4. Deploy to Cloudflare Pages with `--branch=beta` → Preview environment (uses `env.preview` bindings from `wrangler.jsonc`)
+3. Run D1 migrations against `cyberdeck-db-beta` via `--env beta`
+4. Deploy to Worker `cyberdeck-club-beta` via `wrangler deploy --env beta`
 5. Make the beta version live at https://beta.cyberdeck.club
 
 ### 2. Production (Manual)
@@ -128,33 +136,25 @@ gh workflow run deploy.yml --field environment=prod
 
 The workflow will:
 1. Build the project
-2. Run D1 migrations against `cyberdeck-db` via `--env production`
-3. Deploy to Cloudflare Pages with `--branch=main` → Production environment (uses `env.production` bindings from `wrangler.jsonc`)
+2. Run D1 migrations against `cyberdeck-db`
+3. Deploy to Worker `cyberdeck-club` via `wrangler deploy`
 4. Make the production version live at https://cyberdeck.club
 
-### 3. GitHub Pages Fallback (Manual)
+### 3. Local Manual Deploy
 
-If Cloudflare Pages is unavailable, you can switch to serve a static fallback:
+```bash
+# Deploy to beta
+npm run deploy:beta
 
-1. Go to the **Actions** tab in GitHub
-2. Select the **Deploy** workflow
-3. Click **Run workflow**
-4. Leave environment as `beta` (or select any)
-5. Enter your GitHub Pages branch name (e.g., `gh-pages`) in the `github_pages_branch` field
-6. Click **Run workflow**
-
-This will:
-1. Check out the specified branch
-2. Deploy its contents to Cloudflare Pages
-3. Cloudflare will serve the fallback content
+# Deploy to production
+npm run deploy
+```
 
 ## D1 Database Migrations
 
 Migrations run **automatically** as part of the GitHub Actions deploy workflow. They execute before each deploy step.
 
 ### Manual Migration Commands
-
-If you need to run migrations manually:
 
 ```bash
 # Local development
@@ -170,22 +170,12 @@ npm run db:migrate:prod
 Or use wrangler directly:
 
 ```bash
-# Beta (preview)
-wrangler d1 migrations apply cyberdeck-db-beta --env preview --remote
+# Beta
+wrangler d1 migrations apply cyberdeck-db-beta --env beta --remote
 
 # Production
-wrangler d1 migrations apply cyberdeck-db --env production --remote
+wrangler d1 migrations apply cyberdeck-db --remote
 ```
-
-### How `wrangler.jsonc` env blocks work with Pages
-
-Cloudflare Pages recognizes exactly two environment names in `wrangler.jsonc`: **`production`** and **`preview`**. When you deploy with `wrangler pages deploy`:
-- `--branch=main` (matching the production branch) → uses `env.production` bindings
-- Any other branch (e.g., `--branch=beta`) → uses `env.preview` bindings
-
-These same env blocks are also used by CLI commands like `wrangler d1 migrations apply --env preview --remote` to resolve the correct database ID.
-
-Secrets (`BETTER_AUTH_SECRET`, `RESEND_API_KEY`, etc.) cannot be set in `wrangler.jsonc` — they must be configured in the **Cloudflare dashboard** under Workers & Pages → cyberdeck-club → Settings → Bindings (set separately for Production and Preview).
 
 ## Workflow Details
 
@@ -211,14 +201,18 @@ The workflow uses concurrency groups to:
 
 ## Troubleshooting
 
-### Can't find environment settings in Cloudflare dashboard
+### Finding environment settings in Cloudflare dashboard
 
-Go to **Workers & Pages** (combined section in sidebar) → click `cyberdeck-club` → **Settings** → **Bindings**. Look for the **Production / Preview dropdown** at the top of the page — it may scroll out of view.
+Each Worker is a separate entry in the dashboard:
+- **Workers & Pages** → `cyberdeck-club` for production
+- **Workers & Pages** → `cyberdeck-club-beta` for beta
+
+Click the worker → **Settings** → **Variables & Secrets** for secrets/env vars, or **Domains & Routes** for custom domains.
 
 ### Deployment fails with permission error
 
 Ensure `CLOUDFLARE_API_TOKEN` has permissions for:
-- `Cloudflare Pages: Edit`
+- `Workers Scripts: Edit`
 - `D1: Edit`
 - `Account Settings: Read`
 
@@ -232,13 +226,22 @@ The deploy jobs do a sparse checkout of the repo to get `wrangler.jsonc` and `dr
 ### Build succeeds but site shows old content
 
 - Check Cloudflare Cache (purge cache in Cloudflare Dashboard)
-- Verify the correct branch is deployed in Pages dashboard
+- Verify the Worker is using the correct custom domain
 
 ### Secrets not available at runtime
 
-Remember: secrets like `BETTER_AUTH_SECRET` and `RESEND_API_KEY` must be set in the **Cloudflare Pages dashboard** (not in `wrangler.jsonc` or GitHub secrets). GitHub secrets are only used for deployment authentication — runtime secrets live in Cloudflare.
+Secrets must be set for each Worker separately. Use `wrangler secret list` to verify what's set:
+
+```bash
+wrangler secret list                # production
+wrangler secret list --env beta     # beta
+```
 
 ### Workflow doesn't trigger
 
 - Ensure Actions are enabled in **Settings** → **Actions**
 - Check that the workflow file is at `.github/workflows/deploy.yml`
+
+### "Project not found" error
+
+This means you're using `wrangler pages deploy` instead of `wrangler deploy`. The project is a **Worker**, not a Pages project. Use `wrangler deploy` (or `wrangler deploy --env beta` for beta).

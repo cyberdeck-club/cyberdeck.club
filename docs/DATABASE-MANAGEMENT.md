@@ -35,8 +35,8 @@ The project uses three D1 database targets, configured in [`wrangler.jsonc`](wra
 | Environment | Wrangler env | D1 database name | CLI target |
 |------------|--------------|------------------|------------|
 | Local dev | (default) | `cyberdeck-db` | `--local` |
-| Beta (auto-deploy) | `preview` | `cyberdeck-db-beta` | `--env preview --remote` |
-| Production (manual) | `production` | `cyberdeck-db` | `--env production --remote` |
+| Beta (auto-deploy) | `beta` | `cyberdeck-db-beta` | `--env beta --remote` |
+| Production (manual) | (top-level) | `cyberdeck-db` | `--remote` |
 
 ## Environment Variables
 
@@ -49,12 +49,14 @@ Non-secret vars (like `PUBLIC_BASE_URL`) are set per-environment in [`wrangler.j
 **Secrets** (like `BETTER_AUTH_SECRET`, `RESEND_API_KEY`, `ADMIN_EMAIL`) must be set via the Cloudflare dashboard or `wrangler secret put`:
 
 ```bash
-# Set a secret for a specific environment
-wrangler secret put BETTER_AUTH_SECRET --env preview
-wrangler secret put BETTER_AUTH_SECRET --env production
+# Set a secret for the beta Worker (cyberdeck-club-beta)
+wrangler secret put BETTER_AUTH_SECRET --env beta
+
+# Set a secret for the production Worker (cyberdeck-club)
+wrangler secret put BETTER_AUTH_SECRET
 ```
 
-Or via the dashboard: **Workers & Pages → cyberdeck.club → Settings → Variables & Secrets**.
+Or via the dashboard: **Workers & Pages → cyberdeck-club (or cyberdeck-club-beta) → Settings → Variables & Secrets**.
 
 ---
 
@@ -70,7 +72,7 @@ npm run db:seed
 
 ### Seed beta database
 
-1. In [`scripts/seed.ts`](scripts/seed.ts:172), change `--local` to `--env preview --remote`:
+1. In [`scripts/seed.ts`](scripts/seed.ts:172), change `--local` to `--env beta --remote`:
 
    ```ts
    const cmd = `npx wrangler d1 execute cyberdeck-db-beta --remote --command ${JSON.stringify(sql)}`;

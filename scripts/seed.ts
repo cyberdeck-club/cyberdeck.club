@@ -176,8 +176,8 @@ if (envFlag && !["beta", "prod"].includes(envFlag)) {
 
 function execSql(sql: string): void {
   const localCmd = `npx wrangler d1 execute ${DB_NAME} --local --command ${JSON.stringify(sql)}`;
-  const betaCmd = `npx wrangler d1 execute cyberdeck-db-beta --env preview --remote --command ${JSON.stringify(sql)}`
-  const prodCmd = `npx wrangler d1 execute cyberdeck-db --env production --remote --command ${JSON.stringify(sql)}`;
+  const betaCmd = `npx wrangler d1 execute cyberdeck-db-beta --env beta --remote --command ${JSON.stringify(sql)}`
+  const prodCmd = `npx wrangler d1 execute cyberdeck-db --remote --command ${JSON.stringify(sql)}`;
 
   const cmd = envFlag === "beta" ? betaCmd : envFlag === "prod" ? prodCmd : localCmd;
   try {

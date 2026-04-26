@@ -2,7 +2,7 @@
 
 ## The Problem
 
-The original `npm run dev` command (`astro build && wrangler dev`) performed a one-time build and then ran the Cloudflare Pages dev server. This meant:
+The original `npm run dev` command (`astro build && wrangler dev`) performed a one-time build and then ran the Cloudflare Workers dev server. This meant:
 
 - **No hot reloading** - Changes to source files required manually restarting the dev server
 - **Slow iteration** - Full rebuild + restart cycle for every code change
@@ -13,7 +13,7 @@ The original `npm run dev` command (`astro build && wrangler dev`) performed a o
 The fix uses a **parallel build-watch approach** with `concurrently` to run two processes:
 
 1. `astro build --watch` - Watches source files and rebuilds on changes
-2. `wrangler pages dev ./dist --live-reload` - Serves the built output and auto-refreshes the browser on changes
+2. `wrangler dev --live-reload` - Serves the built output and auto-refreshes the browser on changes
 
 ## Changes Made
 
@@ -22,7 +22,7 @@ The fix uses a **parallel build-watch approach** with `concurrently` to run two 
 ```json
 {
   "scripts": {
-    "dev": "concurrently \"astro build --watch\" \"wrangler pages dev ./dist --live-reload\"",
+    "dev": "concurrently \"astro build --watch\" \"wrangler dev --live-reload\"",
     "dev:build": "astro build && wrangler dev"
   }
 }
@@ -39,9 +39,9 @@ npm run dev
 
 This starts:
 - Astro watching for file changes at `http://localhost:4321` (internal)
-- Wrangler Pages dev server at `http://localhost:8788` (public URL shown in terminal)
+- Wrangler Workers dev server at `http://localhost:8787` (public URL shown in terminal)
 
-Open the Wrangler URL (e.g., `http://localhost:8788`) in your browser.
+Open the Wrangler URL (e.g., `http://localhost:8787`) in your browser.
 
 ## Tradeoffs and Considerations
 
