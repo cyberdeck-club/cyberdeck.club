@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -79,7 +79,7 @@ jobs:
 
     steps:
       - name: Checkout (for wrangler.jsonc + migrations)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           sparse-checkout: |
             wrangler.jsonc
@@ -102,14 +102,14 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 migrations apply cyberdeck-db-beta --env beta --remote
+          command: d1 migrations apply cyberdeck-db-beta --remote
 
       - name: Deploy to Cloudflare Pages (Beta)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=cyberdeck-club --branch=beta --commit-message="${{ github.event.head_commit.message || 'Push to main' }}"
+          command: pages deploy dist --project-name=cyberdeck-club --branch=main --commit-message="${{ github.event.head_commit.message || 'Push to main' }}"
 
   # ---------------------------------------------------------------------------
   # Deploy to Production - manual dispatch only
@@ -125,7 +125,7 @@ jobs:
 
     steps:
       - name: Checkout (for wrangler.jsonc + migrations)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           sparse-checkout: |
             wrangler.jsonc
@@ -146,16 +146,18 @@ jobs:
       - name: Run D1 migrations (Production)
         uses: cloudflare/wrangler-action@v3
         with:
+          wranglerVersion: "4"
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 migrations apply cyberdeck-db --env prod --remote
+          command: d1 migrations apply cyberdeck-db --remote
 
       - name: Deploy to Cloudflare Pages (Production)
         uses: cloudflare/wrangler-action@v3
         with:
+          wranglerVersion: "4"
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=cyberdeck-club --branch=production --commit-message="${{ github.event.head_commit.message || 'Manual production deploy' }}"
+          command: pages deploy dist --project-name=cyberdeck-club --branch=main --commit-message="${{ github.event.head_commit.message || 'Manual production deploy' }}"
 
   # ---------------------------------------------------------------------------
   # GitHub Pages Fallback - switches Cloudflare Pages to serve from gh-pages
@@ -170,7 +172,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.github_pages_branch }}
           sparse-checkout: |
@@ -181,6 +183,7 @@ jobs:
       - name: Deploy to Cloudflare Pages from GitHub Pages branch
         uses: cloudflare/wrangler-action@v3
         with:
+          wranglerVersion: "4"
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy . --project-name=cyberdeck-club --branch=gh-pages --commit-message="Fallback deploy from ${{ github.event.inputs.github_pages_branch }}"
