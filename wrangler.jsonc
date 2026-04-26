@@ -1,12 +1,15 @@
 {
 	"name": "cyberdeck-club",
-	"main": "dist/_worker.js",
 	"compatibility_date": "2026-02-24",
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
 
 	// ─── Static assets (served alongside the Worker) ────────────────────
+	// The Astro Cloudflare adapter generates _worker.js and sets up the
+	// main entry point automatically. Do NOT add a "main" field here —
+	// it will cause build errors since the file doesn't exist yet at
+	// Vite config resolution time.
 	"assets": {
 		"directory": "./dist"
 	},
