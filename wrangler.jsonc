@@ -5,14 +5,11 @@
 		"nodejs_compat"
 	],
 
-	// ─── Static assets (served alongside the Worker) ────────────────────
-	// The Astro Cloudflare adapter generates _worker.js and sets up the
-	// main entry point automatically. Do NOT add a "main" field here —
-	// it will cause build errors since the file doesn't exist yet at
-	// Vite config resolution time.
-	"assets": {
-		"directory": "./dist"
-	},
+	// ─── Deployment note ────────────────────────────────────────────────
+	// The Astro Cloudflare adapter generates dist/server/wrangler.json
+	// with the correct "main" and "assets" fields after `astro build`.
+	// All deploy commands must use: --config dist/server/wrangler.json
+	// Do NOT add "main" or "assets" here — it breaks the build.
 
 	// ─── Production D1 binding ──────────────────────────────────────────
 	// Top-level config = production. Used by:
@@ -58,7 +55,27 @@
 				"PUBLIC_BASE_URL": "https://beta.cyberdeck.club"
 			}
 		}
-	}
+	},
+
+	// ─── Observability (logs & traces) ─────────────────────────────────
+	// Logs are enabled by default with a head sampling rate of 1 (100% of requests).
+	// Traces are disabled by default to avoid performance overhead, but can be enabled with a head sampling rate of 1 (100% of requests) if needed.
+	// you can access logs and traces in the Cloudflare dashboard under Workers & Pages → cyberdeck-club[-beta] → Observability.
+	"observability": {
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": false,
+      "persist": true,
+      "head_sampling_rate": 1
+    }
+  }
 
 	// "r2_buckets": [
 	//   {

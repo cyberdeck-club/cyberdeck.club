@@ -100,14 +100,16 @@ jobs:
           command: d1 migrations apply cyberdeck-db-beta --env beta --remote
 
       # Deploys to a separate Worker named "cyberdeck-club-beta"
-      # using the env.beta config from wrangler.jsonc
+      # using the env.beta config from wrangler.jsonc.
+      # Must use --config dist/server/wrangler.json because the Astro
+      # Cloudflare adapter generates the correct main/assets config there.
       - name: Deploy to Cloudflare Workers (Beta)
         uses: cloudflare/wrangler-action@v3
         with:
           wranglerVersion: "4"
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env beta
+          command: deploy --config dist/server/wrangler.json --env beta
 
   # ---------------------------------------------------------------------------
   # Deploy to Production - manual dispatch only
@@ -151,11 +153,13 @@ jobs:
           command: d1 migrations apply cyberdeck-db --remote
 
       # Deploys to the main Worker named "cyberdeck-club"
-      # using top-level config from wrangler.jsonc
+      # using top-level config from wrangler.jsonc.
+      # Must use --config dist/server/wrangler.json because the Astro
+      # Cloudflare adapter generates the correct main/assets config there.
       - name: Deploy to Cloudflare Workers (Production)
         uses: cloudflare/wrangler-action@v3
         with:
           wranglerVersion: "4"
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
+          command: deploy --config dist/server/wrangler.json
