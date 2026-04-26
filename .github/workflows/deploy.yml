@@ -103,8 +103,12 @@ jobs:
           wranglerVersion: "4"
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 migrations apply cyberdeck-db-beta --env beta --remote
+          command: d1 migrations apply cyberdeck-db-beta --env preview --remote
 
+      # Deploy with --branch=beta so Cloudflare Pages treats this as a
+      # Preview deployment, which picks up Preview-environment bindings
+      # (e.g. the beta D1 database). Using --branch=main would make this
+      # a Production deployment instead.
       - name: Deploy to Cloudflare Pages (Beta)
         uses: cloudflare/wrangler-action@v3
         with:
@@ -151,7 +155,7 @@ jobs:
           wranglerVersion: "4"
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 migrations apply cyberdeck-db --env prod --remote
+          command: d1 migrations apply cyberdeck-db --env production --remote
 
       - name: Deploy to Cloudflare Pages (Production)
         uses: cloudflare/wrangler-action@v3

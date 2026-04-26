@@ -35,8 +35,8 @@ The project uses three D1 database targets, configured in [`wrangler.jsonc`](wra
 | Environment | Wrangler env | D1 database name | CLI target |
 |------------|--------------|------------------|------------|
 | Local dev | (default) | `cyberdeck-db` | `--local` |
-| Beta (auto-deploy) | `beta` | `cyberdeck-db-beta` | `--env beta --remote` |
-| Production (manual) | `prod` | `cyberdeck-db` |  --remote` |
+| Beta (auto-deploy) | `preview` | `cyberdeck-db-beta` | `--env preview --remote` |
+| Production (manual) | `production` | `cyberdeck-db` | `--env production --remote` |
 
 ## Environment Variables
 
@@ -50,8 +50,8 @@ Non-secret vars (like `PUBLIC_BASE_URL`) are set per-environment in [`wrangler.j
 
 ```bash
 # Set a secret for a specific environment
-wrangler secret put BETTER_AUTH_SECRET --env beta
-wrangler secret put BETTER_AUTH_SECRET
+wrangler secret put BETTER_AUTH_SECRET --env preview
+wrangler secret put BETTER_AUTH_SECRET --env production
 ```
 
 Or via the dashboard: **Workers & Pages → cyberdeck.club → Settings → Variables & Secrets**.
@@ -70,7 +70,7 @@ npm run db:seed
 
 ### Seed beta database
 
-1. In [`scripts/seed.ts`](scripts/seed.ts:172), change `--local` to `--env beta --remote`:
+1. In [`scripts/seed.ts`](scripts/seed.ts:172), change `--local` to `--env preview --remote`:
 
    ```ts
    const cmd = `npx wrangler d1 execute cyberdeck-db-beta --remote --command ${JSON.stringify(sql)}`;

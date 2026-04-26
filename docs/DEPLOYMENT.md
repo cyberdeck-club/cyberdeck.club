@@ -6,19 +6,19 @@ cyberdeck.club uses a GitHub Actions workflow for CI/CD deployment to **Cloudfla
 
 ## Environments
 
-| Environment | URL | Trigger | Pages Branch | CF Pages Environment |
-|-------------|-----|---------|-------------|----------------------|
-| **Beta** | https://beta.cyberdeck.club | Push to `main` | `beta` | Preview |
-| **Production** | https://cyberdeck.club | Manual workflow dispatch | `production` | Production |
+| Environment | URL | Trigger | CF Pages Environment |
+|-------------|-----|---------|----------------------|
+| **Beta** | https://beta.cyberdeck.club | Push to `main` | Preview |
+| **Production** | https://cyberdeck.club | Manual workflow dispatch | Production |
 
 ### How Cloudflare Pages Environments Work
 
 Cloudflare Pages has **two built-in environments**: **Production** and **Preview**. These are managed in the Cloudflare dashboard — not via `wrangler.jsonc` `env` blocks (those are a Workers-only concept).
 
-- **Production** — Serves the production domain (`cyberdeck.club`). Deployed with `--branch=production`.
-- **Preview** — Serves preview/beta domains (`beta.cyberdeck.club`). Any non-production branch deploy goes here.
+- **Production** — Serves the production domain (`cyberdeck.club`). The deploy that matches the "production branch" configured in the Pages project.
+- **Preview** — Serves preview/beta domains (`beta.cyberdeck.club`). Any deploy from a non-production branch goes here.
 
-The `env.beta` and `env.prod` blocks in `wrangler.jsonc` exist **only** for D1 CLI commands (migrations, queries) — they are ignored by `wrangler pages deploy`.
+The `env.preview` and `env.production` blocks in `wrangler.jsonc` configure bindings for each Pages environment. They are used both by `wrangler pages deploy` (to apply the correct bindings) and by D1 CLI commands (to resolve the correct database ID).
 
 ## Deployment Architecture
 
@@ -69,24 +69,15 @@ Set these in **Settings** → **Variables** → **Actions**:
 |----------|-------|-------------|
 | `PUBLIC_BASE_URL` | `https://cyberdeck.club` | Used at build time for Astro |
 
-### 3. Cloudflare Pages Dashboard — Bindings & Secrets
+### 3. Cloudflare Pages Dashboard — Secrets
 
-This is the critical step that can't be done from code. Environment-specific bindings and secrets must be configured in the Cloudflare dashboard.
+D1 database bindings and `PUBLIC_BASE_URL` are configured in `wrangler.jsonc` via `env.production` and `env.preview` blocks. However, **encrypted secrets** cannot be stored in `wrangler.jsonc` — they must be configured in the Cloudflare dashboard.
 
 **Navigation:** Workers & Pages → `cyberdeck-club` → **Settings** → **Bindings**
 
 > ⚠️ **Look for the environment dropdown** at the top of the bindings page. It lets you switch between **Production** and **Preview**. This dropdown can scroll out of view — scroll up if you don't see it.
 
-Configure these for **each environment separately**:
-
-#### D1 Database Binding
-
-| Environment | Binding Name | Database |
-|-------------|-------------|----------|
-| **Production** | `DB` | `cyberdeck-db` |
-| **Preview** | `DB` | `cyberdeck-db-beta` |
-
-#### Environment Variables & Secrets
+Configure these secrets for **each environment separately**:
 
 | Name | Type | Production | Preview |
 |------|------|-----------|---------|
@@ -95,7 +86,10 @@ Configure these for **each environment separately**:
 | `RESEND_FROM_ADDRESS` | Variable | `CyberDeck <noreply@cyberdeck.club>` | `CyberDeck <noreply@cyberdeck.club>` |
 | `EMAIL_FROM` | Variable | `CyberDeck <noreply@cyberdeck.club>` | `CyberDeck <noreply@cyberdeck.club>` |
 | `ADMIN_EMAIL` | Variable | *your-admin-email* | *your-admin-email* |
-| `PUBLIC_BASE_URL` | Variable | `https://cyberdeck.club` | `https://beta.cyberdeck.club` |
+
+The following are **already configured** in `wrangler.jsonc` and do not need dashboard configuration:
+- `DB` (D1 binding) — `cyberdeck-db` for production, `cyberdeck-db-beta` for preview
+- `PUBLIC_BASE_URL` — `https://cyberdeck.club` for production, `https://beta.cyberdeck.club` for preview
 
 ## Deployment Methods
 
@@ -112,8 +106,8 @@ git push origin main
 The workflow will:
 1. Build the project
 2. Checkout `wrangler.jsonc` and `drizzle/migrations/` (sparse checkout)
-3. Run D1 migrations against `cyberdeck-db-beta` via `--env beta`
-4. Deploy to Cloudflare Pages with `--branch=beta` → Preview environment
+3. Run D1 migrations against `cyberdeck-db-beta` via `--env preview`
+4. Deploy to Cloudflare Pages with `--branch=beta` → Preview environment (uses `env.preview` bindings from `wrangler.jsonc`)
 5. Make the beta version live at https://beta.cyberdeck.club
 
 ### 2. Production (Manual)
@@ -134,8 +128,8 @@ gh workflow run deploy.yml --field environment=prod
 
 The workflow will:
 1. Build the project
-2. Run D1 migrations against `cyberdeck-db` via `--env prod`
-3. Deploy to Cloudflare Pages with `--branch=production` → Production environment
+2. Run D1 migrations against `cyberdeck-db` via `--env production`
+3. Deploy to Cloudflare Pages with `--branch=main` → Production environment (uses `env.production` bindings from `wrangler.jsonc`)
 4. Make the production version live at https://cyberdeck.club
 
 ### 3. GitHub Pages Fallback (Manual)
@@ -176,16 +170,22 @@ npm run db:migrate:prod
 Or use wrangler directly:
 
 ```bash
-# Beta
-wrangler d1 migrations apply cyberdeck-db-beta --env beta --remote
+# Beta (preview)
+wrangler d1 migrations apply cyberdeck-db-beta --env preview --remote
 
 # Production
-wrangler d1 migrations apply cyberdeck-db --env prod --remote
+wrangler d1 migrations apply cyberdeck-db --env production --remote
 ```
 
-### How `wrangler.jsonc` env blocks work with D1
+### How `wrangler.jsonc` env blocks work with Pages
 
-The `env.beta` and `env.prod` blocks in `wrangler.jsonc` resolve the correct database ID when you pass `--env beta` or `--env prod` to wrangler CLI commands. They are **not** used by `wrangler pages deploy` — deployed Pages get their D1 binding from the Cloudflare dashboard configuration.
+Cloudflare Pages recognizes exactly two environment names in `wrangler.jsonc`: **`production`** and **`preview`**. When you deploy with `wrangler pages deploy`:
+- `--branch=main` (matching the production branch) → uses `env.production` bindings
+- Any other branch (e.g., `--branch=beta`) → uses `env.preview` bindings
+
+These same env blocks are also used by CLI commands like `wrangler d1 migrations apply --env preview --remote` to resolve the correct database ID.
+
+Secrets (`BETTER_AUTH_SECRET`, `RESEND_API_KEY`, etc.) cannot be set in `wrangler.jsonc` — they must be configured in the **Cloudflare dashboard** under Workers & Pages → cyberdeck-club → Settings → Bindings (set separately for Production and Preview).
 
 ## Workflow Details
 
