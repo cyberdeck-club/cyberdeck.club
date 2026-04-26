@@ -25,7 +25,7 @@
 				{
 					"binding": "DB",
 					"database_name": "cyberdeck-db-beta",
-					"database_id": "<your-beta-d1-database-id>",
+					"database_id": "c787dff2-08ff-4c09-80c6-85e87e82ed0a",
 					"migrations_dir": "./drizzle/migrations"
 				}
 			]
@@ -39,7 +39,7 @@
 				{
 					"binding": "DB",
 					"database_name": "cyberdeck-db",
-					"database_id": "<your-prod-d1-database-id>",
+					"database_id": "c3b354ad-3b83-4fca-b15e-a590c0b452e3",
 					"migrations_dir": "./drizzle/migrations"
 				}
 			]
