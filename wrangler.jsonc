@@ -5,7 +5,11 @@
 		"nodejs_compat"
 	],
 
-	// Default environment (local dev)
+	// ─── Default D1 binding (used by local dev: `wrangler pages dev`) ───
+	// Points to the production database for local dev convenience.
+	// For deployed Pages, the D1 binding is configured in the Cloudflare
+	// dashboard under Workers & Pages → cyberdeck-club → Settings → Bindings
+	// (separate Production and Preview environment settings).
 	"d1_databases": [
 		{
 			"binding": "DB",
@@ -15,12 +19,15 @@
 		}
 	],
 
-	// Beta environment (auto-deploys on push to main)
+	// ─── Workers-style environments (used ONLY by CLI commands) ─────────
+	// These env blocks are NOT used by `wrangler pages deploy`.
+	// Cloudflare Pages uses its own Production/Preview environments
+	// configured in the dashboard. These blocks exist solely so that
+	// `wrangler d1 migrations apply --env beta --remote` and
+	// `wrangler d1 execute --env prod --remote` resolve the correct
+	// database ID from the CLI.
 	"env": {
 		"beta": {
-			"vars": {
-				"PUBLIC_BASE_URL": "https://beta.cyberdeck.club"
-			},
 			"d1_databases": [
 				{
 					"binding": "DB",
@@ -30,11 +37,7 @@
 				}
 			]
 		},
-		// Production environment (manual dispatch only)
 		"prod": {
-			"vars": {
-				"PUBLIC_BASE_URL": "https://cyberdeck.club"
-			},
 			"d1_databases": [
 				{
 					"binding": "DB",
@@ -45,9 +48,14 @@
 			]
 		}
 	},
+
+	// ─── Default vars (local dev only) ──────────────────────────────────
+	// For deployed Pages, set these as environment variables in the
+	// Cloudflare dashboard (Production and Preview separately).
 	"vars": {
 		"PUBLIC_BASE_URL": "http://localhost:8787"
-	},
+	}
+
 	// "r2_buckets": [
 	//   {
 	//     "binding": "MEDIA",
