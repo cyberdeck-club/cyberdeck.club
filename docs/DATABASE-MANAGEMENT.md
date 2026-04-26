@@ -36,7 +36,7 @@ The project uses three D1 database targets, configured in [`wrangler.jsonc`](wra
 |------------|--------------|------------------|------------|
 | Local dev | (default) | `cyberdeck-db` | `--local` |
 | Beta (auto-deploy) | `beta` | `cyberdeck-db-beta` | `--env beta --remote` |
-| Production (manual) | `prod` | `cyberdeck-db` | `--env prod --remote` |
+| Production (manual) | `prod` | `cyberdeck-db` |  --remote` |
 
 ## Environment Variables
 
@@ -51,7 +51,7 @@ Non-secret vars (like `PUBLIC_BASE_URL`) are set per-environment in [`wrangler.j
 ```bash
 # Set a secret for a specific environment
 wrangler secret put BETTER_AUTH_SECRET --env beta
-wrangler secret put BETTER_AUTH_SECRET --env prod
+wrangler secret put BETTER_AUTH_SECRET
 ```
 
 Or via the dashboard: **Workers & Pages → cyberdeck.club → Settings → Variables & Secrets**.
@@ -73,7 +73,7 @@ npm run db:seed
 1. In [`scripts/seed.ts`](scripts/seed.ts:172), change `--local` to `--env beta --remote`:
 
    ```ts
-   const cmd = `npx wrangler d1 execute cyberdeck-db-beta --env beta --remote --command ${JSON.stringify(sql)}`;
+   const cmd = `npx wrangler d1 execute cyberdeck-db-beta --remote --command ${JSON.stringify(sql)}`;
    ```
 
 2. Run:
@@ -91,7 +91,7 @@ npm run db:seed
 1. In [`scripts/seed.ts`](scripts/seed.ts:172), change to:
 
    ```ts
-   const cmd = `npx wrangler d1 execute cyberdeck-db --env prod --remote --command ${JSON.stringify(sql)}`;
+   const cmd = `npx wrangler d1 execute cyberdeck-db --remote --command ${JSON.stringify(sql)}`;
    ```
 
 2. Run:
@@ -111,19 +111,19 @@ Copy data from one D1 database to another (e.g., beta → production).
 ### Export a database to SQL
 
 ```bash
-wrangler d1 export cyberdeck-db-beta --env beta --remote --output ./dumps/beta-db.sql
+wrangler d1 export cyberdeck-db-beta --remote --output ./dumps/beta-db.sql
 ```
 
 To export a specific table only:
 
 ```bash
-wrangler d1 export cyberdeck-db-beta --env beta --remote --table wiki_articles --output ./dumps/wiki_articles.sql
+wrangler d1 export cyberdeck-db-beta --remote --table wiki_articles --output ./dumps/wiki_articles.sql
 ```
 
 ### Import into another database
 
 ```bash
-wrangler d1 import cyberdeck-db --env prod --remote ./dumps/beta-db.sql --force
+wrangler d1 import cyberdeck-db --remote ./dumps/beta-db.sql --force
 ```
 
 | Flag | Effect |
@@ -135,10 +135,10 @@ wrangler d1 import cyberdeck-db --env prod --remote ./dumps/beta-db.sql --force
 
 ```bash
 # 1. Export beta DB
-wrangler d1 export cyberdeck-db-beta --env beta --remote --output ./dumps/beta.sql
+wrangler d1 export cyberdeck-db-beta --remote --output ./dumps/beta.sql
 
 # 2. Import into production (--force clears prod first)
-wrangler d1 import cyberdeck-db --env prod --remote ./dumps/beta.sql --force
+wrangler d1 import cyberdeck-db --remote ./dumps/beta.sql --force
 ```
 
 ---
@@ -165,7 +165,7 @@ This runs three steps in sequence:
 
 ```bash
 # Apply migrations to a fresh state
-wrangler d1 migrations apply cyberdeck-db-beta --env beta --remote
+wrangler d1 migrations apply cyberdeck-db-beta --remote
 
 # Then seed (after editing scripts/seed.ts — see Section 1)
 npx tsx scripts/seed.ts
@@ -184,7 +184,7 @@ D1 does not have a built-in "reset" command. The cleanest approach:
 5. Apply migrations:
 
    ```bash
-   wrangler d1 migrations apply cyberdeck-db --env prod --remote
+   wrangler d1 migrations apply cyberdeck-db --remote
    ```
 
 ---
@@ -197,10 +197,10 @@ D1 does not have a built-in "reset" command. The cleanest approach:
 | Run migrations (beta) | `npm run db:migrate:beta` |
 | Run migrations (prod) | `npm run db:migrate:prod` |
 | Execute SQL (local) | `wrangler d1 execute cyberdeck-db --local --command "SELECT 1"` |
-| Execute SQL (beta) | `wrangler d1 execute cyberdeck-db-beta --env beta --remote --command "SELECT 1"` |
-| Execute SQL (prod) | `wrangler d1 execute cyberdeck-db --env prod --remote --command "SELECT 1"` |
-| Export DB | `wrangler d1 export cyberdeck-db-beta --env beta --remote --output ./dump.sql` |
-| Import SQL dump | `wrangler d1 import cyberdeck-db --env prod --remote ./dump.sql --force` |
+| Execute SQL (beta) | `wrangler d1 execute cyberdeck-db-beta --remote --command "SELECT 1"` |
+| Execute SQL (prod) | `wrangler d1 execute cyberdeck-db --remote --command "SELECT 1"` |
+| Export DB | `wrangler d1 export cyberdeck-db-beta --remote --output ./dump.sql` |
+| Import SQL dump | `wrangler d1 import cyberdeck-db --remote ./dump.sql --force` |
 | Seed local | `npm run db:seed` |
 | Reset local | `npm run db:reset` |
 | Open Drizzle Studio | `npm run db:studio` |

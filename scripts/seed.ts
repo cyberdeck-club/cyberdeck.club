@@ -168,8 +168,18 @@ function sqlStr(val: unknown): string {
 const DB_NAME = "DB";
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
+const envFlag = process.argv[2]; // e.g. "beta" to run against cyberdeck-db-beta, "prod" for cyberdeck-db
+if (envFlag && !["beta", "prod"].includes(envFlag)) {
+  console.error(`Invalid environment flag: ${envFlag}. Use "beta" or "prod".`);
+  process.exit(1);
+}
+
 function execSql(sql: string): void {
-  const cmd = `npx wrangler d1 execute ${DB_NAME} --local --command ${JSON.stringify(sql)}`;
+  const localCmd = `npx wrangler d1 execute ${DB_NAME} --local --command ${JSON.stringify(sql)}`;
+  const betaCmd = `npx wrangler d1 execute cyberdeck-db-beta --env beta --remote --command ${JSON.stringify(sql)}`
+  const prodCmd = `npx wrangler d1 execute cyberdeck-db --env prod --remote --command ${JSON.stringify(sql)}`;
+
+  const cmd = envFlag === "beta" ? betaCmd : envFlag === "prod" ? prodCmd : localCmd;
   try {
     execSync(cmd, {
       cwd: PROJECT_ROOT,

@@ -22,6 +22,8 @@
     "db:exec:prod": "wrangler d1 execute cyberdeck-db --env prod --remote",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
+    "db:seed:beta": "tsx scripts/seed.ts beta",
+    "db:seed:prod": "tsx scripts/seed.ts prod",
     "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate && npm run db:seed",
     "lint": "astro check"
   },
@@ -49,6 +51,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",
+    "@types/node": "^25.6.0",
     "concurrently": "^9.2.1",
     "drizzle-kit": "0.31.10",
     "typescript": "^5.9.3"
