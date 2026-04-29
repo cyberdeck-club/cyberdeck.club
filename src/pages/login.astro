@@ -8,6 +8,18 @@ export const prerender = false;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - CyberDeck</title>
+    <!-- Theme initialization script - runs before page render to prevent flash -->
+    <script is:inline>
+      (function() {
+        const theme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (theme === 'dark' || (!theme && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.add('light');
+        }
+      })();
+    </script>
     <style>
       * {
         box-sizing: border-box;
@@ -23,11 +35,9 @@ export const prerender = false;
         padding: 2rem;
         margin: 0;
       }
-      @media (prefers-color-scheme: dark) {
-        body {
-          background-color: #1a0a1a;
-          color: #f5f0fa;
-        }
+      html.dark body {
+        background-color: #1a0a1a;
+        color: #f5f0fa;
       }
       .login-container {
         background: white;
@@ -38,12 +48,10 @@ export const prerender = false;
         max-width: 420px;
         width: 100%;
       }
-      @media (prefers-color-scheme: dark) {
-        .login-container {
-          background: #2a1a2a;
-          border-color: #f5f0fa;
-          box-shadow: 6px 6px 0 #a855f7;
-        }
+      html.dark .login-container {
+        background: #2a1a2a;
+        border-color: #f5f0fa;
+        box-shadow: 6px 6px 0 #a855f7;
       }
       .login-header {
         text-align: center;
@@ -82,12 +90,10 @@ export const prerender = false;
         color: #1a1a1a;
         transition: box-shadow 0.15s ease;
       }
-      @media (prefers-color-scheme: dark) {
-        .form-input {
-          background: #1a0a1a;
-          border-color: #a855f7;
-          color: #f5f0fa;
-        }
+      html.dark .form-input {
+        background: #1a0a1a;
+        border-color: #a855f7;
+        color: #f5f0fa;
       }
       .form-input:focus {
         outline: none;
@@ -107,11 +113,9 @@ export const prerender = false;
         cursor: pointer;
         transition: box-shadow 0.15s ease, transform 0.1s ease;
       }
-      @media (prefers-color-scheme: dark) {
-        .submit-btn {
-          background: #a855f7;
-          border-color: #a855f7;
-        }
+      html.dark .submit-btn {
+        background: #a855f7;
+        border-color: #a855f7;
       }
       .submit-btn:hover {
         box-shadow: 4px 4px 0 #a855f7;
@@ -131,31 +135,25 @@ export const prerender = false;
         border: 2px solid #1a1a1a;
         background: white;
       }
-      @media (prefers-color-scheme: dark) {
-        .message {
-          background: #2a1a2a;
-          border-color: #a855f7;
-        }
+      html.dark .message {
+        background: #2a1a2a;
+        border-color: #a855f7;
       }
       .message.success {
         border-color: #22c55e;
         background: #f0fdf4;
       }
-      @media (prefers-color-scheme: dark) {
-        .message.success {
-          background: #14532d;
-          border-color: #22c55e;
-        }
+      html.dark .message.success {
+        background: #14532d;
+        border-color: #22c55e;
       }
       .message.error {
         border-color: #ef4444;
         background: #fef2f2;
       }
-      @media (prefers-color-scheme: dark) {
-        .message.error {
-          background: #7f1d1d;
-          border-color: #ef4444;
-        }
+      html.dark .message.error {
+        background: #7f1d1d;
+        border-color: #ef4444;
       }
       .message p {
         margin: 0;

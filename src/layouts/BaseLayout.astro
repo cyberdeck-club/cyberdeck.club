@@ -81,19 +81,30 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? "https://cyberdec
       })();
     </script>
   </head>
-  <body class="flex flex-col min-h-svh transition-colors duration-200" data-theme="light">
+  <body class="flex flex-col min-h-svh transition-colors duration-200">
+    <!-- Dynamic background decorations -->
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow bg-glow-1" aria-hidden="true"></div>
+    <div class="bg-glow bg-glow-2" aria-hidden="true"></div>
+    <div class="floating-elements" aria-hidden="true">
+      <div class="floating-shape shape-1"></div>
+      <div class="floating-shape shape-2"></div>
+      <div class="floating-shape shape-3"></div>
+      <div class="floating-shape shape-4"></div>
+    </div>
+
     <!-- Skip to content link for accessibility -->
     <a href="#main-content" class="skip-link">
       Skip to main content
     </a>
     
-    {!hideNav && <Nav />}
+    {!hideNav && <div class="relative z-11"><Nav /></div>}
     
-    <main id="main-content" class={clsx("grow", {"pt-20": !hideNav})}>
+    <main id="main-content" class={clsx("relative z-10 grow", {"pt-20": !hideNav})}>
       <slot />
     </main>
     
-    {!hideFooter && <Footer />}
+    {!hideFooter && <div class="relative z-10"><Footer /></div>}
   </body>
 </html>
 
@@ -104,24 +115,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? "https://cyberdec
   }
   
   /* Light mode body styles */
-  :global(body),
-  :global(html.light) {
+  :global(html.light),
+  :global(html.light) body {
     background-color: var(--color-bg-light);
     color: var(--color-text-light);
   }
   
   /* Dark mode body styles */
-  :global(html.dark) {
-    background-color: var(--color-bg-dark);
-    color: var(--color-text-dark);
-  }
-  
-  /* Page background */
-  :global(body) {
-    background-color: var(--color-bg-light);
-  }
-  
+  :global(html.dark),
   :global(html.dark) body {
     background-color: var(--color-bg-dark);
+    color: var(--color-text-dark);
   }
 </style>

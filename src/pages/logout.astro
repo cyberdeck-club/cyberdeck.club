@@ -8,6 +8,18 @@ export const prerender = false;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Logging out - CyberDeck</title>
+    <!-- Theme initialization script - runs before page render to prevent flash -->
+    <script is:inline>
+      (function() {
+        const theme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (theme === 'dark' || (!theme && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.add('light');
+        }
+      })();
+    </script>
     <style>
       * {
         box-sizing: border-box;
@@ -23,11 +35,9 @@ export const prerender = false;
         padding: 2rem;
         margin: 0;
       }
-      @media (prefers-color-scheme: dark) {
-        body {
-          background-color: #1a0a1a;
-          color: #f5f0fa;
-        }
+      html.dark body {
+        background-color: #1a0a1a;
+        color: #f5f0fa;
       }
       .logout-container {
         background: white;
@@ -39,12 +49,10 @@ export const prerender = false;
         width: 100%;
         text-align: center;
       }
-      @media (prefers-color-scheme: dark) {
-        .logout-container {
-          background: #2a1a2a;
-          border-color: #f5f0fa;
-          box-shadow: 6px 6px 0 #a855f7;
-        }
+      html.dark .logout-container {
+        background: #2a1a2a;
+        border-color: #f5f0fa;
+        box-shadow: 6px 6px 0 #a855f7;
       }
       .logout-title {
         font-size: 1.5rem;

@@ -90,10 +90,8 @@ const isAdmin = userRole === "admin";
     box-shadow: 2px 2px 0 #1a1a1a;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .auth-register {
-      border-color: #f5f0fa;
-    }
+  :global(html.dark) .auth-register {
+    border-color: #f5f0fa;
   }
 
   .auth-register:hover {
@@ -139,10 +137,8 @@ const isAdmin = userRole === "admin";
     object-fit: cover;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .user-avatar {
-      border-color: #a855f7;
-    }
+  :global(html.dark) .user-avatar {
+    border-color: #a855f7;
   }
 
   .user-avatar-placeholder {
@@ -159,10 +155,8 @@ const isAdmin = userRole === "admin";
     border: 2px solid #1a1a1a;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .user-avatar-placeholder {
-      border-color: #f5f0fa;
-    }
+  :global(html.dark) .user-avatar-placeholder {
+    border-color: #f5f0fa;
   }
 
   .user-name {
@@ -198,12 +192,10 @@ const isAdmin = userRole === "admin";
     z-index: 100;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .user-dropdown {
-      background: #2a1a2a;
-      border-color: #a855f7;
-      box-shadow: 4px 4px 0 rgba(168, 85, 247, 0.4);
-    }
+  :global(html.dark) .user-dropdown {
+    background: #2a1a2a;
+    border-color: #a855f7;
+    box-shadow: 4px 4px 0 rgba(168, 85, 247, 0.4);
   }
 
   .user-menu-trigger[aria-expanded="true"] + .user-dropdown,
@@ -232,10 +224,9 @@ const isAdmin = userRole === "admin";
     color: #1a1a1a;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .dropdown-email, .dropdown-link {
-      color: #f5f0fa;
-    }
+  :global(html.dark) .dropdown-email,
+  :global(html.dark) .dropdown-link {
+    color: #f5f0fa;
   }
 
   .dropdown-role {
@@ -252,10 +243,8 @@ const isAdmin = userRole === "admin";
     border-top: 1px solid #e5e5e5;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .dropdown-divider {
-      border-top-color: rgba(168, 85, 247, 0.3);
-    }
+  :global(html.dark) .dropdown-divider {
+    border-top-color: rgba(168, 85, 247, 0.3);
   }
 
   .dropdown-item {
@@ -274,10 +263,8 @@ const isAdmin = userRole === "admin";
     transition: background 0.1s ease;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .dropdown-item {
-      color: #f5f0fa;
-    }
+  :global(html.dark) .dropdown-item {
+    color: #f5f0fa;
   }
 
   .dropdown-item:hover {
@@ -304,10 +291,8 @@ const isAdmin = userRole === "admin";
     color: #dc2626;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .dropdown-logout:hover {
-      color: #f87171;
-    }
+  :global(html.dark) .dropdown-logout:hover {
+    color: #f87171;
   }
 </style>
 

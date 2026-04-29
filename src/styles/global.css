@@ -3,6 +3,9 @@
 @plugin "@tailwindcss/typography";
 @plugin "tailwind-scrollbar-hide";
 
+/* Enable class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Typography */
   --font-sans: "InterVariable", sans-serif;
@@ -257,4 +260,120 @@ body {
 
 .skip-link:focus {
   top: 0;
+}
+
+/* ============================================
+   DYNAMIC BACKGROUND DECORATIONS
+   Grid, glow orbs, and floating shapes from landing page
+   ============================================ */
+
+/* Grid overlay */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 50px 50px;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dark .bg-grid {
+  opacity: 0.15;
+}
+
+/* Ambient glow orbs */
+.bg-glow {
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(150px);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bg-glow-1 {
+  top: -200px;
+  right: -200px;
+  background: var(--color-primary);
+}
+
+.bg-glow-2 {
+  bottom: -200px;
+  left: -200px;
+  background: var(--color-secondary);
+}
+
+/* Floating decorative shapes */
+.floating-elements {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.floating-shape {
+  position: absolute;
+  border: 2px solid var(--border);
+  opacity: 0.5;
+}
+
+.shape-1 {
+  top: 15%;
+  left: 10%;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  transform: rotate(15deg);
+  animation: bgFloat 6s ease-in-out infinite;
+}
+
+.shape-2 {
+  top: 25%;
+  right: 15%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  animation: bgFloat 8s ease-in-out infinite reverse;
+}
+
+.shape-3 {
+  bottom: 20%;
+  left: 15%;
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  transform: rotate(-20deg);
+  animation: bgFloat 7s ease-in-out infinite;
+}
+
+.shape-4 {
+  bottom: 30%;
+  right: 10%;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  animation: bgFloat 5s ease-in-out infinite reverse;
+}
+
+@keyframes bgFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+.dark .shape-1 { border-color: var(--color-primary); opacity: 0.3; }
+.dark .shape-2 { border-color: var(--color-secondary); opacity: 0.3; }
+.dark .shape-3 { border-color: var(--color-primary); opacity: 0.2; }
+.dark .shape-4 { border-color: var(--color-secondary); opacity: 0.3; }
+
+/* Hide floating shapes on small screens */
+@media (max-width: 640px) {
+  .floating-elements {
+    display: none;
+  }
 }
