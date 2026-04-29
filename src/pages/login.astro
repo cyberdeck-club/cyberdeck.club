@@ -1,178 +1,10 @@
 ---
+import BaseLayout from "@/layouts/BaseLayout.astro";
 export const prerender = false;
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login - CyberDeck</title>
-    <!-- Theme initialization script - runs before page render to prevent flash -->
-    <script is:inline>
-      (function() {
-        const theme = localStorage.getItem('theme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (theme === 'dark' || (!theme && prefersDark)) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.add('light');
-        }
-      })();
-    </script>
-    <style>
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        font-family: "InterVariable", system-ui, sans-serif;
-        background-color: #faf8f5;
-        color: #1a1a1a;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-        margin: 0;
-      }
-      html.dark body {
-        background-color: #1a0a1a;
-        color: #f5f0fa;
-      }
-      .login-container {
-        background: white;
-        border: 3px solid #1a1a1a;
-        border-radius: 0;
-        box-shadow: 6px 6px 0 #1a1a1a;
-        padding: 2.5rem;
-        max-width: 420px;
-        width: 100%;
-      }
-      html.dark .login-container {
-        background: #2a1a2a;
-        border-color: #f5f0fa;
-        box-shadow: 6px 6px 0 #a855f7;
-      }
-      .login-header {
-        text-align: center;
-        margin-bottom: 2rem;
-      }
-      .login-title {
-        font-size: 1.75rem;
-        font-weight: 800;
-        margin: 0 0 0.5rem 0;
-        text-transform: lowercase;
-        letter-spacing: -0.02em;
-      }
-      .login-subtitle {
-        font-size: 0.95rem;
-        opacity: 0.7;
-        margin: 0;
-      }
-      .form-group {
-        margin-bottom: 1.25rem;
-      }
-      .form-label {
-        display: block;
-        font-weight: 600;
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
-      .form-input {
-        width: 100%;
-        padding: 0.75rem 1rem;
-        font-size: 1rem;
-        border: 2px solid #1a1a1a;
-        border-radius: 0;
-        background: white;
-        color: #1a1a1a;
-        transition: box-shadow 0.15s ease;
-      }
-      html.dark .form-input {
-        background: #1a0a1a;
-        border-color: #a855f7;
-        color: #f5f0fa;
-      }
-      .form-input:focus {
-        outline: none;
-        box-shadow: 3px 3px 0 #a855f7;
-      }
-      .submit-btn {
-        width: 100%;
-        padding: 0.875rem 1.5rem;
-        font-size: 1rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        border: 2px solid #1a1a1a;
-        border-radius: 0;
-        background: #1a1a1a;
-        color: white;
-        cursor: pointer;
-        transition: box-shadow 0.15s ease, transform 0.1s ease;
-      }
-      html.dark .submit-btn {
-        background: #a855f7;
-        border-color: #a855f7;
-      }
-      .submit-btn:hover {
-        box-shadow: 4px 4px 0 #a855f7;
-        transform: translate(-2px, -2px);
-      }
-      .submit-btn:active {
-        transform: translate(0, 0);
-        box-shadow: none;
-      }
-      .submit-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-      .message {
-        padding: 1rem;
-        margin-bottom: 1.5rem;
-        border: 2px solid #1a1a1a;
-        background: white;
-      }
-      html.dark .message {
-        background: #2a1a2a;
-        border-color: #a855f7;
-      }
-      .message.success {
-        border-color: #22c55e;
-        background: #f0fdf4;
-      }
-      html.dark .message.success {
-        background: #14532d;
-        border-color: #22c55e;
-      }
-      .message.error {
-        border-color: #ef4444;
-        background: #fef2f2;
-      }
-      html.dark .message.error {
-        background: #7f1d1d;
-        border-color: #ef4444;
-      }
-      .message p {
-        margin: 0;
-        font-size: 0.95rem;
-      }
-      .back-link {
-        display: block;
-        text-align: center;
-        margin-top: 1.5rem;
-        font-size: 0.875rem;
-        color: inherit;
-        opacity: 0.7;
-      }
-      .back-link:hover {
-        opacity: 1;
-      }
-    </style>
-  </head>
-  <body>
+<BaseLayout title="Login - CyberDeck" hideNav={true} hideFooter={true}>
+  <div class="login-page">
     <div class="login-container">
       <div class="login-header">
         <h1 class="login-title">sign in / register</h1>
@@ -203,59 +35,193 @@ export const prerender = false;
 
       <a href="/" class="back-link">← back to cyberdeck</a>
     </div>
+  </div>
+</BaseLayout>
 
-    <script>
-      const form = document.getElementById("login-form") as HTMLFormElement;
-      const messageEl = document.getElementById("message") as HTMLDivElement;
-      const messageText = document.getElementById("message-text") as HTMLParagraphElement;
-      const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+<style>
+  .login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  .login-container {
+    background: var(--surface);
+    border: 3px solid var(--text);
+    border-radius: 0;
+    box-shadow: 6px 6px 0 var(--text);
+    padding: 2.5rem;
+    max-width: 420px;
+    width: 100%;
+  }
+  :global(html.dark) .login-container {
+    box-shadow: 6px 6px 0 var(--color-primary);
+  }
+  .login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .login-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem 0;
+    text-transform: lowercase;
+    letter-spacing: -0.02em;
+  }
+  .login-subtitle {
+    font-size: 0.95rem;
+    opacity: 0.7;
+    margin: 0;
+  }
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+  .form-label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 2px solid var(--text);
+    border-radius: 0;
+    background: var(--bg);
+    color: var(--text);
+    transition: box-shadow 0.15s ease;
+  }
+  :global(html.dark) .form-input {
+    border-color: var(--color-primary);
+  }
+  .form-input:focus {
+    outline: none;
+    box-shadow: 3px 3px 0 var(--color-primary);
+  }
+  .submit-btn {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 2px solid var(--text);
+    border-radius: 0;
+    background: var(--text);
+    color: var(--bg);
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, transform 0.1s ease;
+  }
+  :global(html.dark) .submit-btn {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+  }
+  .submit-btn:hover {
+    box-shadow: 4px 4px 0 var(--color-primary);
+    transform: translate(-2px, -2px);
+  }
+  .submit-btn:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+  }
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .message {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border: 2px solid var(--text);
+    background: var(--surface);
+  }
+  .message.success {
+    border-color: #22c55e;
+    background: #f0fdf4;
+  }
+  :global(html.dark) .message.success {
+    background: #14532d;
+    border-color: #22c55e;
+  }
+  .message.error {
+    border-color: #ef4444;
+    background: #fef2f2;
+  }
+  :global(html.dark) .message.error {
+    background: #7f1d1d;
+    border-color: #ef4444;
+  }
+  .message p {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+  .back-link {
+    display: block;
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    color: inherit;
+    opacity: 0.7;
+  }
+  .back-link:hover {
+    opacity: 1;
+  }
+</style>
 
-      function showMessage(text: string, type: "success" | "error") {
-        messageEl.style.display = "block";
-        messageEl.className = `message ${type}`;
-        messageText.textContent = text;
+<script>
+  const form = document.getElementById("login-form") as HTMLFormElement;
+  const messageEl = document.getElementById("message") as HTMLDivElement;
+  const messageText = document.getElementById("message-text") as HTMLParagraphElement;
+  const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+
+  function showMessage(text: string, type: "success" | "error") {
+    messageEl.style.display = "block";
+    messageEl.className = `message ${type}`;
+    messageText.textContent = text;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = (document.getElementById("email") as HTMLInputElement).value;
+    const siteUrl = window.location.origin;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "sending...";
+
+    try {
+      const res = await fetch("/api/auth/sign-in/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, callbackURL: siteUrl }),
+      });
+
+      if (!res.ok) {
+        let errorMessage = "Failed to send magic link";
+        try {
+          const data = await res.json();
+          errorMessage = data.error?.message || errorMessage;
+        } catch {
+          // response body not JSON — use default message
+        }
+        throw new Error(errorMessage);
       }
 
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email = (document.getElementById("email") as HTMLInputElement).value;
-        const siteUrl = window.location.origin;
-
-        submitBtn.disabled = true;
-        submitBtn.textContent = "sending...";
-
-        try {
-          const res = await fetch("/api/auth/sign-in/magic-link", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, callbackURL: siteUrl }),
-          });
-
-          if (!res.ok) {
-            let errorMessage = "Failed to send magic link";
-            try {
-              const data = await res.json();
-              errorMessage = data.error?.message || errorMessage;
-            } catch {
-              // response body not JSON — use default message
-            }
-            throw new Error(errorMessage);
-          }
-
-          showMessage(
-            "check your email for the sign-in link. it expires in 5 minutes.",
-            "success"
-          );
-          form.style.display = "none";
-        } catch (err) {
-          showMessage(
-            err instanceof Error ? err.message : "something went wrong",
-            "error"
-          );
-          submitBtn.disabled = false;
-          submitBtn.textContent = "send magic link";
-        }
-      });
-    </script>
-  </body>
-</html>
+      showMessage(
+        "check your email for the sign-in link. it expires in 5 minutes.",
+        "success"
+      );
+      form.style.display = "none";
+    } catch (err) {
+      showMessage(
+        err instanceof Error ? err.message : "something went wrong",
+        "error"
+      );
+      submitBtn.disabled = false;
+      submitBtn.textContent = "send magic link";
+    }
+  });
+</script>

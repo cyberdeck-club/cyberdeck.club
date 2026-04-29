@@ -24,9 +24,14 @@ const currentPath = Astro.url.pathname;
       class="relative flex flex-col w-full md:items-center md:justify-between md:flex-row max-w-6xl mx-auto"
     >
       <div class="flex flex-row items-center justify-between">
-        <a href="/" class="nav-logo text-xl font-bold lowercase tracking-wide">
+        <a href="/" class="nav-logo flex items-center gap-2 text-xl font-bold tracking-tight no-underline">
           <span class="sr-only">Go to homepage</span>
-          <span class="logo-icon">✨</span> cyberdeck.club
+          <svg class="logo-icon w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="10" y="10" width="80" height="80" rx="15" fill="var(--color-primary)"/>
+            <rect x="25" y="25" width="50" height="50" rx="10" fill="var(--color-secondary)"/>
+            <rect x="35" y="35" width="30" height="30" rx="5" fill="currentColor"/>
+          </svg>
+          <span class="logo-text">cyberdeck<span class="logo-dot-club">.club</span></span>
         </a>
         <button
           id="menu-toggle"
@@ -52,8 +57,13 @@ const currentPath = Astro.url.pathname;
         </div>
 
         <div class="relative flex md:bg-transparent flex-col items-start justify-start w-full h-full px-8 list-none md:ml-auto gap-8 md:px-0 md:flex-row md:items-center md:justify-center md:text-left md:gap-4">
-          <a href="/" class="nav-home-link md:hidden text-2xl font-bold uppercase">
-            🖥️ cyberdeck.club
+          <a href="/" class="nav-home-link md:hidden flex items-center gap-2 text-2xl font-bold no-underline">
+            <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="10" y="10" width="80" height="80" rx="15" fill="var(--color-primary)"/>
+              <rect x="25" y="25" width="50" height="50" rx="10" fill="var(--color-secondary)"/>
+              <rect x="35" y="35" width="30" height="30" rx="5" fill="currentColor"/>
+            </svg>
+            <span class="logo-text">cyberdeck<span class="logo-dot-club">.club</span></span>
           </a>
 
           <div class="flex flex-col gap-3 md:gap-4 md:flex-row">
@@ -104,6 +114,15 @@ const currentPath = Astro.url.pathname;
   .nav-logo,
   .nav-link {
     color: var(--color-text-light);
+  }
+
+  .logo-text {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .logo-dot-club {
+    color: var(--color-primary);
   }
 
   .nav-toggle,
