@@ -22,12 +22,15 @@ export const prerender = false;
 const editParam = Astro.url.searchParams.get("edit");
 const isEditingFromUrl = editParam === "true";
 
+import { requireRole, ROLES } from "@/lib/roles";
+
 // Role values for permission checking
 const ROLE_VALUES = {
   member: 10,
   maker: 20,
-  moderator: 30,
-  admin: 40,
+  trusted_maker: 30,
+  moderator: 40,
+  admin: 50,
 } as const;
 
 type Role = keyof typeof ROLE_VALUES;
@@ -228,6 +231,7 @@ if (!notFound) {
                 <path d="M10.5 1.5L12.5 3.5L5 11H3V9L10.5 1.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
               </svg>
               This article has been edited
+              <a href={`/wiki/${category}/${slug}/history`} class="history-link">View History</a>
             </div>
           )}
 
@@ -477,6 +481,17 @@ if (!notFound) {
     background: var(--color-surface);
     border: 2px solid var(--border);
     border-radius: 4px;
+  }
+
+  .history-link {
+    margin-left: 0.5rem;
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .history-link:hover {
+    text-decoration: underline;
   }
 
   /* Comments section */

@@ -1,22 +1,23 @@
 import type { APIRoute } from "astro";
 import * as schema from "../../../db/schema";
+import { requireAuth } from "@/lib/require-auth";
+import { ROLES } from "@/lib/roles";
 
 /**
  * POST /api/meetups
  *
  * Creates a new meetup.
- * Requires authenticated user.
+ * Requires TRUSTED_MAKER role or above.
  *
  * Body: { title: string, slug?: string, description?: string, content?: string, location?: string, startsAt?: number, endsAt?: number, maxAttendees?: number }
  */
 export const POST: APIRoute = async (ctx) => {
-  // Require authentication
-  if (!ctx.locals.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+  // Require authentication and TRUSTED_MAKER role minimum
+  const authResult = requireAuth(ctx.locals.user, ROLES.TRUSTED_MAKER);
+  if (authResult instanceof Response) {
+    return authResult;
   }
+  const { user } = authResult;
 
   // Parse and validate request body
   let body: {
@@ -58,7 +59,7 @@ export const POST: APIRoute = async (ctx) => {
   }
 
   const db = ctx.locals.db;
-  const userId = ctx.locals.user.id;
+  const userId = user.id;
   const now = Math.floor(Date.now() / 1000);
 
   // Generate ID and slug

@@ -115,6 +115,46 @@ export function getAuth(cfEnv: App.Env) {
           type: "string",
           required: false,
         },
+        acceptedBuildCount: {
+          type: "number",
+          defaultValue: 0,
+          input: false,
+        },
+        firstBuildPublishedAt: {
+          type: "string",
+          required: false,
+          input: false,
+        },
+        isModNominated: {
+          type: "boolean",
+          defaultValue: false,
+          input: false,
+        },
+        modNominatedBy: {
+          type: "string",
+          required: false,
+          input: false,
+        },
+        modNominatedAt: {
+          type: "string",
+          required: false,
+          input: false,
+        },
+        bannedAt: {
+          type: "string",
+          required: false,
+          input: false,
+        },
+        bannedBy: {
+          type: "string",
+          required: false,
+          input: false,
+        },
+        banReason: {
+          type: "string",
+          required: false,
+          input: false,
+        },
       },
     },
     baseURL: cfEnv.PUBLIC_BASE_URL ?? import.meta.env.PUBLIC_BASE_URL ?? "http://localhost:8787",

@@ -1,6 +1,7 @@
 ---
 import ThemeToggle from "./ThemeToggle.astro";
 import UserMenu from "./UserMenu.astro";
+import { requireRole, ROLES } from "@/lib/roles";
 
 const navigationLinks = [
   { title: "Wiki", href: "/wiki/" },
@@ -12,8 +13,12 @@ const navigationLinks = [
 
 // Get current path for active state
 const currentPath = Astro.url.pathname;
----
 
+// Get current user for role-based nav items
+const user = Astro.locals.user;
+const canSeeModQueue = requireRole(user?.role, ROLES.TRUSTED_MAKER);
+const isAdmin = requireRole(user?.role, ROLES.ADMIN);
+---
 <div id="nav-wrapper" class="fixed inset-x-0 top-0 z-50 w-full mx-auto">
   <div
     class="nav-bar py-4 px-6 border-y-8"

@@ -39,6 +39,14 @@ interface SeedUser {
   displayName: string;
   role: string;
   bio?: string;
+  acceptedBuildCount?: number;
+  firstBuildPublishedAt?: string | null;
+  isModNominated?: boolean;
+  modNominatedBy?: string | null;
+  modNominatedAt?: string | null;
+  bannedAt?: string | null;
+  bannedBy?: string | null;
+  banReason?: string | null;
 }
 
 interface TaxonomyTerm {
@@ -134,7 +142,12 @@ interface Build {
     build_time?: string;
     builder: string;
     tags?: string;
+    reviewedBy?: string | null;
+    reviewedAt?: string | null;
+    publishedAt?: string | null;
   };
+  rejectionReason?: string | null;
+  autoReviewResult?: string | null;
 }
 
 interface CommunityGuidelinesAcceptance {
@@ -275,12 +288,13 @@ function seedAuth(): void {
 
   const sqls: string[] = [];
 
-  // Create users
+  // Create users (two-pass to handle self-referential FKs)
+  // Pass 1: Insert all users with FK fields set to NULL initially
   for (const u of users) {
     const userId = userSlugToId.get(u.slug)!;
     sqls.push(
-      `INSERT OR REPLACE INTO "user" (id, name, email, email_verified, role, bio, created_at, updated_at) VALUES (` +
-      `${sqlStr(userId)}, ${sqlStr(u.displayName)}, ${sqlStr(`${u.slug}@aster.hn`)}, 1, ${sqlStr(u.role)}, ${sqlStr(u.bio ?? null)}, ${nowEpoch}, ${nowEpoch})`
+      `INSERT OR REPLACE INTO "user" (id, name, email, email_verified, role, bio, accepted_build_count, first_build_published_at, is_mod_nominated, mod_nominated_by, mod_nominated_at, banned_at, banned_by, ban_reason, created_at, updated_at) VALUES (` +
+      `${sqlStr(userId)}, ${sqlStr(u.displayName)}, ${sqlStr(`${u.slug}@aster.hn`)}, 1, ${sqlStr(u.role)}, ${sqlStr(u.bio ?? null)}, ${sqlStr(u.acceptedBuildCount ?? 0)}, ${sqlStr(u.firstBuildPublishedAt ?? null)}, ${u.isModNominated ? 1 : 0}, NULL, ${sqlStr(u.modNominatedAt ?? null)}, ${sqlStr(u.bannedAt ?? null)}, NULL, ${sqlStr(u.banReason ?? null)}, ${nowEpoch}, ${nowEpoch})`
     );
 
     // Create session for admin user (test user)
@@ -296,6 +310,37 @@ function seedAuth(): void {
   }
 
   execSqlBatch(sqls);
+
+  // Pass 2: Update users with self-referential FK fields
+  const fkUpdates: string[] = [];
+  for (const u of users) {
+    const userId = userSlugToId.get(u.slug)!;
+
+    // Handle modNominatedBy - resolve from slug ID to actual userId
+    if (u.modNominatedBy !== null) {
+      const nominatorId = userSlugToId.get(
+        users.find((x) => x.id === u.modNominatedBy)?.slug ?? ""
+      ) ?? u.modNominatedBy;
+      fkUpdates.push(
+        `UPDATE "user" SET mod_nominated_by = ${sqlStr(nominatorId)} WHERE id = ${sqlStr(userId)}`
+      );
+    }
+
+    // Handle bannedBy - resolve from slug ID to actual userId
+    if (u.bannedBy !== null) {
+      const bannerId = userSlugToId.get(
+        users.find((x) => x.id === u.bannedBy)?.slug ?? ""
+      ) ?? u.bannedBy;
+      fkUpdates.push(
+        `UPDATE "user" SET banned_by = ${sqlStr(bannerId)} WHERE id = ${sqlStr(userId)}`
+      );
+    }
+  }
+
+  if (fkUpdates.length > 0) {
+    execSqlBatch(fkUpdates);
+  }
+
   console.log(`  Created ${users.length} users`);
 }
 
@@ -342,8 +387,8 @@ function seedWikiArticles(): void {
 
     // Create initial revision
     sqls.push(
-      `INSERT OR REPLACE INTO wiki_revisions (id, article_id, content, title, author_id, created_at) VALUES (` +
-      `${sqlStr(uid())}, ${sqlStr(articleId)}, ${sqlStr(content)}, ${sqlStr(article.data.title)}, ${sqlStr(authorId)}, ${now})`
+      `INSERT OR REPLACE INTO wiki_revisions (id, article_id, content, title, author_id, diff_summary, created_at) VALUES (` +
+      `${sqlStr(uid())}, ${sqlStr(articleId)}, ${sqlStr(content)}, ${sqlStr(article.data.title)}, ${sqlStr(authorId)}, ${sqlStr("Initial version")}, ${now})`
     );
   }
 
@@ -449,10 +494,11 @@ function seedBuilds(): void {
     const buildId = uid();
     buildIds.set(build.id, buildId);
     const builderId = resolveBylineRef(build.data.builder);
+    const reviewedById = build.data.reviewedBy ? resolveBylineRef(build.data.reviewedBy) : null;
 
     sqls.push(
-      `INSERT OR REPLACE INTO builds (id, slug, title, description, content, hero_image_url, status, author_id, created_at, updated_at) VALUES (` +
-      `${sqlStr(buildId)}, ${sqlStr(build.slug)}, ${sqlStr(build.data.title)}, ${sqlStr(build.data.description)}, ${sqlStr(build.data.parts_list ?? null)}, ${sqlStr(build.data.featured_image ?? null)}, ${sqlStr(build.status)}, ${sqlStr(builderId)}, ${now}, ${now})`
+      `INSERT OR REPLACE INTO builds (id, slug, title, description, content, hero_image_url, status, author_id, rejection_reason, auto_review_result, reviewed_by, reviewed_at, published_at, created_at, updated_at) VALUES (` +
+      `${sqlStr(buildId)}, ${sqlStr(build.slug)}, ${sqlStr(build.data.title)}, ${sqlStr(build.data.description)}, ${sqlStr(build.data.parts_list ?? null)}, ${sqlStr(build.data.featured_image ?? null)}, ${sqlStr(build.status)}, ${sqlStr(builderId)}, ${sqlStr(build.rejectionReason ?? null)}, ${sqlStr(build.autoReviewResult ?? null)}, ${sqlStr(reviewedById)}, ${sqlStr(build.data.reviewedAt ?? null)}, ${sqlStr(build.data.publishedAt ?? null)}, ${now}, ${now})`
     );
   }
 

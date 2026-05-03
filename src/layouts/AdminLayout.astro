@@ -14,7 +14,7 @@ export const prerender = false;
 interface Props {
   title: string;
   description?: string;
-  section?: "dashboard" | "users" | "forum" | "wiki" | "static";
+  section?: "dashboard" | "users" | "forum" | "wiki" | "static" | "builds" | "nominations";
 }
 
 const { 
@@ -29,12 +29,13 @@ if (!user) {
   return Astro.redirect("/login");
 }
 
-// Role check - require moderator or admin
+// Role check - require trusted_maker, moderator, or admin
 const userRole = (user as any).role;
 const isAdmin = userRole === "admin";
 const isModerator = userRole === "moderator" || isAdmin;
+const isTrustedMaker = userRole === "trusted_maker" || isModerator;
 
-if (!isModerator) {
+if (!isTrustedMaker) {
   return Astro.redirect("/");
 }
 
@@ -42,9 +43,15 @@ if (!isModerator) {
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: "dashboard", section: "dashboard" },
   { href: "/admin/users", label: "Users", icon: "users", section: "users" },
+  { href: "/admin/builds", label: "Builds", icon: "builds", section: "builds" },
   { href: "/admin/forum/threads", label: "Forum Threads", icon: "forum", section: "forum" },
   { href: "/admin/wiki/articles", label: "Wiki Articles", icon: "wiki", section: "wiki" },
   { href: "/admin/static", label: "Static Pages", icon: "pages", section: "static" },
+];
+
+// Admin-only navigation items
+const adminOnlyNavItems = [
+  { href: "/admin/nominations", label: "Nominations", icon: "nominations", section: "nominations" },
 ];
 
 // Current path for active state
@@ -105,6 +112,13 @@ const currentPath = Astro.url.pathname;
                       <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
                   )}
+                  {item.icon === "builds" && (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                      <line x1="8" y1="21" x2="16" y2="21"/>
+                      <line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
+                  )}
                   {item.icon === "forum" && (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -124,6 +138,26 @@ const currentPath = Astro.url.pathname;
                       <polyline points="14 2 14 8 20 8"/>
                       <line x1="16" y1="13" x2="8" y2="13"/>
                       <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                  )}
+                </span>
+                {item.label}
+              </a>
+            ))}
+
+            {/* Admin-only navigation items */}
+            {isAdmin && adminOnlyNavItems.map((item) => (
+              <a
+                href={item.href}
+                class:list={["admin-nav-item", { active: section === item.section }]}
+              >
+                <span class="admin-nav-icon">
+                  {item.icon === "nominations" && (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                      <circle cx="8.5" cy="7" r="4"/>
+                      <line x1="20" y1="8" x2="20" y2="14"/>
+                      <line x1="23" y1="11" x2="17" y2="11"/>
                     </svg>
                   )}
                 </span>

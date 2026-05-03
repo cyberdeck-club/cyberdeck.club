@@ -14,7 +14,10 @@
       "difficulty": "beginner",
       "build_time": "2 weekends",
       "builder": "$ref:byline-solderqueen",
-      "tags": "pelican,raspberry-pi,beginner,thrifted"
+      "tags": "pelican,raspberry-pi,beginner,thrifted",
+      "reviewedBy": "$ref:byline-bytewitch",
+      "reviewedAt": "2026-03-16T09:00:00-07:00",
+      "publishedAt": "2026-03-16T09:00:00-07:00"
     }
   },
   {
@@ -32,7 +35,10 @@
       "difficulty": "intermediate",
       "build_time": "3 weeks (including finishing the wood)",
       "builder": "$ref:byline-circuitfae",
-      "tags": "solarpunk,e-ink,pi-zero,thrifted,solar,writing-machine"
+      "tags": "solarpunk,e-ink,pi-zero,thrifted,solar,writing-machine",
+      "reviewedBy": "$ref:byline-solderqueen",
+      "reviewedAt": "2026-03-11T14:30:00-07:00",
+      "publishedAt": "2026-03-11T14:30:00-07:00"
     }
   },
   {
@@ -50,13 +56,16 @@
       "difficulty": "advanced",
       "build_time": "1 month",
       "builder": "$ref:byline-bytewitch",
-      "tags": "security,kali,dual-screen,thrifted,pentesting"
+      "tags": "security,kali,dual-screen,thrifted,pentesting",
+      "reviewedBy": "$ref:byline-divine_circuitry",
+      "reviewedAt": "2026-03-21T11:00:00-04:00",
+      "publishedAt": "2026-03-21T11:00:00-04:00"
     }
   },
   {
     "id": "b4",
     "slug": "stardust-lunchbox-deck",
-    "status": "published",
+    "status": "pending_human",
     "data": {
       "title": "Stardust — Holographic Lunchbox Deck",
       "description": "A colorful, maximalist cyberdeck built into a thrifted metal lunchbox. Features holographic vinyl wrapping, RGB LED strips, a 7-inch touchscreen, and a custom-painted ortholinear keyboard. Pure queer joy in a portable package.",
@@ -69,6 +78,146 @@
       "build_time": "2 weeks",
       "builder": "$ref:byline-glitchgrl",
       "tags": "colorful,lunchbox,ortholinear,thrifted,leds,queer"
+    }
+  },
+  {
+    "id": "b5",
+    "slug": "aurora-glytch-v2",
+    "status": "pending_human",
+    "data": {
+      "title": "Aurora Glytch v2 — Acrylic Edge-Lit Cyberdeck",
+      "description": "An upgraded version of the original Aurora Glytch, featuring a fully transparent acrylic case with edge-lit RGB diffusion, built-in audio system with speakers, and a 10-inch capacitive touchscreen. Designed for maximum visual impact.",
+      "featured_image": null,
+      "gallery": null,
+      "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi 5 (8GB)\n- **Display**: 10.1\" capacitive touchscreen (HDMI + USB)\n- **Keyboard**: Magicforce 68-key mechanical (hot-swap sockets)\n- **Case**: Custom laser-cut clear acrylic (3 layers, 5mm each)\n- **Power**: 2x 5000mAh LiPo cells in parallel + USB-C PD\n- **Lighting**: WS2812B LED strips on all edges, digital microphone for audio reactive mode\n- **Audio**: 2x 3W class D amplifier + 40mm full-range drivers\n- **Extras**: Custom 3D printed stand, acrylic edge polishing kit\n\n## Total Cost: ~$220",
+      "compute_platform": "Raspberry Pi 5",
+      "estimated_cost": 220,
+      "difficulty": "advanced",
+      "build_time": "3 weeks",
+      "builder": "$ref:byline-nova_spark",
+      "tags": "rgb,acrylic,透明,audio,cyberpunk"
+    }
+  },
+  {
+    "id": "b6",
+    "slug": "coral-reef-biodeck",
+    "status": "rejected_auto",
+    "data": {
+      "title": "Coral Reef — Bioluminescent Biocompute Deck",
+      "description": "A conceptual deck design featuring bioluminescent materials and living coral-based components. Includes plans for integration with marine biological monitoring equipment and underwater data collection.",
+      "featured_image": null,
+      "gallery": null,
+      "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi Zero 2W\n- **Display**: Flexible e-ink 5.83\" circular\n- **Keyboard**: Silicone roll-up keyboard\n- **Case**: 3D printed PLA with bioluminescent filament\n- **Power**: Solar-charged supercapacitor + LiPo hybrid\n- **Special**: Living coral specimen integration\n\n## Total Cost: ~$75",
+      "compute_platform": "Raspberry Pi Zero 2W",
+      "estimated_cost": 75,
+      "difficulty": "experimental",
+      "build_time": "1 month",
+      "builder": "$ref:byline-crystal_byte",
+      "tags": "bio,experimental,coral,art"
+    },
+    "rejectionReason": "Build requires a living coral specimen, which raises significant animal welfare and environmental compliance concerns. This type of biological integration is outside the scope of what we can recommend for home builders. Please revise the concept to use synthetic or non-living materials only.",
+    "autoReviewResult": "{\"flagged\": true, \"concerns\": [\"biological_specimen\", \"animal_welfare\", \"environmental_compliance\"], \"confidence\": 0.92, \"recommendation\": \"reject\"}"
+  },
+  {
+    "id": "b7",
+    "slug": "micro-palm-top-pi6000",
+    "status": "rejected",
+    "data": {
+      "title": "Micro Palm-Top Pi6000",
+      "description": "An extremely compact palm-sized cyberdeck built into a vintage calculator case. Features a custom-designed PCB, 3-inch touchscreen, and Choc switches in a 40% layout.",
+      "featured_image": null,
+      "gallery": null,
+      "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi Compute Module 4\n- **Display**: Custom 3\" TFT panel with capacitive touch\n- **Keyboard**: Custom Choc-switch PCB (40%, integrated)\n- **Case**: Repurposed vintage calculator (HP-45)\n- **Power**: 1000mAh LiPo + USB-C charging\n\n## Total Cost: ~$180",
+      "compute_platform": "Raspberry Pi Compute Module 4",
+      "estimated_cost": 180,
+      "difficulty": "expert",
+      "build_time": "2 months",
+      "builder": "$ref:byline-prism_circuit",
+      "tags": "compact,custom-pcb,calculator,retro"
+    },
+    "rejectionReason": "The build description includes PCB design files that appear to be copied from another maker's open-source project without attribution. We require original work or proper documentation of derived designs. Additionally, the HP-45 case modification may violate trademark rights for the vintage calculator. Please provide original design work or proper licensing documentation.",
+    "reviewedBy": "$ref:byline-bytewitch",
+    "reviewedAt": "2026-04-26T10:30:00-04:00"
+  },
+  {
+    "id": "b8",
+    "slug": "neon-sign-budget-build",
+    "status": "pending_human",
+    "data": {
+      "title": "Neon Sign — Budget Cyberdeck From Trash",
+      "description": "A nearly-free cyberdeck built entirely from discarded electronics. Features a broken neon sign transformed into a glowing case, salvaged laptop screen, and a Raspberry Pi Zero 2 W running headless.",
+      "featured_image": null,
+      "gallery": null,
+      "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi Zero 2W (salvaged)\n- **Display**: Inverted laptop screen from e-waste pile\n- **Keyboard**: Broken USB keyboard (repairable)\n- **Case**: Dead neon sign case (free from curb)\n- **Power**: Phone power bank (found)\n\n## Total Cost: ~$0",
+      "compute_platform": "Raspberry Pi Zero 2W",
+      "estimated_cost": 0,
+      "difficulty": "beginner",
+      "build_time": "1 week",
+      "builder": "$ref:byline-shadow_hex",
+      "tags": "budget,e-waste,upcycle,neon"
+    }
+  },
+  {
+    "id": "b9",
+    "slug": "cipher-deck-encrypted-communication-rig",
+    "status": "published",
+    "data": {
+      "title": "Cipher Deck — Encrypted Communication Rig",
+      "description": "A purpose-built encrypted communication system in a cyberdeck form factor. Features two-factor authentication via secure enclave, full-disk encryption, and a custom encrypted mesh networking protocol for off-grid communication.",
+      "featured_image": null,
+      "gallery": null,
+      "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi 5 (8GB)\n- **Display**: 7\" HDMI touchscreen (privacy filter installed)\n- **Keyboard**: Privacy-focused mechanical keyboard with TPM\n- **Case**: Faraday cage lined aluminum case\n- **Security**: Secure enclave module, hardware key storage\n- **Networking**: Mesh networking module (900MHz)\n\n## Total Cost: ~$350",
+      "compute_platform": "Raspberry Pi 5",
+      "estimated_cost": 350,
+      "difficulty": "advanced",
+      "build_time": "6 weeks",
+      "builder": "$ref:byline-nova_spark",
+      "tags": "security,encryption,privacy,off-grid",
+      "reviewedBy": "$ref:byline-circuitfae",
+      "reviewedAt": "2026-04-22T15:00:00-07:00",
+      "publishedAt": "2026-04-22T15:00:00-07:00"
+    }
+  },
+  {
+    "id": "b10",
+    "slug": "prism-prototype-v1",
+    "status": "published",
+    "data": {
+      "title": "Prism Prototype v1 — Laser-Cut Acrylic Cyberdeck",
+      "description": "A beginner-friendly cyberdeck design using laser-cut acrylic panels. Designed as a learning project with detailed documentation for others to replicate. Features RGB underglow and a compact layout.",
+      "featured_image": null,
+      "gallery": null,
+      "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi 4 (4GB)\n- **Display**: 7\" Waveshare IPS touchscreen\n- **Keyboard**: Pre-built 60% mechanical keyboard\n- **Case**: Laser-cut acrylic panels (template provided)\n- **Power**: 20000mAh USB-C PD power bank\n- **Lighting**: WS2812B RGB underglow strip\n\n## Total Cost: ~$150",
+      "compute_platform": "Raspberry Pi 4",
+      "estimated_cost": 150,
+      "difficulty": "beginner",
+      "build_time": "1 weekend",
+      "builder": "$ref:byline-prism_circuit",
+      "tags": "acrylic,laser-cut,beginner-friendly,rgb",
+      "reviewedBy": "$ref:byline-solderqueen",
+      "reviewedAt": "2026-04-12T09:30:00-04:00",
+      "publishedAt": "2026-04-12T09:30:00-04:00"
+    }
+  },
+  {
+    "id": "b11",
+    "slug": "biocode-biofeedback-monitor",
+    "status": "published",
+    "data": {
+      "title": "BioCode — Biofeedback Monitor Cyberdeck",
+      "description": "A cyberdeck designed for biofeedback monitoring and wellness tracking. Features sensors for heart rate variability, skin conductance, and temperature. Data is displayed on an e-ink dashboard and stored locally in encrypted format.",
+      "featured_image": null,
+      "gallery": null,
+      "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi Zero 2W\n- **Display**: 4.2\" e-ink display (red/black/white)\n- **Sensors**: HRV sensor, GSR sensor, contact thermometer\n- **Case**: 3D printed bioplastic case\n- **Power**: 5000mAh LiPo with solar charging\n\n## Total Cost: ~$120",
+      "compute_platform": "Raspberry Pi Zero 2W",
+      "estimated_cost": 120,
+      "difficulty": "intermediate",
+      "build_time": "3 weeks",
+      "builder": "$ref:byline-crystal_byte",
+      "tags": "biofeedback,wellness,health,sensors",
+      "reviewedBy": "$ref:byline-bytewitch",
+      "reviewedAt": "2026-04-17T13:00:00-07:00",
+      "publishedAt": "2026-04-17T13:00:00-07:00"
     }
   }
 ]

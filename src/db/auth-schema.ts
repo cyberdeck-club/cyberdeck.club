@@ -11,6 +11,19 @@ export const user = sqliteTable("user", {
   image: text("image"),
   role: text("role").default("member"),
   bio: text("bio"),
+  // Role progression tracking
+  acceptedBuildCount: integer("accepted_build_count").notNull().default(0),
+  firstBuildPublishedAt: text("first_build_published_at"), // ISO 8601
+  // Moderator nomination (visible to admins only)
+  isModNominated: integer("is_mod_nominated", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  modNominatedBy: text("mod_nominated_by").references(() => user.id),
+  modNominatedAt: text("mod_nominated_at"), // ISO 8601
+  // Banning
+  bannedAt: text("banned_at"), // ISO 8601, null = not banned
+  bannedBy: text("banned_by").references(() => user.id),
+  banReason: text("ban_reason"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

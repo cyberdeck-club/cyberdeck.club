@@ -2,12 +2,17 @@
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
 import { getBuilds } from "@/lib/builds";
+import { requireRole, ROLES } from "@/lib/roles";
 
 // Server-rendered page
 export const prerender = false;
 
 // Get current user
 const user = Astro.locals.user;
+
+// Permission checks
+const canSubmitBuild = requireRole(user?.role, ROLES.MAKER);
+const isLoggedIn = !!user;
 
 // Fetch builds from database
 const db = Astro.locals.db!;
@@ -123,32 +128,24 @@ const costRanges = [
     <div class="submit-content">
       <h2 class="submit-title">Built something cool?</h2>
       <p class="submit-text">Share your cyberdeck build with the community and inspire others!</p>
-      {user && (user.role === "maker" || user.role === "moderator" || user.role === "admin") ? (
+      {canSubmitBuild ? (
         <a href="/builds/new" class="submit-btn">
           <svg class="submit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 5v14M5 12h14"/>
           </svg>
           Submit Your Build
         </a>
-      ) : user && user.role === "member" ? (
-        <>
-          <button class="submit-btn" disabled title="Become a maker to submit builds">
-            <svg class="submit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-            Submit Your Build
-          </button>
-          <p class="submit-note">Complete your first build to become a maker</p>
-        </>
+      ) : isLoggedIn ? (
+        <p class="submit-note">
+          Share a build first — after your first build is published, you'll be able to submit directly.
+        </p>
       ) : (
-        <>
-          <a href="/login?redirect=/builds/new" class="submit-btn">
-            <svg class="submit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-            Sign in to Submit
-          </a>
-        </>
+        <a href="/login?redirect=/builds/new" class="submit-btn">
+          <svg class="submit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Sign in to Submit
+        </a>
       )}
     </div>
   </section>

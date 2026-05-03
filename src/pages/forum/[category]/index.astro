@@ -7,11 +7,16 @@
 import ForumLayout from "@/layouts/ForumLayout.astro";
 import ForumThreadPreview from "@/components/ForumThreadPreview.astro";
 import { getForumCategories, getForumThreads } from "@/lib/forum";
+import { requireRole, ROLES } from "@/lib/roles";
 
 export const prerender = false;
 
 const db = Astro.locals.db!;
+const user = Astro.locals.user;
 const { category } = Astro.params;
+
+// Permission checks
+const canCreateThread = requireRole(user?.role, ROLES.MAKER);
 
 if (!category) {
   return Astro.redirect("/forum");
@@ -78,12 +83,18 @@ function formatRelativeTime(timestamp: number | null): string {
         <h1 class="category-title">{categoryData.name}</h1>
         <p class="category-description">{categoryData.description}</p>
       </div>
-      <a href={`/forum/${category}/new`} class="new-thread-btn">
-        <svg class="btn-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        New Thread ✨
-      </a>
+      {canCreateThread ? (
+        <a href={`/forum/${category}/new`} class="new-thread-btn">
+          <svg class="btn-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          New Thread ✨
+        </a>
+      ) : user ? (
+        <p class="thread-cta-message">
+          Share a build first to start creating threads.
+        </p>
+      ) : null}
     </header>
 
     <!-- Sort & Filter Bar -->

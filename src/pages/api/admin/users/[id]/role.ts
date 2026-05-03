@@ -1,6 +1,8 @@
 import type { APIRoute } from "astro";
 import { eq, sql } from "drizzle-orm";
 import * as schema from "../../../../../db/schema";
+import { ROLES, requireRole } from "../../../../../lib/roles";
+import { requireAuth } from "../../../../../lib/require-auth";
 
 /**
  * PUT /api/admin/users/[id]/role
@@ -8,25 +10,12 @@ import * as schema from "../../../../../db/schema";
  * Updates a user's role.
  * Requires admin role.
  *
- * Body: { role: 'member' | 'moderator' | 'admin' }
+ * Body: { role: 'member' | 'maker' | 'trusted_maker' | 'moderator' | 'admin' }
  */
 export const PUT: APIRoute = async (ctx) => {
-  // Require authentication
-  if (!ctx.locals.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  // Require admin role
-  const userRole = (ctx.locals.user as any).role;
-  if (userRole !== "admin") {
-    return new Response(JSON.stringify({ error: "Forbidden" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+  // Require admin authentication
+  const authResult = requireAuth(ctx.locals.user, ROLES.ADMIN);
+  if (authResult instanceof Response) return authResult;
 
   // Get user ID from URL params
   const targetUserId = ctx.params.id;
@@ -38,7 +27,7 @@ export const PUT: APIRoute = async (ctx) => {
   }
 
   // Prevent self-demotion
-  if (targetUserId === ctx.locals.user.id) {
+  if (targetUserId === ctx.locals.user?.id) {
     return new Response(
       JSON.stringify({ error: "Cannot change your own role" }),
       {
@@ -60,7 +49,7 @@ export const PUT: APIRoute = async (ctx) => {
   }
 
   const { role } = body;
-  const validRoles = ["member", "maker", "moderator", "admin"];
+  const validRoles = ["member", "maker", "trusted_maker", "moderator", "admin"];
   if (!role || typeof role !== "string" || !validRoles.includes(role)) {
     return new Response(
       JSON.stringify({

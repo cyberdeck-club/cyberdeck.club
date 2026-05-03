@@ -72,7 +72,8 @@ cyberdeck.club/
 │   │   ├── schema.ts      ← Drizzle schema definitions
 │   │   └── index.ts       ← DB client / connection
 │   ├── lib/
-│   │   ├── auth.ts        ← Magic link auth logic
+│   │   ├── auth.ts        ← Magic link auth + role system (ROLES, requireRole)
+│   │   ├── moderation.ts  ← Build moderation pipeline + role promotion logic
 │   │   └── utils.ts       ← cn() helper (clsx + tailwind-merge)
 │   └── styles/
 │       └── global.css     ← Tailwind v4 @theme, design tokens
@@ -140,7 +141,156 @@ export default defineConfig({
 
 ---
 
-## 5. Page Routing
+## 5. Access Control & Role System
+
+### 5.1 Roles (ordered by privilege)
+
+| Role              | How you get it                                              | Numeric level |
+|-------------------|-------------------------------------------------------------|---------------|
+| **Visitor**       | Default (not logged in)                                     | `0`           |
+| **Member**        | Create an account via magic link                            | `10`          |
+| **Maker**         | Auto-promoted 7 days after first build is published without removal | `20`   |
+| **Trusted Maker** | Auto-promoted after 3 accepted builds                       | `30`          |
+| **Moderator**     | Nominated by community, appointed by admin                  | `40`          |
+| **Admin**         | Appointed by existing admin                                 | `50`          |
+
+Roles are **additive** — each role inherits all permissions of the roles
+below it. Store as an integer `role` column on the `users` table. Compare
+with `>=` for permission checks, NEVER match exact values.
+
+### 5.2 Permission Matrix
+
+| Action                              | Visitor | Member | Maker | Trusted Maker | Moderator | Admin |
+|-------------------------------------|---------|--------|-------|---------------|-----------|-------|
+| Browse wiki                         | ✅      | ✅     | ✅    | ✅            | ✅        | ✅    |
+| Browse builds gallery               | ✅      | ✅     | ✅    | ✅            | ✅        | ✅    |
+| Read forum threads                  | ✅      | ✅     | ✅    | ✅            | ✅        | ✅    |
+| Read about / homepage               | ✅      | ✅     | ✅    | ✅            | ✅        | ✅    |
+| Reply to forum threads              | ❌      | ✅     | ✅    | ✅            | ✅        | ✅    |
+| Submit builds (queued for approval) | ❌      | ✅     | ✅    | ✅            | ✅        | ✅    |
+| Edit own profile                    | ❌      | ✅     | ✅    | ✅            | ✅        | ✅    |
+| Create forum threads                | ❌      | ❌     | ✅    | ✅            | ✅        | ✅    |
+| Create / edit wiki pages            | ❌      | ❌     | ✅    | ✅            | ✅        | ✅    |
+| Submit builds (no queue)            | ❌      | ❌     | ✅    | ✅            | ✅        | ✅    |
+| Approve/reject member builds        | ❌      | ❌     | ❌    | ✅            | ✅        | ✅    |
+| Create / host meetups               | ❌      | ❌     | ❌    | ✅            | ✅        | ✅    |
+| Revert wiki edits                   | ❌      | ❌     | ❌    | ❌            | ✅        | ✅    |
+| Lock/move/delete forum threads      | ❌      | ❌     | ❌    | ❌            | ✅        | ✅    |
+| Manage reports                      | ❌      | ❌     | ❌    | ❌            | ✅        | ✅    |
+| Soft-ban users                      | ❌      | ❌     | ❌    | ❌            | ✅        | ✅    |
+| Nominate moderators                 | ❌      | ❌     | ❌    | ✅            | ✅        | ✅    |
+| Manage roles                        | ❌      | ❌     | ❌    | ❌            | ❌        | ✅    |
+| Appoint moderators                  | ❌      | ❌     | ❌    | ❌            | ❌        | ✅    |
+| Site settings                       | ❌      | ❌     | ❌    | ❌            | ❌        | ✅    |
+| Hard-ban users                      | ❌      | ❌     | ❌    | ❌            | ❌        | ✅    |
+
+### 5.3 Role Progression Rules
+
+**Member → Maker (automatic)**
+- Triggered when a member's first build has been in `published` status for
+  ≥ 7 calendar days without being removed or flagged.
+- Implemented as a scheduled check (Cloudflare Cron Trigger) or evaluated
+  on login / on page load.
+- The build must have passed both LLM-automated moderation AND not been
+  manually flagged by a moderator.
+
+**Maker → Trusted Maker (automatic)**
+- Triggered when a maker has ≥ 3 builds in `published` status.
+- All 3 builds must have passed moderation (no reverted/removed builds count).
+- Evaluated on build approval.
+
+**Trusted Maker → Moderator (nomination + appointment)**
+- Any trusted maker or moderator can nominate a user for moderator.
+- Nomination sets three fields on the user record:
+  `is_mod_nominated` (boolean), `mod_nominated_by` (user ID FK),
+  `mod_nominated_at` (ISO 8601 timestamp).
+- Admins review nominations and appoint. Appointment sets `role = 40`.
+- Nomination is visible to admins only — the nominated user is NOT notified
+  until appointed.
+
+**Moderator → Admin (appointment only)**
+- Only existing admins can appoint other admins.
+
+### 5.4 Build Moderation Pipeline
+
+```
+Member submits build
+  → LLM automated review (content safety, spam, image check)
+    → PASS → status = "pending_human" (enters mod queue)
+    → FAIL → status = "rejected_auto" + reason stored
+      → Member notified with specific, non-blaming feedback
+
+Moderator OR Trusted Maker reviews from queue
+  → APPROVE → status = "published", published_at = now()
+  → REJECT  → status = "rejected" + reason (human-written)
+    → Member notified with constructive feedback
+
+7 days after published_at with no flags:
+  → If member's first published build → promote to Maker (role = 20)
+
+On 3rd published build:
+  → If role < 30 → promote to Trusted Maker (role = 30)
+```
+
+### 5.5 Wiki Safety
+
+- Full revision history stored for every wiki page edit.
+- Each revision stores: `user_id`, `created_at`, `content`, `diff_summary`.
+- One-click revert available to moderators and admins.
+- Recent changes feed (all wiki edits, newest first) visible to moderators.
+- Wiki edits by newly-promoted makers (maker for < 30 days) are soft-flagged
+  in the mod queue — they go live immediately but appear in a "review recent
+  edits" list.
+
+### 5.6 Authorization Middleware Pattern
+
+```ts
+// src/lib/auth.ts
+
+export const ROLES = {
+  VISITOR: 0,
+  MEMBER: 10,
+  MAKER: 20,
+  TRUSTED_MAKER: 30,
+  MODERATOR: 40,
+  ADMIN: 50,
+} as const;
+
+export type Role = typeof ROLES[keyof typeof ROLES];
+
+export function requireRole(userRole: number, minRole: Role): boolean {
+  return userRole >= minRole;
+}
+
+// Usage in API route:
+// if (!requireRole(user.role, ROLES.MAKER)) return new Response(null, { status: 403 });
+
+// Usage in Astro page (server-side):
+// if (!requireRole(user.role, ROLES.MEMBER)) return Astro.redirect('/login');
+```
+
+ALWAYS use `>=` comparison. NEVER check `=== ROLES.MAKER` — that would
+exclude moderators and admins.
+
+### 5.7 User Schema Fields for Access Control
+
+```ts
+// In src/db/schema.ts (relevant columns on users table)
+
+role:              integer('role').notNull().default(10),        // ROLES enum value
+accepted_build_count: integer('accepted_build_count').notNull().default(0),
+first_build_published_at: text('first_build_published_at'),     // ISO 8601 or null
+is_mod_nominated:  integer('is_mod_nominated', { mode: 'boolean' }).notNull().default(false),
+mod_nominated_by:  text('mod_nominated_by').references(() => users.id),
+mod_nominated_at:  text('mod_nominated_at'),                    // ISO 8601 or null
+banned_at:         text('banned_at'),                           // soft-ban timestamp or null
+banned_by:         text('banned_by').references(() => users.id),
+ban_reason:        text('ban_reason'),
+```
+
+---
+
+## 6. Page Routing
 
 | Section   | Index         | Entry                              |
 |-----------|---------------|------------------------------------|
@@ -154,7 +304,7 @@ export default defineConfig({
 
 ---
 
-## 6. Layout Hierarchy
+## 7. Layout Hierarchy
 
 ```
 BaseLayout.astro
@@ -170,7 +320,7 @@ and CSS grid break.
 
 ---
 
-## 7. Coding Conventions
+## 8. Coding Conventions
 
 ### 7.1 TypeScript
 
@@ -214,7 +364,7 @@ and CSS grid break.
 
 ---
 
-## 8. Key Gotchas and Lessons Learned
+## 9. Key Gotchas and Lessons Learned
 
 ### 1. WikiLayout Is Required for Wiki Pages
 
@@ -279,7 +429,7 @@ Magic link tokens should be invalidated after first use AND after expiration
 
 ---
 
-## 9. Guardrails
+## 10. Guardrails
 
 These rules apply in every coding session, regardless of task type:
 
@@ -297,22 +447,30 @@ These rules apply in every coding session, regardless of task type:
 - **Do NOT** use Tailwind palette colors (`bg-zinc-*`, `text-blue-*`, etc.).
 - **Do NOT** use arbitrary hex values (`bg-[#abc]`).
 - **Do NOT** generate UI code without first reading `DESIGN.md`.
+- **Do NOT** check roles with `===` — ALWAYS use `>=` comparison via
+  `requireRole()` so higher roles inherit lower permissions.
+- **Do NOT** skip LLM moderation for member-submitted builds.
+- **Do NOT** notify users about mod nominations — only admins see them.
+- **Do NOT** allow role changes except through the defined progression
+  paths (auto-promotion, admin appointment). No self-service role upgrades.
+- **Do NOT** delete wiki revisions. Revisions are append-only.
+- **Do NOT** hard-delete user accounts — soft-ban with `banned_at` timestamp.
 
 ---
 
-## 10. Reference Documents
+## 11. Reference Documents
 
-| Document                  | Purpose                                              |
-|---------------------------|------------------------------------------------------|
-| `DESIGN.md`               | Complete design system — colors, typography, spacing, components, copy tone, accessibility, inclusive identity patterns |
-| `astro.config.mjs`        | Astro + Tailwind vite plugin configuration           |
-| `wrangler.jsonc`          | Cloudflare Workers/D1 bindings                       |
-| `src/db/schema.ts`        | Drizzle schema definitions                           |
-| `src/styles/global.css`   | Tailwind v4 `@theme` tokens (implements `DESIGN.md`) |
-| `src/lib/utils.ts`        | `cn()` class helper                                  |
-| `src/lib/auth.ts`         | Magic link authentication logic                      |
-| `src/layouts/BaseLayout.astro` | Root layout (nav, footer, theme toggle)         |
+| Document                       | Purpose                                              |
+|--------------------------------|------------------------------------------------------|
+| `DESIGN.md`                    | Complete design system — colors, typography, spacing, components, copy tone, accessibility, inclusive identity patterns |
+| `astro.config.mjs`            | Astro + Tailwind vite plugin configuration           |
+| `wrangler.jsonc`              | Cloudflare Workers/D1 bindings and D1 database config |
+| `src/db/schema.ts`            | Drizzle schema definitions (users, builds, wiki, forum, etc.) |
+| `src/styles/global.css`       | Tailwind v4 `@theme` tokens (implements `DESIGN.md`) |
+| `src/lib/utils.ts`            | `cn()` class helper                                  |
+| `src/lib/auth.ts`             | Magic link auth + role checking (`requireRole()`)    |
+| `src/layouts/BaseLayout.astro`| Root layout (nav, footer, theme toggle)              |
 
 ---
 
-*Last updated: 2026-05-01*
+*Last updated: 2026-05-03*

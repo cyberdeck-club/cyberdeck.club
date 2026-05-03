@@ -32,7 +32,17 @@ declare global {
     }
 
     interface Locals {
-      user: (import("better-auth").User & { role: string }) | null;
+      user: (import("better-auth").User & {
+        role: string;
+        acceptedBuildCount?: number;
+        firstBuildPublishedAt?: string | null;
+        isModNominated?: boolean;
+        modNominatedBy?: string | null;
+        modNominatedAt?: string | null;
+        bannedAt?: string | null;
+        bannedBy?: string | null;
+        banReason?: string | null;
+      }) | null;
       session: import("better-auth").Session | null;
       db: DrizzleD1Database<typeof schema>;
       /** Cloudflare Workers context (ExecutionContext) — provided by @astrojs/cloudflare v13 */

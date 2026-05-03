@@ -188,18 +188,16 @@ function formatRelativeTime(timestamp: number | null): string {
                 redirectUrl={`/forum/thread/${id}`}
               />
             </div>
-          ) : (
+          ) : threadData.thread.isLocked === 1 ? (
             <div class="reply-form-disabled">
-              <p>
-                {threadData.thread.isLocked === 1
-                  ? "🔒 This thread is locked and cannot receive new replies."
-                  : "💬 Log in to post a reply."}
-              </p>
-              {!currentUser && (
-                <a href={`/login?redirect=/forum/thread/${id}`} class="login-link">Sign in to reply →</a>
-              )}
+              <p>🔒 This thread is locked and cannot receive new replies.</p>
             </div>
-          )}
+          ) : !currentUser ? (
+            <div class="reply-form-disabled">
+              <p>Want to join the conversation? Create an account to reply.</p>
+              <a href={`/register?redirect=/forum/thread/${id}`} class="login-link">Create an account →</a>
+            </div>
+          ) : null}
         </div>
 
         {/* Sidebar */}

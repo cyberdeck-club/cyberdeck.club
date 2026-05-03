@@ -6,6 +6,7 @@
 
 import ForumLayout from "@/layouts/ForumLayout.astro";
 import { getForumCategories } from "@/lib/forum";
+import { requireRole, ROLES } from "@/lib/roles";
 
 export const prerender = false;
 
@@ -20,6 +21,11 @@ const categories = categoriesResult.map((cat) => ({
   latestThread: "No threads yet",
   isHighlighted: cat.slug === "introductions",
 }));
+
+// Permission checks
+const canCreateThread = requireRole(user?.role, ROLES.MAKER);
+const isLoggedIn = !!user;
+
 ---
 
 <ForumLayout 
@@ -33,14 +39,18 @@ const categories = categoriesResult.map((cat) => ({
         <h1 class="forum-title">Forum ✨</h1>
         <p class="forum-subtitle">Join the conversation</p>
       </div>
-      {user && (
+      {canCreateThread ? (
         <a href="/forum/new" class="new-thread-btn">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
           Start a Thread
         </a>
-      )}
+      ) : isLoggedIn ? (
+        <p class="thread-cta-message">
+          Want to start a thread? Share a build first — after your first build is published, you'll be able to create threads.
+        </p>
+      ) : null}
     </header>
 
     <!-- Categories Grid -->
@@ -94,6 +104,15 @@ const categories = categoriesResult.map((cat) => ({
   .forum-hero {
     text-align: center;
     padding: 3rem 0;
+  }
+
+  .thread-cta-message {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    font-style: italic;
+    max-width: 400px;
+    margin: 0 auto;
+    line-height: 1.5;
   }
 
   .forum-title {

@@ -63,6 +63,7 @@ export const wikiRevisions = sqliteTable(
     content: text("content").notNull(),
     title: text("title").notNull(),
     authorId: text("author_id").references(() => user.id),
+    diffSummary: text("diff_summary"), // Human-readable summary of changes
     createdAt: integer("created_at").notNull(),
   },
   (table) => [index("wiki_revisions_article_id_idx").on(table.articleId)]
@@ -138,10 +139,16 @@ export const builds = sqliteTable("builds", {
   description: text("description"),
   content: text("content"),
   heroImageUrl: text("hero_image_url"),
-  status: text("status").notNull().default("draft"),
+  status: text("status").notNull().default("pending_auto"),
   authorId: text("author_id").references(() => user.id),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
+  // Moderation fields
+  rejectionReason: text("rejection_reason"),
+  autoReviewResult: text("auto_review_result"), // JSON from LLM review
+  reviewedBy: text("reviewed_by").references(() => user.id),
+  reviewedAt: text("reviewed_at"), // ISO 8601
+  publishedAt: text("published_at"), // ISO 8601
 });
 
 // Meetups table

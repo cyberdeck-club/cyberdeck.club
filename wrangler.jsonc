@@ -11,6 +11,17 @@
 	// All deploy commands must use: --config dist/server/wrangler.json
 	// Do NOT add "main" or "assets" here — it breaks the build.
 
+	// ─── Cron Triggers ─────────────────────────────────────────────────
+	// Scheduled worker for automatic role promotions (Member→Maker, Maker→Trusted Maker)
+	// Runs daily at 6:00 AM UTC as a safety net for real-time promotion logic.
+	//
+	// NOTE: Cloudflare Pages handles scheduled events differently from Workers.
+	// This configuration works for Workers projects. For Cloudflare Pages with Astro,
+	// you may need to use the _worker.js approach or configure via the Cloudflare dashboard.
+	//
+	// To deploy with cron: wrangler deploy --triggers '{"cron":"0 6 * * *"}'
+	// Or configure in Cloudflare dashboard: Workers & Pages → cyberdeck-club → Triggers → Cron Triggers
+
 	// ─── Production D1 binding ──────────────────────────────────────────
 	// Top-level config = production. Used by:
 	//   • `wrangler deploy` (production deploy)
@@ -47,7 +58,7 @@
 				{
 					"binding": "DB",
 					"database_name": "cyberdeck-db-beta",
-					"database_id": "c787dff2-08ff-4c09-80c6-85e87e82ed0a",
+					"database_id": "0a3d67a8-1ab8-4b5d-ab02-05f84e41b785",
 					"migrations_dir": "./drizzle/migrations"
 				}
 			],

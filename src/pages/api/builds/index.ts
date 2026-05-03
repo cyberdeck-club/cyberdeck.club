@@ -1,28 +1,36 @@
 import type { APIRoute } from "astro";
 import * as schema from "../../../db/schema";
-import { sql, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
+import { autoReviewBuild } from "../../../lib/moderation";
+import { requireAuth } from "../../../lib/require-auth";
+import { ROLES, requireRole } from "../../../lib/roles";
 
 /**
  * POST /api/builds
  *
  * Creates a new build.
- * Requires authenticated user.
+ * Requires MEMBER role minimum.
  *
- * Body: { title: string, slug?: string, description?: string, content?: string, imageUrl?: string, specs?: string }
+ * Moderation flow:
+ * - MAKER+ roles: published directly (skip moderation)
+ * - MEMBER role: enters auto-review, then human review queue
+ *
+ * Body: { title: string, slug?: string, description?: string, content?: string, imageUrl?: string }
  */
 export const POST: APIRoute = async (ctx) => {
-  // Require authentication
-  if (!ctx.locals.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+  // Require authentication and MEMBER role minimum
+  const authResult = requireAuth(ctx.locals.user, ROLES.MEMBER);
+  if (authResult instanceof Response) {
+    return authResult;
   }
+  const { user } = authResult;
+
+  const db = ctx.locals.db;
+  const userId = user.id;
+  const userRole = user.role ?? "member";
 
   // Check publishing gate (guidelines acceptance)
-  const db = ctx.locals.db;
-  const userId = ctx.locals.user.id;
   const gateResponse = await checkPublishingGate(db, userId);
   if (gateResponse) {
     return gateResponse;
@@ -35,7 +43,6 @@ export const POST: APIRoute = async (ctx) => {
     description?: string;
     content?: string;
     imageUrl?: string;
-    specs?: string;
   };
   try {
     body = await ctx.request.json();
@@ -46,7 +53,7 @@ export const POST: APIRoute = async (ctx) => {
     });
   }
 
-  const { title, slug: providedSlug, description, content, imageUrl, specs } = body;
+  const { title, slug: providedSlug, description, content, imageUrl } = body;
 
   // Validate required fields
   if (!title || typeof title !== "string" || title.trim().length === 0) {
@@ -56,54 +63,154 @@ export const POST: APIRoute = async (ctx) => {
     });
   }
 
+  if (title.trim().length < 3) {
+    return new Response(
+      JSON.stringify({ error: "title must be at least 3 characters" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  if (description && typeof description === "string" && description.trim().length > 0 && description.trim().length < 10) {
+    return new Response(
+      JSON.stringify({ error: "description must be at least 10 characters" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
   const now = Math.floor(Date.now() / 1000);
 
-  // Generate ID and slug
-  const id = crypto.randomUUID();
-  const slug =
-    providedSlug && typeof providedSlug === "string" && providedSlug.trim().length > 0
-      ? providedSlug.trim()
-      : title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, 100);
+  // Generate a unique slug
+  const baseSlug = providedSlug && typeof providedSlug === "string" && providedSlug.trim().length > 0
+    ? providedSlug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+    : title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 100);
 
-  try {
-    await db.insert(schema.builds).values({
-      id,
-      slug,
-      title: title.trim(),
-      description: description?.trim() ?? null,
-      content: content?.trim() ?? null,
-      heroImageUrl: imageUrl?.trim() ?? null,
-      status: "draft",
-      authorId: userId,
-      createdAt: now,
-      updatedAt: now,
-    });
-    // Promote to maker after first build
-    const userBuilds = await db.select().from(schema.builds).where(eq(schema.builds.authorId, userId)).all();
-    if (userBuilds.length === 1) {
-      await db.run(sql`UPDATE "user" SET "role" = 'maker' WHERE "id" = ${userId} AND "role" = 'member'`);
+  // Check if slug exists and generate unique one if needed
+  let slug = baseSlug;
+  let slugCounter = 1;
+  while (true) {
+    const existing = await db
+      .select({ id: schema.builds.id })
+      .from(schema.builds)
+      .where(eq(schema.builds.slug, slug))
+      .limit(1);
+    if (existing.length === 0) {
+      break;
     }
+    slug = `${baseSlug}-${slugCounter}`;
+    slugCounter++;
+  }
 
-    return new Response(JSON.stringify({ id, slug }), {
-      status: 201,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (err: any) {
-    // Check for unique constraint violation (duplicate slug)
-    if (err.message?.includes("UNIQUE") || err.message?.includes("unique")) {
-      return new Response(JSON.stringify({ error: "A build with this slug already exists" }), {
-        status: 409,
+  // Determine initial status based on user role
+  const isMakerOrAbove = requireRole(userRole, ROLES.MAKER);
+
+  if (isMakerOrAbove) {
+    // MAKER+ roles: publish directly, skip moderation
+    try {
+      const id = crypto.randomUUID();
+      const publishedAt = new Date().toISOString();
+
+      await db.insert(schema.builds).values({
+        id,
+        slug,
+        title: title.trim(),
+        description: description?.trim() ?? null,
+        content: content?.trim() ?? null,
+        heroImageUrl: imageUrl?.trim() ?? null,
+        status: "published",
+        authorId: userId,
+        createdAt: now,
+        updatedAt: now,
+        publishedAt,
+      });
+
+      return new Response(JSON.stringify({ id, slug, status: "published" }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err: any) {
+      console.error("Failed to create build:", err);
+      return new Response(JSON.stringify({ error: "Failed to create build" }), {
+        status: 500,
         headers: { "Content-Type": "application/json" },
       });
     }
-    console.error("Failed to create build:", err);
-    return new Response(JSON.stringify({ error: "Failed to create build" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+  } else {
+    // MEMBER role: go through moderation pipeline
+    const id = crypto.randomUUID();
+
+    try {
+      // Insert with pending_auto status
+      await db.insert(schema.builds).values({
+        id,
+        slug,
+        title: title.trim(),
+        description: description?.trim() ?? null,
+        content: content?.trim() ?? null,
+        heroImageUrl: imageUrl?.trim() ?? null,
+        status: "pending_auto",
+        authorId: userId,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Run auto-review
+      const reviewResult = await autoReviewBuild({
+        title: title.trim(),
+        description: description?.trim() ?? "",
+        content: content?.trim() ?? "",
+      });
+
+      // Update build based on review result
+      if (reviewResult.passed) {
+        await db
+          .update(schema.builds)
+          .set({
+            status: "pending_human",
+            autoReviewResult: reviewResult.rawResult,
+            updatedAt: Math.floor(Date.now() / 1000),
+          })
+          .where(eq(schema.builds.id, id));
+
+        return new Response(JSON.stringify({ id, slug, status: "pending_human" }), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        // Auto-review failed
+        await db
+          .update(schema.builds)
+          .set({
+            status: "rejected_auto",
+            rejectionReason: reviewResult.reason ?? "Automated review found issues with your submission",
+            autoReviewResult: reviewResult.rawResult,
+            updatedAt: Math.floor(Date.now() / 1000),
+          })
+          .where(eq(schema.builds.id, id));
+
+        return new Response(
+          JSON.stringify({
+            error: "Your build needs a small adjustment before it can be reviewed. Please review the feedback and try again.",
+            status: "rejected_auto",
+            reason: reviewResult.reason,
+          }),
+          {
+            status: 422,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+    } catch (err: any) {
+      console.error("Failed to create build:", err);
+      return new Response(JSON.stringify({ error: "Failed to create build" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   }
 };

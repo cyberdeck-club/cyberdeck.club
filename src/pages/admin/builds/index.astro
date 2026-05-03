@@ -1,0 +1,468 @@
+---
+/**
+ * Build Moderation Queue
+ * Lists all builds pending human review.
+ */
+
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import * as schema from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
+import { ROLES, requireRole } from "@/lib/roles";
+
+export const prerender = false;
+
+// Get current user
+const currentUser = Astro.locals.user!;
+const currentUserRole = (currentUser as any).role;
+
+// Fetch builds pending human review
+const db = Astro.locals.db;
+const buildsResult = await db
+  .select({
+    buildId: schema.builds.id,
+    buildSlug: schema.builds.slug,
+    buildTitle: schema.builds.title,
+    buildDescription: schema.builds.description,
+    buildStatus: schema.builds.status,
+    buildCreatedAt: schema.builds.createdAt,
+    buildAutoReviewResult: schema.builds.autoReviewResult,
+    authorId: schema.user.id,
+    authorName: schema.user.name,
+    authorEmail: schema.user.email,
+    authorRole: schema.user.role,
+    authorAcceptedBuildCount: schema.user.acceptedBuildCount,
+  })
+  .from(schema.builds)
+  .innerJoin(schema.user, eq(schema.builds.authorId, schema.user.id))
+  .where(eq(schema.builds.status, "pending_human"))
+  .orderBy(desc(schema.builds.createdAt));
+
+// Helper for role badge colors
+function getRoleBadgeClass(role: string) {
+  switch (role) {
+    case "admin": return "role-admin";
+    case "moderator": return "role-moderator";
+    case "trusted_maker": return "role-trusted-maker";
+    case "maker": return "role-maker";
+    default: return "role-member";
+  }
+}
+
+// Helper to parse auto-review result
+function parseAutoReviewResult(jsonStr: string | null) {
+  if (!jsonStr) return null;
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    return null;
+  }
+}
+---
+
+<AdminLayout title="Build Moderation" section="builds">
+  <div class="admin-header">
+    <div>
+      <h1 class="admin-title">Build Moderation Queue</h1>
+      <p class="admin-subtitle">
+        {buildsResult.length === 0
+          ? "All caught up! No builds waiting for review right now. 🎉"
+          : `${buildsResult.length} build${buildsResult.length === 1 ? "" : "s"} waiting for review`}
+      </p>
+    </div>
+  </div>
+
+  {buildsResult.length === 0 ? (
+    <div class="empty-state">
+      <div class="empty-state-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <p class="empty-state-text">All caught up! No builds waiting for review right now. 🎉</p>
+    </div>
+  ) : (
+    <div class="builds-list">
+      {buildsResult.map((item) => {
+        const autoReview = parseAutoReviewResult(item.buildAutoReviewResult);
+        return (
+          <div class="build-card" data-build-id={item.buildId} data-build-slug={item.buildSlug}>
+            <div class="build-card-header">
+              <div class="build-card-title-row">
+                <h2 class="build-card-title">{item.buildTitle}</h2>
+                <span class={`role-badge ${getRoleBadgeClass(item.authorRole || "member")}`}>
+                  {item.authorRole || "member"}
+                </span>
+              </div>
+              <div class="build-card-meta">
+                <span class="build-card-author">
+                  by {item.authorName}
+                </span>
+                <span class="build-card-date">
+                  Submitted {new Date(item.buildCreatedAt * 1000).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+
+            {item.buildDescription && (
+              <p class="build-card-description">{item.buildDescription}</p>
+            )}
+
+            {autoReview && (
+              <div class="build-card-review-info">
+                <span class="review-label">Auto-review:</span>
+                <span class="review-status review-status-pass">Passed ✓</span>
+              </div>
+            )}
+
+            <div class="build-card-actions">
+              <Button
+                variant="primary"
+                size="sm"
+                class="approve-btn"
+                data-action="approve"
+              >
+                Approve
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                class="reject-btn"
+                data-action="reject"
+              >
+                Needs Revision
+              </Button>
+            </div>
+
+            <div class="reject-form hidden">
+              <label class="reject-form-label">
+                <span>Feedback for the builder (required — be kind and specific):</span>
+                <textarea
+                  class="reject-reason"
+                  placeholder="What could be improved? Be encouraging and specific..."
+                  rows="3"
+                ></textarea>
+              </label>
+              <div class="reject-form-actions">
+                <Button variant="ghost" size="sm" class="cancel-reject-btn">Cancel</Button>
+                <Button variant="danger" size="sm" class="submit-reject-btn" disabled>Send Feedback</Button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</AdminLayout>
+
+<script>
+// Client-side interaction for the moderation queue
+document.addEventListener("DOMContentLoaded", () => {
+  const buildCards = document.querySelectorAll(".build-card");
+
+  buildCards.forEach((card) => {
+    const approveBtn = card.querySelector(".approve-btn");
+    const rejectBtn = card.querySelector(".reject-btn");
+    const rejectForm = card.querySelector(".reject-form");
+    const cancelRejectBtn = card.querySelector(".cancel-reject-btn");
+    const submitRejectBtn = card.querySelector(".submit-reject-btn");
+    const rejectReason = card.querySelector(".reject-reason") as HTMLTextAreaElement;
+
+    // Approve button
+    approveBtn?.addEventListener("click", async () => {
+      const buildSlug = card.getAttribute("data-build-slug");
+      if (!buildSlug) return;
+
+      try {
+        const response = await fetch(`/api/builds/${buildSlug}/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "approve" }),
+        });
+
+        if (response.ok) {
+          card.remove();
+          updateEmptyState();
+        } else {
+          const data = await response.json();
+          alert(data.error || "Failed to approve build");
+        }
+      } catch (err) {
+        alert("Failed to approve build");
+      }
+    });
+
+    // Reject button
+    rejectBtn?.addEventListener("click", () => {
+      rejectForm?.classList.remove("hidden");
+      rejectBtn.classList.add("hidden");
+      approveBtn?.classList.add("hidden");
+    });
+
+    // Cancel reject
+    cancelRejectBtn?.addEventListener("click", () => {
+      rejectForm?.classList.add("hidden");
+      rejectBtn?.classList.remove("hidden");
+      approveBtn?.classList.remove("hidden");
+      if (rejectReason) rejectReason.value = "";
+    });
+
+    // Submit reject
+    submitRejectBtn?.addEventListener("click", async () => {
+      const buildSlug = card.getAttribute("data-build-slug");
+      const reason = rejectReason?.value.trim();
+
+      if (!buildSlug || !reason || reason.length < 10) {
+        alert("Please provide feedback of at least 10 characters");
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/builds/${buildSlug}/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "reject", reason }),
+        });
+
+        if (response.ok) {
+          card.remove();
+          updateEmptyState();
+        } else {
+          const data = await response.json();
+          alert(data.error || "Failed to send feedback");
+        }
+      } catch (err) {
+        alert("Failed to send feedback");
+      }
+    });
+
+    // Enable submit button when reason is valid
+    rejectReason?.addEventListener("input", () => {
+      if (submitRejectBtn) {
+        submitRejectBtn.toggleAttribute("disabled", (rejectReason.value.trim().length < 10));
+      }
+    });
+  });
+
+  function updateEmptyState() {
+    const remainingCards = document.querySelectorAll(".build-card");
+    const emptyState = document.querySelector(".empty-state");
+    const buildsList = document.querySelector(".builds-list");
+
+    if (remainingCards.length === 0 && emptyState) {
+      emptyState.classList.remove("hidden");
+    }
+    if (buildsList && remainingCards.length === 0) {
+      buildsList.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <p class="empty-state-text">All caught up! No builds waiting for review right now. 🎉</p>
+        </div>
+      `;
+    }
+  }
+});
+</script>
+
+<style>
+  .admin-header {
+    margin-bottom: 2rem;
+  }
+
+  .admin-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .admin-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin: 0.25rem 0 0 0;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .empty-state-icon {
+    color: var(--success);
+    margin-bottom: 1rem;
+  }
+
+  .empty-state-text {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .builds-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .build-card {
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    padding: 1.5rem;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .build-card-header {
+    margin-bottom: 1rem;
+  }
+
+  .build-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .build-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .build-card-meta {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .build-card-author {
+    font-weight: 500;
+  }
+
+  .build-card-description {
+    font-size: 0.95rem;
+    color: var(--text);
+    margin: 0 0 1rem 0;
+    line-height: 1.5;
+  }
+
+  .build-card-review-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+  }
+
+  .review-label {
+    color: var(--text-muted);
+  }
+
+  .review-status-pass {
+    color: var(--success);
+    font-weight: 600;
+  }
+
+  .build-card-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .reject-form {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--border);
+  }
+
+  .reject-form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .reject-reason {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    font-family: inherit;
+    background: var(--background);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .reject-reason:focus {
+    outline: none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+
+  .reject-form-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    justify-content: flex-end;
+  }
+
+  .role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    border: 2px solid;
+  }
+
+  .role-admin {
+    background: var(--role-admin-bg);
+    color: var(--role-admin-text);
+    border-color: var(--role-admin-border);
+  }
+
+  .role-moderator {
+    background: var(--role-moderator-bg);
+    color: var(--role-moderator-text);
+    border-color: var(--role-moderator-border);
+  }
+
+  .role-trusted-maker {
+    background: var(--role-trusted-maker-bg);
+    color: var(--role-trusted-maker-text);
+    border-color: var(--role-trusted-maker-border);
+  }
+
+  .role-maker {
+    background: var(--role-maker-bg);
+    color: var(--role-maker-text);
+    border-color: var(--role-maker-border);
+  }
+
+  .role-member {
+    background: var(--role-member-bg);
+    color: var(--role-member-text);
+    border-color: var(--role-member-border);
+  }
+</style>

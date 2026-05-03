@@ -1,13 +1,11 @@
 ---
 /**
- * New Build Page
- * Form for submitting a new cyberdeck build
- * Only accessible by maker, moderator, or admin roles
+ * New Meetup Page
+ * Form for creating a new meetup event
+ * Only accessible by TRUSTED_MAKER and above (they've earned the community's trust!)
  */
 
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { BuildEditor } from "@/components/editor/BuildEditor";
-import { hasAcceptedGuidelines } from "@/lib/guidelines";
 import { requireRole, ROLES } from "@/lib/roles";
 
 export const prerender = false;
@@ -15,41 +13,34 @@ export const prerender = false;
 // Check if user is logged in
 const user = Astro.locals.user;
 if (!user) {
-  return Astro.redirect("/login?redirect=/builds/new");
+  return Astro.redirect("/login?redirect=/meetups/new");
 }
 
-// Check role - only MAKER and above can submit builds
-if (!requireRole(user.role, ROLES.MAKER)) {
-  return Astro.redirect("/builds?error=only_makers_can_submit");
-}
-
-// Check guidelines acceptance
-const db = Astro.locals.db!;
-const guidelinesAccepted = await hasAcceptedGuidelines(db, user.id);
-if (!guidelinesAccepted) {
-  return Astro.redirect(`/guidelines?redirect=/builds/new`);
+// Check role - only TRUSTED_MAKER and above can create meetups
+if (!requireRole(user.role, ROLES.TRUSTED_MAKER)) {
+  return Astro.redirect("/meetups?error=only_trusted_makers_can_host");
 }
 
 // Get the redirect URL if any
 const redirectParam = Astro.url.searchParams.get("redirect");
 ---
 
-<BaseLayout title="Submit Your Build" description="Share your cyberdeck build with the community">
-  <div class="new-build-page">
+<BaseLayout 
+  title="Create a Meetup" 
+  description="Bring the community together — in person or online."
+>
+  <div class="new-meetup-page">
     <header class="page-header">
       <div class="header-sparkles">
         <span class="sparkle">✦</span>
         <span class="sparkle">✧</span>
         <span class="sparkle">✦</span>
       </div>
-      <h1 class="page-title">Submit Your Build ✨</h1>
-      <p class="page-subtitle">Share your cyberdeck creation with the community</p>
-      {user.role === "member" && (
-        <p class="review-notice">Your build will be reviewed before going live. This usually takes less than a day.</p>
-      )}
+      <h1 class="page-title">Create a Meetup ✨</h1>
+      <p class="page-subtitle">Bring the community together — in person or online.</p>
     </header>
 
-    <form id="new-build-form" class="build-form">
+    <form id="new-meetup-form" class="meetup-form">
       <div class="form-group">
         <label for="title" class="form-label">Title <span class="required">*</span></label>
         <input
@@ -57,7 +48,7 @@ const redirectParam = Astro.url.searchParams.get("redirect");
           id="title"
           name="title"
           class="form-input"
-          placeholder="Give your build a name"
+          placeholder="Give your meetup a name"
           required
           maxlength="200"
         />
@@ -78,43 +69,89 @@ const redirectParam = Astro.url.searchParams.get("redirect");
         <span class="form-hint">Lowercase letters, numbers, and hyphens only. Auto-generated if left empty.</span>
       </div>
 
-      <div class="form-group">
-        <label for="status" class="form-label">Status <span class="required">*</span></label>
-        <select id="status" name="status" class="form-select" required>
-          <option value="planning">Planning</option>
-          <option value="in-progress" selected>In Progress</option>
-          <option value="complete">Complete</option>
-        </select>
-        <span class="form-hint">Let the community know where you are in your build journey</span>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="startsAt" class="form-label">Start Date & Time <span class="required">*</span></label>
+          <input
+            type="datetime-local"
+            id="startsAt"
+            name="startsAt"
+            class="form-input"
+            required
+          />
+          <span class="form-hint">When does your meetup start?</span>
+        </div>
+
+        <div class="form-group">
+          <label for="endsAt" class="form-label">End Date & Time</label>
+          <input
+            type="datetime-local"
+            id="endsAt"
+            name="endsAt"
+            class="form-input"
+          />
+          <span class="form-hint">Optional — leave blank if it's an open-ended hangout</span>
+        </div>
       </div>
 
       <div class="form-group">
-        <label for="description" class="form-label">Description <span class="required">*</span></label>
-        <BuildEditor
-          client:only="react"
-          hiddenInputId="description-input"
-        />
-        <input type="hidden" name="description" id="description-input" />
-        <span class="form-hint">Describe your build, what makes it special, and your plans</span>
-      </div>
-
-      <div class="form-group">
-        <label for="imageUrl" class="form-label">Hero Image URL</label>
+        <label for="location" class="form-label">Location <span class="required">*</span></label>
         <input
-          type="url"
-          id="imageUrl"
-          name="imageUrl"
+          type="text"
+          id="location"
+          name="location"
           class="form-input"
-          placeholder="https://example.com/your-build-image.jpg"
+          placeholder="Virtual (Zoom link, Discord, etc.) or physical address"
+          required
+          maxlength="500"
         />
-        <span class="form-hint">Optional: Add a hero image for your build showcase</span>
+        <span class="form-hint">Virtual meeting links, venue addresses, or "TBD" if planning</span>
+      </div>
+
+      <div class="form-group">
+        <label for="maxAttendees" class="form-label">Capacity</label>
+        <input
+          type="number"
+          id="maxAttendees"
+          name="maxAttendees"
+          class="form-input"
+          placeholder="No limit"
+          min="1"
+          max="10000"
+        />
+        <span class="form-hint">Optional — set a limit for in-person venues or virtual room sizes</span>
+      </div>
+
+      <div class="form-group">
+        <label for="description" class="form-label">Description</label>
+        <textarea
+          id="description"
+          name="description"
+          class="form-textarea"
+          placeholder="Tell people what your meetup is about, what to bring, and what to expect..."
+          rows="4"
+          maxlength="2000"
+        ></textarea>
+        <span class="form-hint">Help people decide if your meetup is right for them (max 2000 characters)</span>
+      </div>
+
+      <div class="form-group">
+        <label for="content" class="form-label">Full Details</label>
+        <textarea
+          id="content"
+          name="content"
+          class="form-textarea"
+          placeholder="Share more details, a schedule, topics to cover, or anything else participants should know..."
+          rows="8"
+        ></textarea>
+        <span class="form-hint">Optional — markdown supported. This will be displayed on the meetup detail page.</span>
       </div>
 
       <div class="form-actions">
-        <a href="/builds" class="btn-cancel">Cancel</a>
+        <a href="/meetups" class="btn-cancel">Cancel</a>
         <button type="submit" class="btn-submit" id="submit-btn">
-          <span class="btn-text">Submit Build ✨</span>
-          <span class="btn-loading" style="display: none;">Submitting...</span>
+          <span class="btn-text">Create Meetup ✨</span>
+          <span class="btn-loading" style="display: none;">Creating...</span>
         </button>
       </div>
 
@@ -124,12 +161,15 @@ const redirectParam = Astro.url.searchParams.get("redirect");
 </BaseLayout>
 
 <script>
-  const form = document.getElementById("new-build-form") as HTMLFormElement;
+  const form = document.getElementById("new-meetup-form") as HTMLFormElement;
   const titleInput = document.getElementById("title") as HTMLInputElement;
   const slugInput = document.getElementById("slug") as HTMLInputElement;
-  const statusSelect = document.getElementById("status") as HTMLSelectElement;
-  const descriptionInput = document.getElementById("description-input") as HTMLInputElement;
-  const imageUrlInput = document.getElementById("imageUrl") as HTMLInputElement;
+  const startsAtInput = document.getElementById("startsAt") as HTMLInputElement;
+  const endsAtInput = document.getElementById("endsAt") as HTMLInputElement;
+  const locationInput = document.getElementById("location") as HTMLInputElement;
+  const maxAttendeesInput = document.getElementById("maxAttendees") as HTMLInputElement;
+  const descriptionInput = document.getElementById("description") as HTMLTextAreaElement;
+  const contentInput = document.getElementById("content") as HTMLTextAreaElement;
   const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
   const btnText = submitBtn.querySelector(".btn-text") as HTMLSpanElement;
   const btnLoading = submitBtn.querySelector(".btn-loading") as HTMLSpanElement;
@@ -152,19 +192,31 @@ const redirectParam = Astro.url.searchParams.get("redirect");
     slugInput.dataset.manuallyEdited = "true";
   });
 
+  // Convert datetime-local value to Unix timestamp
+  function dateToTimestamp(dateStr: string): number {
+    const date = new Date(dateStr);
+    return Math.floor(date.getTime() / 1000);
+  }
+
   // Form submission
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    // Validate content
+    // Validate required fields
     if (!titleInput.value.trim()) {
-      formError.textContent = "Please enter a title for your build.";
+      formError.textContent = "Please enter a title for your meetup.";
       formError.style.display = "block";
       return;
     }
 
-    if (!descriptionInput.value.trim()) {
-      formError.textContent = "Please write a description for your build.";
+    if (!startsAtInput.value) {
+      formError.textContent = "Please select a start date and time.";
+      formError.style.display = "block";
+      return;
+    }
+
+    if (!locationInput.value.trim()) {
+      formError.textContent = "Please enter a location.";
       formError.style.display = "block";
       return;
     }
@@ -176,39 +228,48 @@ const redirectParam = Astro.url.searchParams.get("redirect");
     formError.style.display = "none";
 
     try {
-      const response = await fetch("/api/builds", {
+      const body: Record<string, unknown> = {
+        title: titleInput.value.trim(),
+        location: locationInput.value.trim(),
+        startsAt: dateToTimestamp(startsAtInput.value),
+      };
+
+      // Optional fields
+      if (slugInput.value.trim()) {
+        body.slug = slugInput.value.trim();
+      }
+      if (endsAtInput.value) {
+        body.endsAt = dateToTimestamp(endsAtInput.value);
+      }
+      if (maxAttendeesInput.value) {
+        body.maxAttendees = parseInt(maxAttendeesInput.value, 10);
+      }
+      if (descriptionInput.value.trim()) {
+        body.description = descriptionInput.value.trim();
+      }
+      if (contentInput.value.trim()) {
+        body.content = contentInput.value.trim();
+      }
+
+      const response = await fetch("/api/meetups", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title: titleInput.value.trim(),
-          slug: slugInput.value.trim() || undefined,
-          status: statusSelect.value,
-          description: descriptionInput.value,
-          imageUrl: imageUrlInput.value.trim() || undefined,
-        }),
+        body: JSON.stringify(body),
       });
-
-      if (response.status === 403) {
-        const data = await response.json();
-        if (data.error === "guidelines_required") {
-          window.location.href = data.redirect + "?redirect=/builds/new";
-          return;
-        }
-      }
 
       if (response.ok) {
         const data = await response.json();
-        // Redirect to the new build page
-        window.location.href = `/builds/${data.slug}`;
+        // Redirect to the new meetup page
+        window.location.href = `/meetups/${data.slug}`;
       } else {
         const data = await response.json();
-        throw new Error(data.error || "Failed to submit build");
+        throw new Error(data.error || "Failed to create meetup");
       }
     } catch (err) {
       console.error("Submit error:", err);
-      formError.textContent = err instanceof Error ? err.message : "Failed to submit build. Please try again.";
+      formError.textContent = err instanceof Error ? err.message : "Failed to create meetup. Please try again.";
       formError.style.display = "block";
 
       // Reset button state
@@ -220,7 +281,7 @@ const redirectParam = Astro.url.searchParams.get("redirect");
 </script>
 
 <style>
-  .new-build-page {
+  .new-meetup-page {
     max-width: 800px;
     margin: 0 auto;
     padding: 2rem 1rem 4rem;
@@ -278,7 +339,7 @@ const redirectParam = Astro.url.searchParams.get("redirect");
     position: relative;
   }
 
-  .build-form {
+  .meetup-form {
     background: var(--color-surface);
     border: 3px solid var(--border);
     border-radius: 4px;
@@ -288,6 +349,12 @@ const redirectParam = Astro.url.searchParams.get("redirect");
 
   .form-group {
     margin-bottom: 1.5rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
   }
 
   .form-label {
@@ -305,6 +372,7 @@ const redirectParam = Astro.url.searchParams.get("redirect");
   }
 
   .form-input,
+  .form-textarea,
   .form-select {
     width: 100%;
     padding: 0.75rem 1rem;
@@ -317,19 +385,27 @@ const redirectParam = Astro.url.searchParams.get("redirect");
     transition: border-color 0.2s, box-shadow 0.2s;
   }
 
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
   .form-input:focus,
+  .form-textarea:focus,
   .form-select:focus {
     outline: none;
     border-color: var(--focus);
   }
 
   .form-input:focus-visible,
+  .form-textarea:focus-visible,
   .form-select:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
 
-  .form-input::placeholder {
+  .form-input::placeholder,
+  .form-textarea::placeholder {
     color: var(--text-muted);
   }
 
@@ -338,17 +414,6 @@ const redirectParam = Astro.url.searchParams.get("redirect");
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-top: 0.375rem;
-  }
-
-  .editor-error {
-    color: var(--color-danger);
-    font-size: 0.875rem;
-    font-weight: 500;
-    padding: 0.75rem;
-    background: var(--color-primary-50);
-    border: 2px solid var(--color-primary-300);
-    border-radius: 8px;
-    margin-top: 0.5rem;
   }
 
   .form-actions {
@@ -373,7 +438,7 @@ const redirectParam = Astro.url.searchParams.get("redirect");
 
   .btn-cancel {
     background: var(--color-surface-alt);
-    border: 3px solid var(--color-border);
+    border: 3px solid var(--border);
     color: var(--color-text);
     text-decoration: none;
     display: inline-flex;
@@ -387,7 +452,7 @@ const redirectParam = Astro.url.searchParams.get("redirect");
 
   .btn-submit {
     background: var(--color-primary);
-    border: 3px solid var(--color-border);
+    border: 3px solid var(--border);
     color: var(--color-text-inverse);
     box-shadow: 4px 4px 0 var(--color-shadow-hard);
   }
@@ -407,9 +472,25 @@ const redirectParam = Astro.url.searchParams.get("redirect");
     font-size: 0.875rem;
     font-weight: 500;
     padding: 0.75rem;
-    background: var(--color-danger) / 10%;
+    background: color-mix(in srgb, var(--color-danger) 10%, transparent);
     border: 2px solid var(--color-danger);
     border-radius: 4px;
     margin-top: 1rem;
+  }
+
+  @media (max-width: 640px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+      flex-direction: column;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+      width: 100%;
+      justify-content: center;
+    }
   }
 </style>

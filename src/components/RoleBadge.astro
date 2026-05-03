@@ -1,0 +1,58 @@
+---
+/**
+ * RoleBadge Component
+ * Displays the user's role as a tag chip. Only shown for MAKER and above.
+ * Uses DESIGN.md §7.2 tag chip pattern.
+ */
+
+interface Props {
+  role: string | null | undefined;
+}
+
+const { role } = Astro.props;
+
+// Only show for MAKER and above
+const VALID_BADGE_ROLES = ["maker", "trusted_maker", "moderator", "admin"];
+
+if (!role || !VALID_BADGE_ROLES.includes(role)) {
+  // Return empty for member or unknown roles
+  return null;
+}
+
+const roleConfig: Record<string, { label: string; fillClass: string }> = {
+  maker: {
+    label: "▸ MAKER",
+    fillClass: "bg-accent-200",
+  },
+  trusted_maker: {
+    label: "▸ TRUSTED MAKER",
+    fillClass: "bg-accent-300",
+  },
+  moderator: {
+    label: "▸ MOD",
+    fillClass: "bg-secondary-200",
+  },
+  admin: {
+    label: "▸ ADMIN",
+    fillClass: "bg-primary-200",
+  },
+};
+
+const config = roleConfig[role];
+---
+
+{config && (
+  <span
+    class:list={[
+      "inline-flex items-center gap-1",
+      "px-2 py-0.5",
+      "border-2 border-border rounded-sm",
+      "font-pixel text-[11px] uppercase tracking-wider",
+      "text-ink-800",
+      "leading-none",
+      config.fillClass,
+    ]}
+  >
+    {config.label}
+  </span>
+)}

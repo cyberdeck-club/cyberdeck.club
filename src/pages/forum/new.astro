@@ -9,6 +9,7 @@ import ForumLayout from "@/layouts/ForumLayout.astro";
 import { ForumEditor } from "@/components/editor/ForumEditor";
 import { getForumCategories } from "@/lib/forum";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
+import { requireRole, ROLES } from "@/lib/roles";
 
 export const prerender = false;
 
@@ -16,6 +17,11 @@ export const prerender = false;
 const user = Astro.locals.user;
 if (!user) {
   return Astro.redirect("/login?redirect=/forum/new");
+}
+
+// Check role - only MAKER and above can create threads
+if (!requireRole(user.role, ROLES.MAKER)) {
+  return Astro.redirect("/forum");
 }
 
 // Check guidelines acceptance

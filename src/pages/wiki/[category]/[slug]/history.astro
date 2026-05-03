@@ -1,0 +1,479 @@
+---
+/**
+ * Wiki Article Revision History Page
+ * Shows revision history for a wiki article
+ * Dynamic route: /wiki/[category]/[slug]/history
+ */
+
+import WikiLayout from "@/layouts/WikiLayout.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import { getWikiArticle, getWikiRevisions } from "@/lib/wiki";
+import { eq, desc } from "drizzle-orm";
+import * as schema from "../../../../db/schema";
+
+export const prerender = false;
+
+// Role values for permission checking
+const ROLE_VALUES = {
+  member: 10,
+  maker: 20,
+  moderator: 30,
+  admin: 40,
+} as const;
+
+type Role = keyof typeof ROLE_VALUES;
+
+function getUserRole(user: any): Role {
+  if (!user) return "member";
+  if (typeof user.role === "string") {
+    const role = user.role.toLowerCase() as Role;
+    if (role in ROLE_VALUES) return role;
+  }
+  if (typeof user.role === "number") {
+    for (const [r, value] of Object.entries(ROLE_VALUES)) {
+      if (user.role === value) return r as Role;
+    }
+  }
+  return "member";
+}
+
+function hasMinRole(user: any, minRole: Role): boolean {
+  if (!user) return false;
+  const userRole = getUserRole(user);
+  return ROLE_VALUES[userRole] >= ROLE_VALUES[minRole];
+}
+
+// Get user from Astro.locals
+const user = Astro.locals.user;
+const userRole = getUserRole(user);
+
+// Get category and slug from URL params
+const { category, slug } = Astro.params;
+
+if (!category || !slug) {
+  return Astro.redirect("/wiki");
+}
+
+// Require MEMBER role minimum to view history
+if (!hasMinRole(user, "member")) {
+  return Astro.redirect("/login");
+}
+
+// Fetch article from database
+const db = Astro.locals.db!;
+const articleResult = await getWikiArticle(db, category, slug);
+
+// Article not found
+const notFound = !articleResult || articleResult.length === 0;
+
+let article: any = null;
+let authorName: string | null = null;
+let categoryName: string | null = null;
+let breadcrumbs: Array<{ label: string; href: string }> = [];
+let articleId = "";
+let revisions: any[] = [];
+let isModeratorOrAdmin = false;
+
+if (!notFound) {
+  const result = articleResult[0];
+  article = result.article;
+  authorName = result.authorName;
+  categoryName = result.categoryName;
+
+  // Build breadcrumbs
+  breadcrumbs = [
+    { label: categoryName ?? category, href: `/wiki/${category}` },
+    { label: article.title, href: `/wiki/${category}/${slug}` },
+    { label: "History", href: `/wiki/${category}/${slug}/history` },
+  ];
+
+  // Article ID for API calls
+  articleId = article.id;
+
+  // Check if user is moderator or admin
+  isModeratorOrAdmin = hasMinRole(user, "moderator");
+
+  // Fetch revisions using the wiki lib helper
+  const revisionsResult = await getWikiRevisions(db, articleId);
+  revisions = revisionsResult;
+}
+
+// Helper to format relative time
+function formatRelativeTime(timestamp: number): string {
+  const now = Date.now();
+  const date = new Date(timestamp * 1000).getTime();
+  const diffMs = now - date;
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays > 30) {
+    return new Date(timestamp * 1000).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } else if (diffDays > 0) {
+    return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+  } else if (diffHours > 0) {
+    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  } else if (diffMins > 0) {
+    return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`;
+  } else {
+    return "just now";
+  }
+}
+---
+
+<WikiLayout title={notFound ? "Article Not Found" : `${article?.title ?? "History"} | History`}>
+  {notFound ? (
+    <div class="not-found">
+      <h1>Article Not Found</h1>
+      <p>The wiki article you're looking for doesn't exist.</p>
+      <a href="/wiki" class="back-link">← Back to Wiki</a>
+    </div>
+  ) : (
+    <div class="history-page">
+      <div class="history-header">
+        <div class="breadcrumbs">
+          {breadcrumbs.map((crumb, i) => (
+            <span>
+              {i > 0 && <span class="separator">/</span>}
+              {i === breadcrumbs.length - 1 ? (
+                <span class="current">{crumb.label}</span>
+              ) : (
+                <a href={crumb.href}>{crumb.label}</a>
+              )}
+            </span>
+          ))}
+        </div>
+        <h1 class="page-title">Revision History</h1>
+        <p class="page-subtitle">
+          {revisions.length === 0
+            ? "No edit history yet — this page was just created."
+            : `${revisions.length} revision${revisions.length === 1 ? "" : "s"}`}
+        </p>
+      </div>
+
+      {revisions.length === 0 ? (
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <p class="empty-state-text">No edit history yet — this page was just created.</p>
+        </div>
+      ) : (
+        <div class="revisions-list">
+          {revisions.map((rev, index) => {
+            const isLatest = index === 0;
+            return (
+              <div class:list={["revision-card", { "revision-card-latest": isLatest }]}>
+                <div class="revision-card-header">
+                  <div class="revision-meta">
+                    <span class="revision-number">#{revisions.length - index}</span>
+                    {isLatest && <span class="revision-badge">Current</span>}
+                  </div>
+                  <div class="revision-timestamp">
+                    <span class="timestamp-relative">{formatRelativeTime(rev.revision.createdAt)}</span>
+                    <span class="timestamp-absolute">
+                      {new Date(rev.revision.createdAt * 1000).toLocaleString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="revision-card-body">
+                  <div class="revision-author">
+                    <span class="author-label">Edited by</span>
+                    <span class="author-name">{rev.authorName ?? "Unknown"}</span>
+                  </div>
+
+                  {rev.revision.diffSummary && (
+                    <div class="revision-summary">
+                      <span class="summary-label">Summary:</span>
+                      <span class="summary-text">{rev.revision.diffSummary}</span>
+                    </div>
+                  )}
+                </div>
+
+                {isModeratorOrAdmin && !isLatest && (
+                  <div class="revision-card-actions">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      class="revert-btn"
+                      data-revision-id={rev.revision.id}
+                      data-article-id={articleId}
+                    >
+                      Revert to this version
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div class="history-footer">
+        <a href={`/wiki/${category}/${slug}`} class="back-link">
+          ← Back to article
+        </a>
+      </div>
+    </div>
+  )}
+</WikiLayout>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const revertBtns = document.querySelectorAll(".revert-btn");
+
+    revertBtns.forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        const target = e.target as HTMLElement;
+        const revisionId = target.getAttribute("data-revision-id");
+        const articleId = target.getAttribute("data-article-id");
+
+        if (!revisionId || !articleId) return;
+
+        const confirmed = confirm("Are you sure you want to revert to this version? This will create a new revision with the old content.");
+        if (!confirmed) return;
+
+        try {
+          const response = await fetch(`/api/wiki/articles/${articleId}/revert`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ revisionId }),
+          });
+
+          if (response.ok) {
+            // Refresh the page to show new revision
+            window.location.reload();
+          } else {
+            const data = await response.json();
+            alert(data.error || "Failed to revert");
+          }
+        } catch (err) {
+          alert("Failed to revert");
+        }
+      });
+    });
+  });
+</script>
+
+<style>
+  .history-page {
+    max-width: 800px;
+  }
+
+  .history-header {
+    margin-bottom: 2rem;
+  }
+
+  .breadcrumbs {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .breadcrumbs a {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  .breadcrumbs a:hover {
+    color: var(--text);
+  }
+
+  .breadcrumbs .separator {
+    margin: 0 0.5rem;
+  }
+
+  .breadcrumbs .current {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .page-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .page-subtitle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .empty-state-icon {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+
+  .empty-state-text {
+    color: var(--text-muted);
+    font-size: 1rem;
+  }
+
+  .revisions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .revision-card {
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    padding: 1.25rem;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .revision-card-latest {
+    border-color: var(--primary);
+  }
+
+  .revision-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+
+  .revision-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .revision-number {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .revision-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.25rem 0.5rem;
+    background: var(--primary);
+    color: var(--text-inverse);
+    border-radius: 2px;
+  }
+
+  .revision-timestamp {
+    text-align: right;
+  }
+
+  .timestamp-relative {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .timestamp-absolute {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .revision-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .revision-author {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .author-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .author-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .revision-summary {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: var(--surface-alt);
+    border-radius: 2px;
+    font-size: 0.875rem;
+  }
+
+  .summary-label {
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .summary-text {
+    color: var(--text);
+  }
+
+  .revision-card-actions {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--border);
+  }
+
+  .history-footer {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--border);
+  }
+
+  .back-link {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  .not-found {
+    text-align: center;
+    padding: 4rem 2rem;
+  }
+
+  .not-found h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .not-found p {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+</style>

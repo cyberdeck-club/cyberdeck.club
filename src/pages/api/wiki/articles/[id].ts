@@ -2,12 +2,13 @@ import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
 import * as schema from "../../../../db/schema";
 import { checkPublishingGate } from "../../../../lib/publishing-gate";
+import { ROLES, requireRole, getRoleLevel } from "../../../../lib/roles";
 
 /**
  * PUT /api/wiki/articles/[id]
  *
  * Updates a wiki article by creating a new revision.
- * Requires authenticated user. Must be author or admin/moderator.
+ * Requires MAKER role minimum. Must be author or moderator/admin.
  *
  * Body: { content: string, editSummary?: string }
  */
@@ -37,6 +38,20 @@ export const PUT: APIRoute = async (ctx) => {
   const gateResponse = await checkPublishingGate(db, userId);
   if (gateResponse) {
     return gateResponse;
+  }
+
+  // Require MAKER role minimum
+  if (!requireRole(userRole, ROLES.MAKER)) {
+    return new Response(
+      JSON.stringify({
+        error: "insufficient_permissions",
+        message: "Only makers, moderators, and admins can edit wiki articles",
+      }),
+      {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
   // Parse and validate request body
@@ -98,18 +113,40 @@ export const PUT: APIRoute = async (ctx) => {
     );
   }
 
+  // Check if this maker is newly promoted (within 30 days) for soft review flagging
+  // We flag edits by makers who became makers less than 30 days ago
+  let needsReview = false;
+  if (userRole === "maker") {
+    const userResult = await db
+      .select({
+        firstBuildPublishedAt: schema.user.firstBuildPublishedAt,
+      })
+      .from(schema.user)
+      .where(eq(schema.user.id, userId))
+      .limit(1);
+
+    if (userResult.length > 0 && userResult[0].firstBuildPublishedAt) {
+      const firstPublished = new Date(userResult[0].firstBuildPublishedAt).getTime();
+      const nowMs = Date.now();
+      const daysSinceFirstBuild = (nowMs - firstPublished) / (1000 * 60 * 60 * 24);
+      // Flag for review if maker for less than 30 days
+      needsReview = daysSinceFirstBuild < 30;
+    }
+  }
+
   const revisionId = crypto.randomUUID();
 
   try {
     // Use batch to create revision and update article in one operation
     await db.batch([
-      // Insert new revision
+      // Insert new revision with diff summary
       db.insert(schema.wikiRevisions).values({
         id: revisionId,
         articleId,
         content: content.trim(),
         title: article.title, // Keep title from article
         authorId: userId,
+        diffSummary: editSummary || null,
         createdAt: now,
       }),
       // Update article with new content and timestamp
@@ -122,9 +159,13 @@ export const PUT: APIRoute = async (ctx) => {
         .where(eq(schema.wikiArticles.id, articleId)),
     ]);
 
-    // Return success with revision ID
+    // Return success with revision ID and review flag info
     return new Response(
-      JSON.stringify({ success: true, revisionId }),
+      JSON.stringify({
+        success: true,
+        revisionId,
+        needsReview
+      }),
       {
         status: 200,
         headers: { "Content-Type": "application/json" },

@@ -1,4 +1,6 @@
 ---
+import { requireRole, ROLES } from '@/lib/roles';
+
 // UserMenu component - shows Login/Register links or user avatar with logout
 interface Props {
   class?: string;
@@ -7,10 +9,12 @@ interface Props {
 const { class: className = "" } = Astro.props;
 const user = Astro.locals.user;
 const userRole = (user as any)?.role || '';
-const isMember = userRole === "member";
-const isMaker = userRole === "maker";
-const isModerator = userRole === "moderator";
-const isAdmin = userRole === "admin";
+// const isMember = userRole === "member";
+// const isMaker = userRole === "maker";
+const isModerator = requireRole(userRole, ROLES.MODERATOR);
+const isAdmin = requireRole(userRole, ROLES.ADMIN);
+
+const canSeeModQueue = requireRole(userRole, ROLES.TRUSTED_MAKER);
 ---
 
 {user ? (
@@ -40,9 +44,20 @@ const isAdmin = userRole === "admin";
           </svg>
           My Feedback
         </a>
-        {(isModerator || isAdmin) && (<div class="dropdown-header">
-          <a href="/admin" class="dropdown-link">Admin Dashboard</a>
-        </div>)}
+
+        {canSeeModQueue && (
+          <a
+            href="/admin/builds"
+            class:list={[
+              "dropdown-item",
+            ]}
+          >
+            Mod Queue
+          </a>
+        )}
+        {(isModerator || isAdmin) && (
+          <a href="/admin" class="dropdown-item">Admin Dashboard</a>
+        )}
         <hr class="dropdown-divider" />
         <button type="button" class="dropdown-item dropdown-logout" id="logout-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
