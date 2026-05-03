@@ -1,12 +1,13 @@
 import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
 import * as schema from "../../../../db/schema";
+import { checkPublishingGate } from "../../../../lib/publishing-gate";
 
 /**
  * PUT /api/wiki/articles/[id]
  *
  * Updates a wiki article by creating a new revision.
- * Requires authenticated user. Must be author or admin.
+ * Requires authenticated user. Must be author or admin/moderator.
  *
  * Body: { content: string, editSummary?: string }
  */
@@ -26,6 +27,16 @@ export const PUT: APIRoute = async (ctx) => {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  const db = ctx.locals.db;
+  const userId = ctx.locals.user.id;
+  const userRole = ctx.locals.user.role;
+
+  // Check publishing gate (guidelines acceptance)
+  const gateResponse = await checkPublishingGate(db, userId);
+  if (gateResponse) {
+    return gateResponse;
   }
 
   // Parse and validate request body
@@ -49,11 +60,6 @@ export const PUT: APIRoute = async (ctx) => {
     });
   }
 
-  const db = ctx.locals.db;
-  const userId = ctx.locals.user.id;
-  // role is an additional field on user (defined in better-auth.config.ts)
-  // but not in the TypeScript type, so we access it via type assertion
-  const userRole = (ctx.locals.user as any).role;
   const now = Math.floor(Date.now() / 1000);
 
   // Fetch the article to check ownership
@@ -76,11 +82,11 @@ export const PUT: APIRoute = async (ctx) => {
 
   const article = articles[0];
 
-  // Check if user is author or admin
+  // Check if user is author or moderator/admin
   const isAuthor = article.authorId === userId;
-  const isAdmin = userRole === "admin";
+  const isModeratorOrAdmin = userRole === "moderator" || userRole === "admin";
 
-  if (!isAuthor && !isAdmin) {
+  if (!isAuthor && !isModeratorOrAdmin) {
     return new Response(
       JSON.stringify({
         error: "You do not have permission to edit this article",

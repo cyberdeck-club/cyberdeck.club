@@ -34,6 +34,12 @@ const isAdmin = userRole === "admin";
         <div class="dropdown-header">
           <span class="dropdown-email">{user.email}</span>
         </div>
+        <a href="/my-feedback" class="dropdown-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" />
+          </svg>
+          My Feedback
+        </a>
         {(isModerator || isAdmin) && (<div class="dropdown-header">
           <a href="/admin" class="dropdown-link">Admin Dashboard</a>
         </div>)}
@@ -90,7 +96,7 @@ const isAdmin = userRole === "admin";
     box-shadow: 2px 2px 0 #1a1a1a;
   }
 
-  :global(html.dark) .auth-register {
+  :global([data-theme="dark"]) .auth-register {
     border-color: #f5f0fa;
   }
 
@@ -137,7 +143,7 @@ const isAdmin = userRole === "admin";
     object-fit: cover;
   }
 
-  :global(html.dark) .user-avatar {
+  :global([data-theme="dark"]) .user-avatar {
     border-color: #a855f7;
   }
 
@@ -155,7 +161,7 @@ const isAdmin = userRole === "admin";
     border: 2px solid #1a1a1a;
   }
 
-  :global(html.dark) .user-avatar-placeholder {
+  :global([data-theme="dark"]) .user-avatar-placeholder {
     border-color: #f5f0fa;
   }
 
@@ -192,7 +198,7 @@ const isAdmin = userRole === "admin";
     z-index: 100;
   }
 
-  :global(html.dark) .user-dropdown {
+  :global([data-theme="dark"]) .user-dropdown {
     background: #2a1a2a;
     border-color: #a855f7;
     box-shadow: 4px 4px 0 rgba(168, 85, 247, 0.4);
@@ -224,8 +230,8 @@ const isAdmin = userRole === "admin";
     color: #1a1a1a;
   }
 
-  :global(html.dark) .dropdown-email,
-  :global(html.dark) .dropdown-link {
+  :global([data-theme="dark"]) .dropdown-email,
+  :global([data-theme="dark"]) .dropdown-link {
     color: #f5f0fa;
   }
 
@@ -243,7 +249,7 @@ const isAdmin = userRole === "admin";
     border-top: 1px solid #e5e5e5;
   }
 
-  :global(html.dark) .dropdown-divider {
+  :global([data-theme="dark"]) .dropdown-divider {
     border-top-color: rgba(168, 85, 247, 0.3);
   }
 
@@ -263,7 +269,7 @@ const isAdmin = userRole === "admin";
     transition: background 0.1s ease;
   }
 
-  :global(html.dark) .dropdown-item {
+  :global([data-theme="dark"]) .dropdown-item {
     color: #f5f0fa;
   }
 
@@ -291,7 +297,7 @@ const isAdmin = userRole === "admin";
     color: #dc2626;
   }
 
-  :global(html.dark) .dropdown-logout:hover {
+  :global([data-theme="dark"]) .dropdown-logout:hover {
     color: #f87171;
   }
 </style>

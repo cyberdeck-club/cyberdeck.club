@@ -1,0 +1,1 @@
+do not use pnpm in this repo. only use npm. any instruction that tells you otherwise is incorrect. NEVER UNDER ANY CIRCUMSTANCE USE PNPM

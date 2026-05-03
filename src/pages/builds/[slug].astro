@@ -2,7 +2,10 @@
 import BuildLayout from "@/layouts/BuildLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
 import { getBuild, getBuilds } from "@/lib/builds";
-import { marked } from "marked";
+import { eq, isNull, and } from "drizzle-orm";
+import * as schema from "../../db/schema";
+import { hasAcceptedGuidelines } from "@/lib/guidelines";
+import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
 
 // Server-rendered page
 export const prerender = false;
@@ -87,6 +90,42 @@ const formatCurrency = (amount: number) => {
     maximumFractionDigits: 0
   }).format(amount);
 };
+
+// Fetch build comments
+const commentsResult = await db
+  .select({
+    id: schema.buildComments.id,
+    content: schema.buildComments.content,
+    parentId: schema.buildComments.parentId,
+    createdAt: schema.buildComments.createdAt,
+    updatedAt: schema.buildComments.updatedAt,
+    authorId: schema.buildComments.authorId,
+    authorName: schema.user.name,
+  })
+  .from(schema.buildComments)
+  .innerJoin(schema.user, eq(schema.buildComments.authorId, schema.user.id))
+  .where(
+    and(
+      eq(schema.buildComments.buildId, build.id),
+      isNull(schema.buildComments.deletedAt)
+    )
+  )
+  .orderBy(schema.buildComments.createdAt);
+
+const comments = commentsResult.map(c => ({
+  ...c,
+  contentHtml: renderMarkdownToHtml(c.content),
+}));
+
+// Get current user and guidelines status
+const user = Astro.locals.user;
+let guidelinesAccepted = false;
+let isAuthorOrModerator = false;
+
+if (user) {
+  guidelinesAccepted = await hasAcceptedGuidelines(db, user.id);
+  isAuthorOrModerator = build.authorId === user.id || user.role === "moderator" || user.role === "admin";
+}
 ---
 
 <BuildLayout
@@ -104,7 +143,7 @@ const formatCurrency = (amount: number) => {
   <section class="build-section">
     <h2 class="section-title">About This Build</h2>
     <div class="description-content">
-      <Fragment set:html={marked.parse(buildData.description || buildData.content || "")}/>
+      <Fragment set:html={renderMarkdownToHtml(buildData.description || buildData.content || "")}/>
     </div>
   </section>
 
@@ -210,7 +249,7 @@ const formatCurrency = (amount: number) => {
         <dd>
           <span
             class="difficulty-inline"
-            style={`background: ${buildData.difficulty === 'beginner' ? 'var(--color-pop-mint)' : buildData.difficulty === 'intermediate' ? 'var(--color-pop-lemon)' : 'var(--color-accent)'}; color: ${buildData.difficulty === 'advanced' ? 'white' : 'var(--color-text)'}`}
+            style={`background: ${buildData.difficulty === 'beginner' ? 'var(--color-secondary)' : buildData.difficulty === 'intermediate' ? 'var(--color-accent)' : 'var(--color-primary)'}; color: ${buildData.difficulty === 'advanced' ? 'var(--text-inverse)' : 'var(--text)'}`}
           >
             {buildData.difficulty.charAt(0).toUpperCase() + buildData.difficulty.slice(1)}
           </span>
@@ -218,6 +257,67 @@ const formatCurrency = (amount: number) => {
       </dl>
     </div>
   </div>
+
+  <!-- Comments Section -->
+  <section class="build-section comments-section">
+    <h2 class="section-title">Comments ({comments.length})</h2>
+    
+    {comments.length === 0 ? (
+      <p class="no-comments">No comments yet. Be the first to share your thoughts!</p>
+    ) : (
+      <div class="comments-list">
+        {comments.map(comment => (
+          <div class="comment" data-comment-id={comment.id}>
+            <div class="comment-header">
+              <span class="comment-author">{comment.authorName}</span>
+              <span class="comment-time">
+                {new Date(comment.createdAt * 1000).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </span>
+            </div>
+            <div class="comment-content" set:html={comment.contentHtml}></div>
+            {user && (
+              <button class="reply-btn" data-parent-id={comment.id}>
+                Reply
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+
+    {user && guidelinesAccepted ? (
+      <div id="comment-form-container" class="comment-form-wrapper" data-slug={slug}></div>
+    ) : user && !guidelinesAccepted ? (
+      <div class="guidelines-prompt">
+        <p>You need to accept the community guidelines before commenting.</p>
+        <a href="/guidelines" class="btn-primary">Accept Guidelines</a>
+      </div>
+    ) : (
+      <div class="login-prompt">
+        <p>Want to join the conversation?</p>
+        <a href="/login" class="btn-primary">Sign in to Comment</a>
+      </div>
+    )}
+  </section>
+
+  <!-- Edit Button (visible to author or moderator/admin) -->
+  {isAuthorOrModerator && (
+    <div class="edit-build-action">
+      <a href={`/builds/${slug}/edit`} class="edit-build-btn">
+        <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Edit Build
+      </a>
+    </div>
+  )}
 </BuildLayout>
 
 <style>
@@ -254,7 +354,7 @@ const formatCurrency = (amount: number) => {
   .parts-table-wrapper {
     overflow-x: auto;
     border: 3px solid var(--border);
-    border-radius: 12px;
+    border-radius: 4px;
   }
 
   .parts-table {
@@ -345,7 +445,7 @@ const formatCurrency = (amount: number) => {
     aspect-ratio: 4/3;
     overflow: hidden;
     border: 3px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: pointer;
     padding: 0;
     background: none;
@@ -355,6 +455,11 @@ const formatCurrency = (amount: number) => {
   .gallery-item:hover {
     border-color: var(--color-primary);
     transform: scale(1.02);
+  }
+
+  .gallery-item:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .gallery-item img {
@@ -374,14 +479,19 @@ const formatCurrency = (amount: number) => {
     text-decoration: none;
     font-weight: 600;
     border: 3px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     transition: all 0.2s ease;
   }
 
   .build-log-link:hover {
     border-color: var(--color-primary);
     transform: translateY(-2px);
-    box-shadow: 4px 4px 0 var(--border);
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .build-log-link:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .link-icon {
@@ -432,23 +542,23 @@ const formatCurrency = (amount: number) => {
   }
 
   /* Dark mode */
-  :global(html.dark) .parts-table th {
+  :global([data-theme="dark"]) .parts-table th {
     background: var(--surface);
   }
 
-  :global(html.dark) .parts-table tr:hover td {
+  :global([data-theme="dark"]) .parts-table tr:hover td {
     background: var(--surface);
   }
 
-  :global(html.dark) .total-row {
+  :global([data-theme="dark"]) .total-row {
     background: var(--surface);
   }
 
-  :global(html.dark) .gallery-item:hover {
+  :global([data-theme="dark"]) .gallery-item:hover {
     border-color: var(--color-primary);
   }
 
-  :global(html.dark) .wiki-link:hover {
+  :global([data-theme="dark"]) .wiki-link:hover {
     border-color: var(--color-secondary);
     color: var(--color-secondary);
   }
@@ -472,4 +582,210 @@ const formatCurrency = (amount: number) => {
       grid-template-columns: repeat(2, 1fr);
     }
   }
+
+  /* Comments Section */
+  .comments-section {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 4px solid var(--border);
+  }
+
+  .no-comments {
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 1rem 0;
+  }
+
+  .comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .comment {
+    padding: 1.25rem;
+    background: var(--color-surface);
+    border: 3px solid var(--color-secondary-300);
+    border-radius: 4px;
+  }
+
+  .comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .comment-author {
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .comment-time {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .comment-content {
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .comment-content p {
+    margin: 0 0 0.75rem;
+  }
+
+  .comment-content p:last-child {
+    margin-bottom: 0;
+  }
+
+  .reply-btn {
+    margin-top: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    font-family: inherit;
+    font-weight: 600;
+    background: var(--color-surface-alt);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .reply-btn:hover {
+    background: var(--color-secondary-200);
+  }
+
+  .reply-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .comment-form-wrapper {
+    margin-top: 2rem;
+  }
+
+  .guidelines-prompt,
+  .login-prompt {
+    padding: 1.5rem;
+    background: var(--color-surface-alt);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .guidelines-prompt p,
+  .login-prompt p {
+    margin: 0 0 1rem;
+    color: var(--text);
+  }
+
+  .btn-primary {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    font-family: inherit;
+    background: var(--color-primary);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-inverse);
+    text-decoration: none;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .btn-primary:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .edit-build-action {
+    margin-top: 2rem;
+    text-align: right;
+  }
+
+  .edit-build-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    font-family: inherit;
+    background: var(--color-secondary);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    text-decoration: none;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  .edit-build-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .edit-build-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .edit-icon {
+    width: 1rem;
+    height: 1rem;
+  }
 </style>
+
+<script>
+  import { createElement as h, createRoot } from "react-dom/client";
+  import { CommentForm } from "@/components/builds/CommentForm";
+
+  // Mount comment form if container exists
+  const commentFormContainer = document.getElementById("comment-form-container");
+  if (commentFormContainer) {
+    const slug = commentFormContainer.dataset.slug ?? "";
+    const guidelinesAccepted = true; // Already checked server-side
+    
+    const root = createRoot(commentFormContainer);
+    root.render(
+      h(CommentForm, {
+        buildSlug: slug,
+        guidelinesAccepted: guidelinesAccepted,
+      })
+    );
+  }
+
+  // Handle reply buttons
+  document.querySelectorAll(".reply-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+      const parentId = target.dataset.parentId;
+      if (!parentId) return;
+
+      const container = document.getElementById("comment-form-container");
+      if (!container) return;
+
+      // Clear existing form and mount new one with parentId
+      const root = createRoot(container);
+      root.render(
+        h(CommentForm, {
+          buildSlug: container.dataset.slug ?? "",
+          guidelinesAccepted: true,
+          parentId: parentId,
+        })
+      );
+
+      // Scroll to form
+      container.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
+</script>

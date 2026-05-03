@@ -51,6 +51,17 @@ export function CreateArticleButton({
           }),
         });
 
+        if (response.status === 403) {
+          const responseData = await response.json();
+          if (responseData.error === "guidelines_required") {
+            // Redirect to guidelines page with return URL
+            const redirectTo = encodeURIComponent(window.location.pathname);
+            window.location.href = `/guidelines?redirect=${redirectTo}`;
+            return;
+          }
+          throw new Error(responseData.error || responseData.message || "Insufficient permissions");
+        }
+
         if (!response.ok) {
           const responseData = await response.json();
           throw new Error(responseData.error || "Failed to create article");

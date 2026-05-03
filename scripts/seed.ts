@@ -27,6 +27,9 @@ interface SeedManifest {
     forum_posts: string;
     builds: string;
     meetups: string;
+    community_guidelines_acceptances: string;
+    build_comments: string;
+    wiki_comments: string;
   };
 }
 
@@ -134,6 +137,32 @@ interface Build {
   };
 }
 
+interface CommunityGuidelinesAcceptance {
+  id: string;
+  userId: string;
+  version: string;
+  acceptedAt: string;
+  ipAddress?: string;
+}
+
+interface BuildComment {
+  id: string;
+  buildId: string;
+  authorId: string;
+  content: string;
+  parentId: string | null;
+  createdAt: string;
+}
+
+interface WikiComment {
+  id: string;
+  articleId: string;
+  authorId: string;
+  content: string;
+  parentId: string | null;
+  createdAt: string;
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function uid(): string {
@@ -218,6 +247,9 @@ const forumThreads = loadSeedFile<ForumThread[]>(manifest.files.forum_threads);
 const forumPosts = loadSeedFile<ForumPost[]>(manifest.files.forum_posts);
 const builds = loadSeedFile<Build[]>(manifest.files.builds);
 const meetupEvents = loadSeedFile<MeetupEvent[]>(manifest.files.meetups);
+const communityGuidelinesAcceptances = loadSeedFile<CommunityGuidelinesAcceptance[]>(manifest.files.community_guidelines_acceptances);
+const buildComments = loadSeedFile<BuildComment[]>(manifest.files.build_comments);
+const wikiComments = loadSeedFile<WikiComment[]>(manifest.files.wiki_comments);
 
 // Build user slug → userId map
 const userSlugToId = new Map<string, string>();
@@ -229,6 +261,8 @@ for (const u of users) {
 const wikiCategoryIds = new Map<string, string>();
 const forumCategoryIds = new Map<string, string>();
 const threadIds = new Map<string, string>();
+const buildIds = new Map<string, string>();
+const wikiArticleIds = new Map<string, string>();
 
 // ── Seed functions ─────────────────────────────────────────────────────────────
 
@@ -296,6 +330,7 @@ function seedWikiArticles(): void {
 
   for (const article of wikiArticles) {
     const articleId = uid();
+    wikiArticleIds.set(article.id, articleId);
     const authorId = resolveBylineRef(article.data.author);
     const content = portableTextToString(article.data.content);
     const categoryId = wikiCategoryIds.get(article.data.category) ?? article.data.category;
@@ -411,16 +446,86 @@ function seedBuilds(): void {
   const sqls: string[] = [];
 
   for (const build of builds) {
+    const buildId = uid();
+    buildIds.set(build.id, buildId);
     const builderId = resolveBylineRef(build.data.builder);
 
     sqls.push(
       `INSERT OR REPLACE INTO builds (id, slug, title, description, content, hero_image_url, status, author_id, created_at, updated_at) VALUES (` +
-      `${sqlStr(uid())}, ${sqlStr(build.slug)}, ${sqlStr(build.data.title)}, ${sqlStr(build.data.description)}, ${sqlStr(build.data.parts_list ?? null)}, ${sqlStr(build.data.featured_image ?? null)}, ${sqlStr(build.status)}, ${sqlStr(builderId)}, ${now}, ${now})`
+      `${sqlStr(buildId)}, ${sqlStr(build.slug)}, ${sqlStr(build.data.title)}, ${sqlStr(build.data.description)}, ${sqlStr(build.data.parts_list ?? null)}, ${sqlStr(build.data.featured_image ?? null)}, ${sqlStr(build.status)}, ${sqlStr(builderId)}, ${now}, ${now})`
     );
   }
 
   execSqlBatch(sqls);
   console.log(`  Created ${builds.length} builds`);
+}
+
+function seedCommunityGuidelinesAcceptances(): void {
+  console.log("Seeding community guidelines acceptances...");
+
+  const now = Date.now();
+  const sqls: string[] = [];
+
+  for (const acceptance of communityGuidelinesAcceptances) {
+    const userId = userSlugToId.get(acceptance.userId) ?? acceptance.userId;
+    const acceptedAt = parseIsoToEpoch(acceptance.acceptedAt);
+
+    sqls.push(
+      `INSERT OR REPLACE INTO community_guidelines_acceptances (id, user_id, version, accepted_at, ip_address) VALUES (` +
+      `${sqlStr(uid())}, ${sqlStr(userId)}, ${sqlStr(acceptance.version)}, ${acceptedAt}, ${sqlStr(acceptance.ipAddress ?? null)})`
+    );
+  }
+
+  execSqlBatch(sqls);
+  console.log(`  Created ${communityGuidelinesAcceptances.length} community guidelines acceptances`);
+}
+
+function seedBuildComments(): void {
+  console.log("Seeding build comments...");
+
+  const now = Date.now();
+  const sqls: string[] = [];
+
+  for (const comment of buildComments) {
+    const authorId = userSlugToId.get(comment.authorId) ?? comment.authorId;
+    const buildId = buildIds.get(comment.buildId) ?? comment.buildId;
+    const createdAt = parseIsoToEpoch(comment.createdAt);
+
+    // Resolve parentId if it exists
+    const parentId = comment.parentId ? sqlStr(buildIds.get(comment.parentId) ?? comment.parentId) : "NULL";
+
+    sqls.push(
+      `INSERT OR REPLACE INTO build_comments (id, build_id, author_id, content, parent_id, created_at) VALUES (` +
+      `${sqlStr(uid())}, ${sqlStr(buildId)}, ${sqlStr(authorId)}, ${sqlStr(comment.content)}, ${parentId}, ${createdAt})`
+    );
+  }
+
+  execSqlBatch(sqls);
+  console.log(`  Created ${buildComments.length} build comments`);
+}
+
+function seedWikiComments(): void {
+  console.log("Seeding wiki comments...");
+
+  const now = Date.now();
+  const sqls: string[] = [];
+
+  for (const comment of wikiComments) {
+    const authorId = userSlugToId.get(comment.authorId) ?? comment.authorId;
+    const articleId = wikiArticleIds.get(comment.articleId) ?? comment.articleId;
+    const createdAt = parseIsoToEpoch(comment.createdAt);
+
+    // Resolve parentId if it exists
+    const parentId = comment.parentId ? sqlStr(wikiArticleIds.get(comment.parentId) ?? comment.parentId) : "NULL";
+
+    sqls.push(
+      `INSERT OR REPLACE INTO wiki_comments (id, article_id, author_id, content, parent_id, created_at) VALUES (` +
+      `${sqlStr(uid())}, ${sqlStr(articleId)}, ${sqlStr(authorId)}, ${sqlStr(comment.content)}, ${parentId}, ${createdAt})`
+    );
+  }
+
+  execSqlBatch(sqls);
+  console.log(`  Created ${wikiComments.length} wiki comments`);
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────────
@@ -444,6 +549,9 @@ function main() {
     seedForumPosts();
     seedMeetups();
     seedBuilds();
+    seedCommunityGuidelinesAcceptances();
+    seedBuildComments();
+    seedWikiComments();
 
     console.log("\n✅ Seed complete!");
   } catch (error) {

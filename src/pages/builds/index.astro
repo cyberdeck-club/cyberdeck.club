@@ -1,10 +1,13 @@
 ---
-import BuildLayout from "@/layouts/BuildLayout.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
 import { getBuilds } from "@/lib/builds";
 
 // Server-rendered page
 export const prerender = false;
+
+// Get current user
+const user = Astro.locals.user;
 
 // Fetch builds from database
 const db = Astro.locals.db!;
@@ -27,7 +30,7 @@ const allPlatforms = [...new Set(builds.map(b => b.computePlatform))];
 const allDifficulties = ["beginner", "intermediate", "advanced"] as const;
 const difficultyLabels = {
   "beginner": "Beginner",
-  "intermediate": "Intermediate", 
+  "intermediate": "Intermediate",
   "advanced": "Advanced"
 };
 
@@ -40,49 +43,52 @@ const costRanges = [
 ];
 ---
 
-<BuildLayout title="Builds ✨" description="Cyberdeck builds from our community">
-  <!-- Hero Section -->
+<BaseLayout title="Builds ✨" description="Cyberdeck builds from our community">
+  <!-- Hero Section (compact, full-width — matches meetups hero pattern) -->
   <section class="builds-hero">
+    <div class="hero-sparkles">
+      <span class="sparkle">✦</span>
+      <span class="sparkle">✧</span>
+      <span class="sparkle">✦</span>
+    </div>
     <div class="hero-content">
       <h1 class="hero-title">Builds ✨</h1>
       <p class="hero-subtitle">Cyberdeck builds from our community</p>
-    </div>
-  </section>
 
-  <!-- Filter Bar -->
-  <section class="filter-section">
-    <div class="filter-container">
-      <!-- Difficulty Filter -->
-      <div class="filter-group">
-        <span class="filter-label">Difficulty:</span>
-        <div class="filter-buttons" id="difficulty-filters">
-          <button class="filter-btn active" data-filter="all">All</button>
-          {allDifficulties.map(diff => (
-            <button class="filter-btn" data-filter={diff}>{difficultyLabels[diff]}</button>
-          ))}
+      <!-- Filters integrated into hero -->
+      <div class="hero-filters">
+        <!-- Difficulty Filter -->
+        <div class="filter-group">
+          <span class="filter-label">Difficulty</span>
+          <div class="filter-buttons" id="difficulty-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            {allDifficulties.map(diff => (
+              <button class="filter-btn" data-filter={diff}>{difficultyLabels[diff]}</button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <!-- Platform Filter -->
-      <div class="filter-group">
-        <span class="filter-label">Platform:</span>
-        <select class="filter-select" id="platform-filter">
-          <option value="all">All Platforms</option>
-          {allPlatforms.map(platform => (
-            <option value={platform}>{platform}</option>
-          ))}
-        </select>
-      </div>
+        <!-- Platform Filter -->
+        <div class="filter-group">
+          <span class="filter-label">Platform</span>
+          <select class="filter-select" id="platform-filter">
+            <option value="all">All Platforms</option>
+            {allPlatforms.map(platform => (
+              <option value={platform}>{platform}</option>
+            ))}
+          </select>
+        </div>
 
-      <!-- Cost Range Filter -->
-      <div class="filter-group">
-        <span class="filter-label">Cost:</span>
-        <select class="filter-select" id="cost-filter">
-          <option value="all">Any Cost</option>
-          {costRanges.map(range => (
-            <option value={`${range.min}-${range.max}`}>{range.label}</option>
-          ))}
-        </select>
+        <!-- Cost Range Filter -->
+        <div class="filter-group">
+          <span class="filter-label">Cost</span>
+          <select class="filter-select" id="cost-filter">
+            <option value="all">Any Cost</option>
+            {costRanges.map(range => (
+              <option value={`${range.min}-${range.max}`}>{range.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   </section>
@@ -117,79 +123,126 @@ const costRanges = [
     <div class="submit-content">
       <h2 class="submit-title">Built something cool?</h2>
       <p class="submit-text">Share your cyberdeck build with the community and inspire others!</p>
-      <button class="submit-btn" disabled>
-        <svg class="submit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 5v14M5 12h14"/>
-        </svg>
-        Submit Your Build
-      </button>
-      <p class="submit-note">(Coming soon)</p>
+      {user && (user.role === "maker" || user.role === "moderator" || user.role === "admin") ? (
+        <a href="/builds/new" class="submit-btn">
+          <svg class="submit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Submit Your Build
+        </a>
+      ) : user && user.role === "member" ? (
+        <>
+          <button class="submit-btn" disabled title="Become a maker to submit builds">
+            <svg class="submit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Submit Your Build
+          </button>
+          <p class="submit-note">Complete your first build to become a maker</p>
+        </>
+      ) : (
+        <>
+          <a href="/login?redirect=/builds/new" class="submit-btn">
+            <svg class="submit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Sign in to Submit
+          </a>
+        </>
+      )}
     </div>
   </section>
-</BuildLayout>
+</BaseLayout>
 
 <style>
-  /* Hero Section */
+  /* Hero Section — compact full-width, matches meetups hero */
   .builds-hero {
+    position: relative;
+    padding: 5rem 2rem 2.5rem;
     background: var(--color-primary);
-    padding: 5rem 1.5rem;
+    border-bottom: 8px solid var(--border);
     text-align: center;
-    border-bottom: 4px solid var(--color-text);
+    overflow: hidden;
+  }
+
+  .hero-sparkles {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 3rem;
+    opacity: 0.3;
+  }
+
+  .sparkle {
+    font-size: 4rem;
+    animation: sparkle 2s ease-in-out infinite;
+  }
+
+  .sparkle:nth-child(2) {
+    animation-delay: 0.5s;
+  }
+
+  .sparkle:nth-child(3) {
+    animation-delay: 1s;
+  }
+
+  @keyframes sparkle {
+    0%, 100% { transform: scale(1); opacity: 0.2; }
+    50% { transform: scale(1.3); opacity: 0.5; }
   }
 
   .hero-content {
+    position: relative;
     max-width: 800px;
     margin: 0 auto;
   }
 
   .hero-title {
-    font-size: 3.5rem;
-    font-weight: 900;
-    color: var(--color-text);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(2.5rem, 6vw, 3.5rem);
     margin: 0 0 0.75rem;
-    text-transform: uppercase;
+    color: var(--text);
     letter-spacing: -0.02em;
-    text-shadow: 4px 4px 0 var(--color-secondary);
   }
 
   .hero-subtitle {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: 600;
     color: var(--color-text);
-    margin: 0;
+    opacity: 0.85;
+    margin: 0 0 2rem;
   }
 
-  /* Filter Section */
-  .filter-section {
-    background: var(--surface);
-    border-bottom: 4px solid var(--color-text);
-    padding: 1.25rem 1.5rem;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .filter-container {
-    max-width: 1200px;
-    margin: 0 auto;
+  /* Filters inside hero */
+  .hero-filters {
     display: flex;
     flex-wrap: wrap;
     gap: 1.5rem;
-    align-items: center;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 1.25rem 1.5rem;
+    background: var(--surface);
+    border: 4px solid var(--color-text);
+    box-shadow: 6px 6px 0 var(--color-text);
+    text-align: left;
   }
 
   .filter-group {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .filter-label {
-    font-size: 0.85rem;
+    font-size: 0.7rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text);
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
   }
 
   .filter-buttons {
@@ -205,52 +258,58 @@ const costRanges = [
     letter-spacing: 0.04em;
     background: var(--bg);
     color: var(--text);
-    border: 3px solid var(--color-text);
+    border: 3px solid var(--border);
     border-radius: 0;
     cursor: pointer;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
-    box-shadow: 3px 3px 0 var(--color-text);
+    box-shadow: 3px 3px 0 var(--shadow-hard);
   }
 
   .filter-btn:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 5px 5px 0 var(--color-primary);
+    box-shadow: 5px 5px 0 var(--shadow-hard);
     border-color: var(--color-primary);
   }
 
   .filter-btn.active {
     background: var(--color-primary);
-    color: var(--color-text);
-    border-color: var(--color-text);
+    color: var(--text);
+    border-color: var(--border);
     transform: translate(-2px, -2px);
-    box-shadow: 5px 5px 0 var(--color-text);
+    box-shadow: 5px 5px 0 var(--shadow-hard);
+  }
+
+  .filter-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .filter-select {
-    padding: 0.4rem 2rem 0.4rem 0.75rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
     background: var(--bg);
     color: var(--text);
     border: 3px solid var(--color-text);
     border-radius: 0;
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
-    box-shadow: 3px 3px 0 var(--color-text);
   }
 
   .filter-select:focus {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 3px 3px 0 var(--color-primary);
+    box-shadow: 4px 4px 0 var(--shadow-hard);
   }
 
-  /* Builds Grid */
+  .filter-select:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* Main Section */
   .builds-grid-section {
     max-width: 1200px;
     margin: 0 auto;
@@ -267,61 +326,52 @@ const costRanges = [
   .empty-state {
     text-align: center;
     padding: 4rem 2rem;
-    border: 4px solid var(--color-text);
-    box-shadow: 8px 8px 0 var(--color-secondary);
+    border: 4px dashed var(--color-text);
     background: var(--surface);
   }
 
   .empty-icon {
-    font-size: 4rem;
+    font-size: 3rem;
+    display: block;
     margin-bottom: 1rem;
   }
 
   .empty-title {
-    font-size: 1.5rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    color: var(--text);
+    font-size: 1.25rem;
+    font-weight: 800;
     margin: 0 0 0.5rem;
   }
 
   .empty-text {
-    font-size: 1rem;
-    font-weight: 600;
     color: var(--text-muted);
     margin: 0;
   }
 
   /* Submit Section */
   .submit-section {
-    background: var(--color-secondary);
-    border-top: 4px solid var(--color-text);
-    padding: 4rem 1.5rem;
-    text-align: center;
+    margin-top: 4rem;
+    padding: 2.5rem;
+    background: var(--color-accent);
+    border: 4px solid var(--color-text);
+    box-shadow: 8px 8px 0 var(--color-text);
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .submit-content {
-    max-width: 540px;
-    margin: 0 auto;
-    background: var(--bg);
-    border: 4px solid var(--color-text);
-    box-shadow: 8px 8px 0 var(--color-text);
-    padding: 2.5rem;
+    max-width: 600px;
   }
 
   .submit-title {
-    font-size: 2rem;
+    font-size: 1.35rem;
     font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: -0.01em;
-    color: var(--text);
     margin: 0 0 0.75rem;
+    text-transform: uppercase;
   }
 
   .submit-text {
     font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-muted);
     margin: 0 0 1.5rem;
     line-height: 1.6;
   }
@@ -330,29 +380,33 @@ const costRanges = [
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.875rem 1.75rem;
-    font-size: 1rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: var(--color-primary);
-    color: var(--color-text);
-    border: 3px solid var(--color-text);
+    padding: 0.85rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+    background: var(--color-text);
+    color: var(--text-inverse);
+    border: 3px solid var(--border);
     border-radius: 0;
     cursor: pointer;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
-    box-shadow: 5px 5px 0 var(--color-text);
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
 
   .submit-btn:hover:not(:disabled) {
-    transform: translate(-3px, -3px);
-    box-shadow: 8px 8px 0 var(--color-text);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
   }
 
   .submit-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     box-shadow: none;
+  }
+
+  .submit-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .submit-icon {
@@ -369,35 +423,31 @@ const costRanges = [
   }
 
   /* Dark mode */
-  :global(html.dark) .filter-btn:hover {
+  :global([data-theme="dark"]) .filter-btn:hover {
     border-color: var(--color-primary);
     box-shadow: 5px 5px 0 var(--color-primary);
   }
 
-  :global(html.dark) .filter-select {
+  :global([data-theme="dark"]) .filter-select {
     background-color: var(--surface);
+    color: var(--text);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23fff' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   }
 
-  :global(html.dark) .filter-select option {
+  :global([data-theme="dark"]) .filter-select option {
     background: var(--surface);
     color: var(--text);
   }
 
-  :global(html.dark) .submit-content {
-    background: var(--surface);
-    box-shadow: 8px 8px 0 var(--color-primary);
-  }
-
   /* Responsive */
-  @media (max-width: 768px) {
+  @media (max-width: 640px) {
     .hero-title {
-      font-size: 2.25rem;
+      font-size: 2.5rem;
     }
 
-    .filter-container {
+    .hero-filters {
       flex-direction: column;
-      align-items: flex-start;
+      align-items: stretch;
     }
 
     .filter-buttons {
@@ -409,7 +459,9 @@ const costRanges = [
       gap: 1.5rem;
     }
 
-    .submit-content {
+    .submit-section {
+      margin-left: 1rem;
+      margin-right: 1rem;
       padding: 1.5rem;
     }
   }

@@ -8,8 +8,12 @@
 import WikiLayout from "@/layouts/WikiLayout.astro";
 import { WikiEditor } from "@/components/wiki/WikiEditor";
 import { InlineEditor } from "@/components/wiki/InlineEditor";
+import { WikiCommentForm } from "@/components/wiki/CommentForm";
 import { getWikiArticle, incrementWikiViewCount } from "@/lib/wiki";
-import { marked } from "marked";
+import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
+import { hasAcceptedGuidelines } from "@/lib/guidelines";
+import { eq, isNull, and } from "drizzle-orm";
+import * as schema from "../../../db/schema";
 
 // Server-rendered page
 export const prerender = false;
@@ -20,17 +24,16 @@ const isEditingFromUrl = editParam === "true";
 
 // Role values for permission checking
 const ROLE_VALUES = {
-  subscriber: 10,
-  contributor: 20,
-  author: 30,
-  editor: 40,
-  admin: 50,
+  member: 10,
+  maker: 20,
+  moderator: 30,
+  admin: 40,
 } as const;
 
 type Role = keyof typeof ROLE_VALUES;
 
 function getUserRole(user: any): Role {
-  if (!user) return "subscriber";
+  if (!user) return "member";
   if (typeof user.role === "string") {
     const role = user.role.toLowerCase() as Role;
     if (role in ROLE_VALUES) return role;
@@ -40,7 +43,7 @@ function getUserRole(user: any): Role {
       if (user.role === value) return r as Role;
     }
   }
-  return "subscriber";
+  return "member";
 }
 
 function hasMinRole(user: any, minRole: Role): boolean {
@@ -88,6 +91,32 @@ let articleId = "";
 let contentHtml = "";
 let lastUpdated = "";
 let statusClass = "good";
+let hasBeenEdited = false;
+let guidelinesAccepted = false;
+let comments: any[] = [];
+
+// Fetch comments for this article
+async function fetchComments(artId: string) {
+  return db
+    .select({
+      id: schema.wikiComments.id,
+      content: schema.wikiComments.content,
+      parentId: schema.wikiComments.parentId,
+      createdAt: schema.wikiComments.createdAt,
+      updatedAt: schema.wikiComments.updatedAt,
+      authorId: schema.wikiComments.authorId,
+      authorName: schema.user.name,
+    })
+    .from(schema.wikiComments)
+    .innerJoin(schema.user, eq(schema.wikiComments.authorId, schema.user.id))
+    .where(
+      and(
+        eq(schema.wikiComments.articleId, artId),
+        isNull(schema.wikiComments.deletedAt)
+      )
+    )
+    .orderBy(schema.wikiComments.createdAt);
+}
 
 if (!notFound) {
   const result = articleResult[0];
@@ -104,29 +133,36 @@ if (!notFound) {
     { label: article.title, href: `/wiki/${category}/${slug}` }
   ];
 
-  // Calculate permissions
-  canEdit = hasMinRole(user, "contributor") && isArticleOwner(user, article.authorId ?? "");
-  canEditAny = hasMinRole(user, "editor");
-  canDelete = hasMinRole(user, "author") && isArticleOwner(user, article.authorId ?? "");
-  canDeleteAny = hasMinRole(user, "admin");
-
-  // Combined permissions for the article
-  articleCanEdit = canEdit || canEditAny;
-  articleCanDelete = canDelete || canDeleteAny;
+  // Calculate permissions - article author, moderator, or admin can edit
+  const isAuthor = isArticleOwner(user, article.authorId ?? "");
+  const isModeratorOrAdmin = hasMinRole(user, "moderator");
+  articleCanEdit = isAuthor || isModeratorOrAdmin;
+  articleCanDelete = isAuthor || hasMinRole(user, "admin");
 
   // Article ID for API calls (using article.id)
   articleId = article.id;
 
-  // Render markdown content to HTML
-  contentHtml = await marked.parse(article.content ?? "");
+  // Render markdown content to HTML using secure renderer
+  contentHtml = renderMarkdownToHtml(article.content ?? "");
 
   // Format dates
-  lastUpdated = article.updatedAt 
-    ? new Date(article.updatedAt).toISOString().split('T')[0] 
+  lastUpdated = article.updatedAt
+    ? new Date(article.updatedAt * 1000).toISOString().split('T')[0]
     : new Date().toISOString().split('T')[0];
+
+  // Check if article has been edited (updatedAt differs from createdAt)
+  hasBeenEdited = article.updatedAt !== article.createdAt;
 
   // Determine status badge class
   statusClass = article.status === "published" ? "good" : article.status;
+
+  // Check guidelines acceptance for current user
+  if (user) {
+    guidelinesAccepted = await hasAcceptedGuidelines(db, user.id);
+  }
+
+  // Fetch comments for this article
+  comments = await fetchComments(articleId);
 }
 ---
 
@@ -185,6 +221,16 @@ if (!notFound) {
         <>
           <div class="article-content" set:html={contentHtml} />
 
+          {/* Edit history indicator */}
+          {hasBeenEdited && (
+            <div class="edit-indicator">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M10.5 1.5L12.5 3.5L5 11H3V9L10.5 1.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              </svg>
+              This article has been edited
+            </div>
+          )}
+
           {/* WikiEditor shows edit/delete buttons when in view mode */}
           {!isEditingFromUrl && (
             <WikiEditor
@@ -197,6 +243,54 @@ if (!notFound) {
               canDelete={articleCanDelete}
             />
           )}
+
+          {/* Comments section */}
+          <section class="comments-section">
+            <h2 class="comments-title">
+              Comments {comments.length > 0 && `(${comments.length})`}
+            </h2>
+
+            {comments.length > 0 ? (
+              <div class="comments-list">
+                {comments.map((comment) => {
+                  const commentHtml = renderMarkdownToHtml(comment.content ?? "");
+                  const isReply = comment.parentId !== null;
+                  const formattedDate = comment.createdAt
+                    ? new Date(comment.createdAt * 1000).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })
+                    : '';
+                  return (
+                    <div class={`comment ${isReply ? 'comment-reply' : ''}`}>
+                      <div class="comment-header">
+                        <span class="comment-author">{comment.authorName ?? "Anonymous"}</span>
+                        <span class="comment-date">{formattedDate}</span>
+                      </div>
+                      <div class="comment-content" set:html={commentHtml} />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p class="no-comments">No comments yet. Be the first to comment!</p>
+            )}
+
+            {/* Comment form for authenticated users */}
+            {user ? (
+              <WikiCommentForm
+                client:load
+                articleId={articleId}
+                articleSlug={slug}
+                guidelinesAccepted={guidelinesAccepted}
+              />
+            ) : (
+              <div class="login-prompt">
+                <a href="/login">Sign in</a> to leave a comment.
+              </div>
+            )}
+          </section>
         </>
       )}
     </article>
@@ -249,11 +343,11 @@ if (!notFound) {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     border-radius: 4px;
-    color: white;
+    color: var(--text-inverse);
   }
 
   .status-badge.status-good {
-    background: var(--color-pop-mint);
+    background: var(--color-signal);
     color: var(--text);
   }
 
@@ -325,7 +419,7 @@ if (!notFound) {
     font-weight: 600;
   }
 
-  :global(html.dark) .article-content :global(th) {
+  :global([data-theme="dark"]) .article-content :global(th) {
     background: var(--color-secondary-800);
   }
 
@@ -354,14 +448,127 @@ if (!notFound) {
     display: inline-block;
     padding: 0.75rem 1.25rem;
     background: var(--color-primary);
-    color: white;
+    color: var(--text-inverse);
     text-decoration: none;
     font-weight: 600;
-    border-radius: 8px;
+    border-radius: 4px;
     transition: background 0.2s ease;
   }
 
   .back-link:hover {
     background: var(--color-primary-hover);
+  }
+
+  .back-link:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* Edit history indicator */
+  .edit-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    margin: 1rem 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--color-surface);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+  }
+
+  /* Comments section */
+  .comments-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 3px solid var(--border);
+  }
+
+  .comments-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0 0 1.5rem;
+  }
+
+  .comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .comment {
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .comment-reply {
+    margin-left: 1.5rem;
+    border-left: 3px solid var(--color-secondary);
+  }
+
+  .comment-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .comment-author {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .comment-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .comment-content {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .comment-content :global(p) {
+    margin: 0 0 0.5rem;
+  }
+
+  .comment-content :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .no-comments {
+    font-size: 0.9375rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 2rem;
+  }
+
+  .login-prompt {
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 2px dashed var(--border);
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--text-muted);
+    margin-top: 1.5rem;
+  }
+
+  .login-prompt a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  .login-prompt a:hover {
+    color: var(--color-primary-hover);
   }
 </style>

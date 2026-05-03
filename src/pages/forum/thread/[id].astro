@@ -6,7 +6,9 @@
 
 import ForumLayout from "@/layouts/ForumLayout.astro";
 import { getForumThread, getForumPosts } from "@/lib/forum";
-import { marked } from "marked";
+import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
+import { hasAcceptedGuidelines } from "@/lib/guidelines";
+import { ReplyForm } from "@/components/forum/ReplyForm";
 
 export const prerender = false;
 
@@ -35,6 +37,25 @@ if (!notFound && threadData) {
 
 // Get current user from session (populated by middleware)
 const currentUser = Astro.locals.user;
+
+// Check guidelines acceptance for reply form
+let guidelinesAccepted = false;
+if (currentUser) {
+  guidelinesAccepted = await hasAcceptedGuidelines(db, currentUser.id);
+}
+
+// Fetch posts including the first post (for thread body)
+let posts: Array<{
+  post: { id: string; threadId: string; authorId: string; content: string; createdAt: number; updatedAt: number };
+  authorName: string;
+}> = [];
+if (!notFound && threadData) {
+  postsResult = await getForumPosts(db, id);
+  posts = postsResult;
+}
+
+// The first post's content is the thread body
+const threadBodyContent = posts.length > 0 ? posts[0].post.content : "";
 
 function formatDate(timestamp: number): string {
   const date = new Date(timestamp);
@@ -128,17 +149,17 @@ function formatRelativeTime(timestamp: number | null): string {
               <div class="post-header">
                 <span class="post-time">{formatRelativeTime(threadData.thread.createdAt)}</span>
               </div>
-              <div class="post-body" set:html={marked.parse(td.thread.content ?? "")} />
+              <div class="post-body prose" set:html={renderMarkdownToHtml(threadBodyContent)} />
             </div>
           </div>
 
           {/* Replies */}
           <section class="replies-section">
             <h2 class="replies-title">
-              Replies ({postsResult.length})
+              Replies ({posts.length - 1})
             </h2>
             
-            {postsResult.map((item) => (
+            {posts.slice(1).map((item) => (
               <div class="post reply">
                 <div class="post-sidebar">
                   <div class="user-avatar secondary">
@@ -151,24 +172,21 @@ function formatRelativeTime(timestamp: number | null): string {
                   <div class="post-header">
                     <span class="post-time">{formatRelativeTime(item.post.createdAt)}</span>
                   </div>
-                  <div class="post-body" set:html={marked.parse(item.post.body ?? "")} />
+                  <div class="post-body prose" set:html={renderMarkdownToHtml(item.post.content)} />
                 </div>
               </div>
             ))}
           </section>
 
-          {/* Reply Form (Placeholder) */}
+          {/* Reply Form */}
           {currentUser && threadData.thread.isLocked !== 1 ? (
-            <div class="reply-form">
-              <h3 class="reply-form-title">Post a Reply</h3>
-              <textarea
-                class="reply-textarea"
-                placeholder="Share your thoughts..."
-                rows="4"
-              ></textarea>
-              <div class="reply-form-actions">
-                <button class="submit-btn">Post Reply ✨</button>
-              </div>
+            <div id="reply-form-container" class="reply-form-wrapper">
+              <ReplyForm
+                client:load
+                threadId={id}
+                guidelinesAccepted={guidelinesAccepted}
+                redirectUrl={`/forum/thread/${id}`}
+              />
             </div>
           ) : (
             <div class="reply-form-disabled">
@@ -177,6 +195,9 @@ function formatRelativeTime(timestamp: number | null): string {
                   ? "🔒 This thread is locked and cannot receive new replies."
                   : "💬 Log in to post a reply."}
               </p>
+              {!currentUser && (
+                <a href={`/login?redirect=/forum/thread/${id}`} class="login-link">Sign in to reply →</a>
+              )}
             </div>
           )}
         </div>
@@ -274,18 +295,23 @@ function formatRelativeTime(timestamp: number | null): string {
   .category-badge {
     padding: 0.25rem 0.75rem;
     background: var(--color-secondary);
-    color: white;
+    color: var(--text-inverse);
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border-radius: 20px;
+    border-radius: 4px;
     text-decoration: none;
     transition: all 0.2s ease;
   }
 
   .category-badge:hover {
     background: var(--color-primary);
+  }
+
+  .category-badge:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .badge {
@@ -295,7 +321,7 @@ function formatRelativeTime(timestamp: number | null): string {
   }
 
   .badge.pin {
-    background: var(--color-pop-mint);
+    background: var(--color-accent);
   }
 
   .badge.lock {
@@ -303,8 +329,10 @@ function formatRelativeTime(timestamp: number | null): string {
   }
 
   .thread-title {
-    font-size: 1.75rem;
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1.5rem, 4vw, 1.75rem);
+    font-weight: 400;
     color: var(--text);
     margin: 0 0 1rem;
     line-height: 1.3;
@@ -353,8 +381,8 @@ function formatRelativeTime(timestamp: number | null): string {
     gap: 1rem;
     padding: 1.25rem;
     background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: 12px;
+    border: 3px solid var(--border);
+    border-radius: 4px;
   }
 
   .post.original-post {
@@ -378,7 +406,7 @@ function formatRelativeTime(timestamp: number | null): string {
     align-items: center;
     justify-content: center;
     background: var(--color-primary);
-    color: white;
+    color: var(--text-inverse);
     font-weight: 800;
     font-size: 1.25rem;
     border-radius: 50%;
@@ -399,7 +427,7 @@ function formatRelativeTime(timestamp: number | null): string {
   .user-badge {
     font-size: 0.6rem;
     padding: 0.15rem 0.4rem;
-    background: var(--color-pop-mint);
+    background: var(--color-accent);
     border-radius: 4px;
     font-weight: 600;
   }
@@ -445,7 +473,7 @@ function formatRelativeTime(timestamp: number | null): string {
     padding: 0.35rem 0.75rem;
     background: transparent;
     border: 2px solid var(--border);
-    border-radius: 6px;
+    border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-muted);
@@ -455,8 +483,13 @@ function formatRelativeTime(timestamp: number | null): string {
 
   .action-btn:hover {
     background: var(--color-primary);
-    color: white;
+    color: var(--text-inverse);
     border-color: var(--color-primary);
+  }
+
+  .action-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   /* Replies Section */
@@ -480,7 +513,7 @@ function formatRelativeTime(timestamp: number | null): string {
     padding: 1.5rem;
     background: var(--surface);
     border: 3px solid var(--color-secondary);
-    border-radius: 12px;
+    border-radius: 4px;
   }
 
   .reply-form-title {
@@ -495,7 +528,7 @@ function formatRelativeTime(timestamp: number | null): string {
     padding: 1rem;
     background: var(--bg);
     border: 2px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     font-family: inherit;
     font-size: 0.9rem;
     line-height: 1.6;
@@ -505,7 +538,7 @@ function formatRelativeTime(timestamp: number | null): string {
 
   .reply-textarea:focus {
     outline: none;
-    border-color: var(--color-primary);
+    border-color: var(--focus);
   }
 
   .reply-form-actions {
@@ -518,24 +551,29 @@ function formatRelativeTime(timestamp: number | null): string {
     padding: 0.75rem 1.5rem;
     background: var(--color-primary);
     border: 3px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     font-weight: 700;
-    color: white;
+    color: var(--text-inverse);
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 3px 3px 0 var(--border);
+    box-shadow: 3px 3px 0 var(--shadow-hard);
   }
 
   .submit-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 5px 5px 0 var(--border);
+    box-shadow: 5px 5px 0 var(--shadow-hard);
+  }
+
+  .submit-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .reply-form-disabled {
     padding: 1.5rem;
     background: var(--surface);
     border: 2px dashed var(--border);
-    border-radius: 12px;
+    border-radius: 4px;
     text-align: center;
   }
 
@@ -558,7 +596,7 @@ function formatRelativeTime(timestamp: number | null): string {
     padding: 1rem;
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 12px;
+    border-radius: 4px;
   }
 
   .sidebar-title {
@@ -618,7 +656,7 @@ function formatRelativeTime(timestamp: number | null): string {
     align-items: center;
     justify-content: center;
     background: var(--color-primary);
-    color: white;
+    color: var(--text-inverse);
     font-weight: 700;
     font-size: 1rem;
     border-radius: 50%;
@@ -651,16 +689,21 @@ function formatRelativeTime(timestamp: number | null): string {
     padding: 0.6rem 1rem;
     background: var(--color-secondary);
     border: 2px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     font-size: 0.8rem;
     font-weight: 600;
-    color: white;
+    color: var(--text-inverse);
     cursor: pointer;
     transition: all 0.2s ease;
   }
 
   .subscribe-btn:hover {
     background: var(--color-primary);
+  }
+
+  .subscribe-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .action-list {
@@ -676,7 +719,7 @@ function formatRelativeTime(timestamp: number | null): string {
     padding: 0.5rem 0.75rem;
     background: transparent;
     border: 2px solid var(--border);
-    border-radius: 6px;
+    border-radius: 4px;
     font-size: 0.8rem;
     font-weight: 500;
     color: var(--text-muted);
@@ -690,6 +733,11 @@ function formatRelativeTime(timestamp: number | null): string {
     background: var(--surface);
     color: var(--text);
     border-color: var(--color-primary);
+  }
+
+  .action-list-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   /* Responsive */

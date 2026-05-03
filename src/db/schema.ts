@@ -265,3 +265,110 @@ export const staticPagesRelations = relations(staticPages, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// Community guidelines acceptances table
+export const communityGuidelinesAcceptances = sqliteTable(
+  "community_guidelines_acceptances",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id),
+    version: text("version").notNull(),
+    acceptedAt: integer("accepted_at").notNull(),
+    ipAddress: text("ip_address"),
+    turnstileToken: text("turnstile_token"),
+  },
+  (table) => [
+    index("community_guidelines_acceptances_user_id_idx").on(table.userId),
+  ]
+);
+
+// Build comments table
+export const buildComments = sqliteTable(
+  "build_comments",
+  {
+    id: text("id").primaryKey(),
+    buildId: text("build_id")
+      .notNull()
+      .references(() => builds.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => user.id),
+    content: text("content").notNull(),
+    parentId: text("parent_id"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at"),
+    deletedAt: integer("deleted_at"),
+  },
+  (table) => [
+    index("build_comments_build_id_idx").on(table.buildId),
+    index("build_comments_parent_id_idx").on(table.parentId),
+  ]
+);
+
+export const communityGuidelinesAcceptancesRelations = relations(
+  communityGuidelinesAcceptances,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [communityGuidelinesAcceptances.userId],
+      references: [user.id],
+    }),
+  })
+);
+
+export const buildCommentsRelations = relations(
+  buildComments,
+  ({ one }) => ({
+    build: one(builds, {
+      fields: [buildComments.buildId],
+      references: [builds.id],
+    }),
+    author: one(user, {
+      fields: [buildComments.authorId],
+      references: [user.id],
+    }),
+    parent: one(buildComments, {
+      fields: [buildComments.parentId],
+      references: [buildComments.id],
+    }),
+  })
+);
+
+// Wiki comments table
+export const wikiComments = sqliteTable(
+  "wiki_comments",
+  {
+    id: text("id").primaryKey(),
+    articleId: text("article_id")
+      .notNull()
+      .references(() => wikiArticles.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => user.id),
+    content: text("content").notNull(),
+    parentId: text("parent_id"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at"),
+    deletedAt: integer("deleted_at"),
+  },
+  (table) => [
+    index("wiki_comments_article_id_idx").on(table.articleId),
+    index("wiki_comments_parent_id_idx").on(table.parentId),
+  ]
+);
+
+export const wikiCommentsRelations = relations(wikiComments, ({ one }) => ({
+  article: one(wikiArticles, {
+    fields: [wikiComments.articleId],
+    references: [wikiArticles.id],
+  }),
+  author: one(user, {
+    fields: [wikiComments.authorId],
+    references: [user.id],
+  }),
+  parent: one(wikiComments, {
+    fields: [wikiComments.parentId],
+    references: [wikiComments.id],
+  }),
+}));

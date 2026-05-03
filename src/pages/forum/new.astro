@@ -1,0 +1,351 @@
+---
+/**
+ * New Forum Thread Page
+ * Form for creating a new forum thread
+ */
+
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import ForumLayout from "@/layouts/ForumLayout.astro";
+import { ForumEditor } from "@/components/editor/ForumEditor";
+import { getForumCategories } from "@/lib/forum";
+import { hasAcceptedGuidelines } from "@/lib/guidelines";
+
+export const prerender = false;
+
+// Check if user is logged in
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login?redirect=/forum/new");
+}
+
+// Check guidelines acceptance
+const db = Astro.locals.db!;
+const guidelinesAccepted = await hasAcceptedGuidelines(db, user.id);
+if (!guidelinesAccepted) {
+  return Astro.redirect(`/guidelines?redirect=/forum/new`);
+}
+
+// Get forum categories for the dropdown
+const categoriesResult = await getForumCategories(db);
+const categories = categoriesResult;
+
+// If no category selected, use first one or show selection
+const selectedCategorySlug = Astro.url.searchParams.get("category") ?? categories[0]?.slug ?? "general";
+---
+
+<BaseLayout title="New Thread" description="Start a new forum thread">
+  <ForumLayout
+    title="New Thread"
+    description="Start a new conversation"
+  >
+    <div class="new-thread-page">
+      <header class="page-header">
+        <h1 class="page-title">Start a Thread ✨</h1>
+        <p class="page-subtitle">Share your thoughts, questions, or creations with the community</p>
+      </header>
+
+      <form id="new-thread-form" class="thread-form" action="/api/forum/threads" method="POST">
+        <div class="form-group">
+          <label for="title" class="form-label">Title</label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            class="form-input"
+            placeholder="What do you want to discuss?"
+            required
+            maxlength="200"
+          />
+          <span class="form-hint">Keep it clear and descriptive (max 200 characters)</span>
+        </div>
+
+        <div class="form-group">
+          <label for="category" class="form-label">Category</label>
+          <select id="category" name="categoryId" class="form-select" required>
+            {categories.map((cat) => (
+              <option
+                value={cat.id}
+                selected={cat.slug === selectedCategorySlug}
+              >
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Content</label>
+          <ForumEditor
+            client:only="react"
+            hiddenInputId="content-input"
+          />
+          <input type="hidden" name="content" id="content-input" />
+        </div>
+
+        <div class="form-actions">
+          <a href="/forum" class="btn-cancel">Cancel</a>
+          <button type="submit" class="btn-submit" id="submit-btn">
+            <span class="btn-text">Post Thread ✨</span>
+            <span class="btn-loading" style="display: none;">Posting...</span>
+          </button>
+        </div>
+
+        <div id="form-error" class="form-error" style="display: none;"></div>
+      </form>
+    </div>
+  </ForumLayout>
+</BaseLayout>
+
+<script>
+  const form = document.getElementById("new-thread-form") as HTMLFormElement;
+  const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+  const btnText = submitBtn.querySelector(".btn-text") as HTMLSpanElement;
+  const btnLoading = submitBtn.querySelector(".btn-loading") as HTMLSpanElement;
+  const formError = document.getElementById("form-error") as HTMLDivElement;
+  const contentInput = document.getElementById("content-input") as HTMLInputElement;
+
+  // Form submission
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    // Validate content
+    if (!contentInput.value.trim()) {
+      formError.textContent = "Please write some content for your post.";
+      formError.style.display = "block";
+      return;
+    }
+    
+    // Show loading state
+    submitBtn.disabled = true;
+    btnText.style.display = "none";
+    btnLoading.style.display = "inline";
+    formError.style.display = "none";
+
+    try {
+      const formData = new FormData(form);
+      const response = await fetch("/api/forum/threads", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: formData.get("title"),
+          categoryId: formData.get("categoryId"),
+          content: contentInput.value,
+        }),
+      });
+
+      if (response.status === 403) {
+        const data = await response.json();
+        if (data.error === "guidelines_required") {
+          window.location.href = data.redirect + "?redirect=/forum/new";
+          return;
+        }
+      }
+
+      if (response.ok) {
+        // Redirect to the new thread (303) or to forum index
+        const redirectUrl = response.headers.get("Location") ?? "/forum";
+        window.location.href = redirectUrl;
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to create thread");
+      }
+    } catch (err) {
+      console.error("Submit error:", err);
+      formError.textContent = err instanceof Error ? err.message : "Failed to create thread. Please try again.";
+      formError.style.display = "block";
+      
+      // Reset button state
+      submitBtn.disabled = false;
+      btnText.style.display = "inline";
+      btnLoading.style.display = "none";
+    }
+  });
+</script>
+
+<style>
+  .new-thread-page {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 3px solid var(--border);
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    color: var(--text);
+    margin: 0 0 0.5rem;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .page-subtitle {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .thread-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text);
+  }
+
+  .form-input,
+  .form-select {
+    padding: 0.875rem 1rem;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+    color: var(--text);
+    transition: border-color 0.2s ease;
+  }
+
+  .form-input:focus,
+  .form-select:focus {
+    outline: none;
+    border-color: var(--focus);
+  }
+
+  .form-input:focus-visible,
+  .form-select:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .form-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .form-select {
+    cursor: pointer;
+  }
+
+  .form-select:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .form-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--border);
+  }
+
+  .btn-cancel {
+    padding: 0.875rem 1.5rem;
+    background: transparent;
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .btn-cancel:hover {
+    border-color: var(--text-muted);
+    color: var(--text);
+  }
+
+  .btn-cancel:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .btn-submit {
+    padding: 0.875rem 2rem;
+    background: var(--color-primary);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-inverse);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .btn-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-submit:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .form-error {
+    padding: 1rem;
+    background: var(--color-danger);
+    border: 3px solid var(--color-danger);
+    border-radius: 4px;
+    color: var(--text-inverse);
+    font-weight: 600;
+  }
+
+  .editor-error {
+    padding: 1rem;
+    background: var(--color-danger);
+    border: 3px dashed var(--color-danger);
+    border-radius: 4px;
+    color: var(--text-inverse);
+    font-weight: 600;
+  }
+
+  @media (max-width: 640px) {
+    .page-title {
+      font-size: 1.5rem;
+    }
+
+    .form-actions {
+      flex-direction: column-reverse;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

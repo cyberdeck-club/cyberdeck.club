@@ -5,6 +5,8 @@ import "@/styles/global.css";
 import Footer from "@/components/Footer.astro";
 import Nav from "@/components/Nav.astro";
 import ThemeToggle from "@/components/ThemeToggle.astro";
+import FeedbackWidget from "@/components/feedback/FeedbackWidget";
+import BetaAcknowledgementModal from "@/components/BetaAcknowledgementModal";
 
 import clsx from 'clsx';
 
@@ -27,6 +29,9 @@ const {
 
 // Build canonical URL
 const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? "https://cyberdeck.club");
+
+// Get authenticated user from locals
+const user = Astro.locals.user;
 ---
 
 <!doctype html>
@@ -60,10 +65,21 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? "https://cyberdec
     <meta property="twitter:description" content={description} />
     <meta property="twitter:image" content={ogImage} />
     
-    <!-- Google Fonts - Inter -->
+    <!-- Google Fonts - Display (Fraunces variable) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap" rel="stylesheet" />
+
+    <!-- Fontshare - General Sans -->
+    <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet" />
+
+    <!-- Google Fonts - JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    
+    <!-- Departure Mono - Pixel font for eyebrows and tags -->
+    <link href="https://db.onlinewebfonts.com/c/4571adf8e6d8270ea61a4f43a3ef31d2?family=Departure+Mono" rel="stylesheet" />
     
     <title>{title}</title>
     
@@ -74,9 +90,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? "https://cyberdec
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         
         if (theme === 'dark' || (!theme && prefersDark)) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.add('light');
+          document.documentElement.setAttribute('data-theme', 'dark');
         }
       })();
     </script>
@@ -105,6 +119,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? "https://cyberdec
     </main>
     
     {!hideFooter && <div class="relative z-10"><Footer /></div>}
+    
+    {user && <FeedbackWidget client:load />}
+    
+    <BetaAcknowledgementModal client:load />
   </body>
 </html>
 
@@ -114,16 +132,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? "https://cyberdec
     transition: background-color 200ms ease, color 200ms ease;
   }
   
-  /* Light mode body styles */
-  :global(html.light),
-  :global(html.light) body {
-    background-color: var(--color-bg-light);
-    color: var(--color-text-light);
-  }
-  
   /* Dark mode body styles */
-  :global(html.dark),
-  :global(html.dark) body {
+  :global([data-theme="dark"]),
+  :global([data-theme="dark"]) body {
     background-color: var(--color-bg-dark);
     color: var(--color-text-dark);
   }

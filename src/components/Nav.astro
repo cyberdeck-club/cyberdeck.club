@@ -139,26 +139,26 @@ const currentPath = Astro.url.pathname;
   }
 
   /* Dark mode nav styles */
-  :global(html.dark) .nav-bar {
+  :global([data-theme="dark"]) .nav-bar {
     background-color: var(--color-surface-dark);
     border-color: var(--color-border-dark);
   }
 
-  :global(html.dark) .nav-logo,
-  :global(html.dark) .nav-link {
+  :global([data-theme="dark"]) .nav-logo,
+  :global([data-theme="dark"]) .nav-link {
     color: var(--color-text-dark);
   }
 
-  :global(html.dark) .nav-toggle,
-  :global(html.dark) .nav-search {
+  :global([data-theme="dark"]) .nav-toggle,
+  :global([data-theme="dark"]) .nav-search {
     color: var(--color-text-dark);
   }
 
-  :global(html.dark) .nav-menu {
+  :global([data-theme="dark"]) .nav-menu {
     background-color: var(--color-surface-dark);
   }
 
-  :global(html.dark) .nav-overlay {
+  :global([data-theme="dark"]) .nav-overlay {
     background-color: var(--color-border-dark);
   }
 

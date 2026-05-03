@@ -23,7 +23,7 @@ const socialLinks = [
         <div class="flex flex-col max-w-xl gap-6 lg:col-span-2">
           <div class="footer-brand">
             <h2 class="footer-tagline text-3xl font-bold tracking-tight lg:text-4xl text-white">
-              Build. Hack. Connect.
+              Build. Make. Connect.
             </h2>
             <p class="footer-description mt-4 text-lg text-white/85">
               The community for cyberdeck builders, DIY enthusiasts, and retro-computing fans.
@@ -157,46 +157,46 @@ const socialLinks = [
   }
 
   /* Dark mode footer */
-  :global(html.dark) .footer {
+  :global([data-theme="dark"]) .footer {
     background-color: var(--color-surface-dark);
     border-color: var(--color-border-dark);
   }
 
-  :global(html.dark) .footer-main {
+  :global([data-theme="dark"]) .footer-main {
     border-top-color: var(--color-secondary);
   }
 
-  :global(html.dark) .footer-tagline,
-  :global(html.dark) .footer-description,
-  :global(html.dark) .footer-nav-title {
+  :global([data-theme="dark"]) .footer-tagline,
+  :global([data-theme="dark"]) .footer-description,
+  :global([data-theme="dark"]) .footer-nav-title {
     color: var(--color-text-dark);
   }
 
-  :global(html.dark) .footer-description {
+  :global([data-theme="dark"]) .footer-description {
     color: var(--color-text-dark);
     opacity: 0.85;
   }
 
-  :global(html.dark) .footer-nav-link {
+  :global([data-theme="dark"]) .footer-nav-link {
     color: var(--color-text-dark);
   }
 
-  :global(html.dark) .footer-nav-link:hover {
+  :global([data-theme="dark"]) .footer-nav-link:hover {
     color: var(--color-primary);
   }
 
-  :global(html.dark) .footer-divider {
+  :global([data-theme="dark"]) .footer-divider {
     border-color: var(--color-border-dark);
     opacity: 0.3;
   }
 
-  :global(html.dark) .footer-copyright,
-  :global(html.dark) .footer-admin-link,
-  :global(html.dark) .footer-credit {
+  :global([data-theme="dark"]) .footer-copyright,
+  :global([data-theme="dark"]) .footer-admin-link,
+  :global([data-theme="dark"]) .footer-credit {
     color: var(--color-text-dark);
   }
 
-  :global(html.dark) .footer-admin-link:hover {
+  :global([data-theme="dark"]) .footer-admin-link:hover {
     color: var(--color-primary);
   }
 

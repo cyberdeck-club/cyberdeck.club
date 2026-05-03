@@ -40,8 +40,8 @@
     "slug": "hex-witch-pentesting-rig",
     "status": "published",
     "data": {
-      "title": "Hex Witch — Dual-Screen Pentesting Rig",
-      "description": "A security-focused cyberdeck built into a thrifted aluminum camera case. Features dual displays, a full mechanical keyboard, and a suite of wireless hacking tools. Kali Linux on a Pi 5 with external WiFi adapters and a HackRF SDR.",
+      "title": "Hex Witch — Dual-Screen Security Research Rig",
+      "description": "A security-focused cyberdeck built into a thrifted aluminum camera case. Features dual displays, a full mechanical keyboard, and a suite of wireless security testing tools. Kali Linux on a Pi 5 with external WiFi adapters and a HackRF SDR.",
       "featured_image": null,
       "gallery": null,
       "parts_list": "## Parts List\n\n- **SBC**: Raspberry Pi 5 (8GB) + NVMe HAT with 256GB SSD\n- **Primary Display**: 10.1\" Elecrow HDMI IPS touchscreen\n- **Secondary Display**: 3.5\" Pimoroni HyperPixel (system stats / network viz)\n- **Keyboard**: Thrifted Keychron K2 wireless mechanical\n- **Case**: Aluminum camera case (thrifted from estate sale, $12)\n- **Power**: 2x Anker 10,000mAh USB-C PD banks (hot-swappable)\n- **Wireless**: Alfa AWUS036ACH (dual-band WiFi), HackRF One SDR\n- **Extras**: USB-C hub, panel-mount USB/Ethernet, internal USB fan\n\n## Total Cost: ~$340",

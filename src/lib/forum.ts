@@ -50,7 +50,9 @@ export function getForumThreads(
 }
 
 /**
- * Get a single thread by ID with author_name and category info
+ * Get a single thread by ID with author_name and category info.
+ * Note: Thread body content is stored as the first post in forumPosts.
+ * Use getForumPosts() to get the first post's content.
  */
 export function getForumThread(
   db: DrizzleD1Database<typeof schema>,

@@ -128,6 +128,29 @@ cyberdeck.club/
 - `GET/POST /api/builds` — Build showcase
 - `GET/POST /api/meetups` — Meetup events
 
+### Cloudflare Turnstile
+
+Human verification on the community guidelines acceptance page — required before a user can publish any content (forum posts, build submissions, wiki articles, comments).
+
+**Environment variables:**
+- `TURNSTILE_SECRET_KEY` — Server-side secret key for token verification
+- `PUBLIC_TURNSTILE_SITE_KEY` — Client-side site key for the widget
+
+**Local development:** Cloudflare provides test keys that always pass. These are pre-configured in `.env.example`:
+- Site key: `1x00000000000000000000AA`
+- Secret key: `1x0000000000000000000000000000000AA`
+
+**Production setup:**
+1. Go to Cloudflare Dashboard → Turnstile
+2. Add a new site for your domain
+3. Choose "Managed" challenge mode (recommended) — invisible for most users
+4. Copy the site key and secret key to your environment variables
+5. In Cloudflare Pages, add `TURNSTILE_SECRET_KEY` as an environment variable
+
+**How it works:** The Turnstile widget is embedded on `/guidelines`. When a user accepts the community guidelines, the Turnstile token is sent to `POST /api/guidelines/accept`, which verifies it server-side via Cloudflare's siteverify endpoint before recording acceptance.
+
+**Related files:** [`src/lib/turnstile.ts`](src/lib/turnstile.ts), [`src/pages/guidelines.astro`](src/pages/guidelines.astro), [`src/pages/api/guidelines/accept.ts`](src/pages/api/guidelines/accept.ts)
+
 ## Deployment
 
 Deploy to Cloudflare Workers:

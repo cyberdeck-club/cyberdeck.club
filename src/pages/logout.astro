@@ -14,9 +14,7 @@ export const prerender = false;
         const theme = localStorage.getItem('theme');
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (theme === 'dark' || (!theme && prefersDark)) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.add('light');
+          document.documentElement.setAttribute('data-theme', 'dark');
         }
       })();
     </script>
@@ -35,7 +33,7 @@ export const prerender = false;
         padding: 2rem;
         margin: 0;
       }
-      html.dark body {
+      [data-theme="dark"] body {
         background-color: #1a0a1a;
         color: #f5f0fa;
       }
@@ -49,7 +47,7 @@ export const prerender = false;
         width: 100%;
         text-align: center;
       }
-      html.dark .logout-container {
+      [data-theme="dark"] .logout-container {
         background: #2a1a2a;
         border-color: #f5f0fa;
         box-shadow: 6px 6px 0 #a855f7;

@@ -179,7 +179,7 @@ const categories = [
     transform: translateX(3px);
   }
 
-  :global(html.dark) .category-link:hover {
+  :global([data-theme="dark"]) .category-link:hover {
     background: var(--color-secondary-800);
   }
 

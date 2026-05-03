@@ -1,12 +1,13 @@
 import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
 import * as schema from "../../../db/schema";
+import { checkPublishingGate } from "../../../lib/publishing-gate";
 
 /**
  * POST /api/wiki/articles
  *
  * Creates a new wiki article with initial revision.
- * Requires authenticated user.
+ * Requires authenticated user with role "maker", "moderator", or "admin".
  *
  * Body: { categoryId: string, title: string, slug: string, content: string }
  */
@@ -17,6 +18,31 @@ export const POST: APIRoute = async (ctx) => {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  const db = ctx.locals.db;
+  const userId = ctx.locals.user.id;
+  const userRole = ctx.locals.user.role;
+
+  // Check publishing gate (guidelines acceptance)
+  const gateResponse = await checkPublishingGate(db, userId);
+  if (gateResponse) {
+    return gateResponse;
+  }
+
+  // Role-based access control: only maker, moderator, or admin can create articles
+  const canCreate = userRole === "maker" || userRole === "moderator" || userRole === "admin";
+  if (!canCreate) {
+    return new Response(
+      JSON.stringify({
+        error: "insufficient_permissions",
+        message: "Only makers, moderators, and admins can create wiki articles",
+      }),
+      {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
   // Parse and validate request body
@@ -66,8 +92,6 @@ export const POST: APIRoute = async (ctx) => {
     });
   }
 
-  const db = ctx.locals.db;
-  const userId = ctx.locals.user.id;
   const now = Math.floor(Date.now() / 1000);
 
   // Verify category exists

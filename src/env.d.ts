@@ -9,6 +9,7 @@
 /// <reference types="astro/client" />
 
 import type { DrizzleD1Database } from "drizzle-orm/d1";
+import type { R2Bucket } from "@cloudflare/workers-types";
 import type * as schema from "./db/schema";
 
 declare global {
@@ -25,10 +26,13 @@ declare global {
       RESEND_FROM_ADDRESS?: string;
       EMAIL_FROM?: string;
       ADMIN_EMAIL?: string;
+      MEDIA: R2Bucket;
+      GITHUB_FEEDBACK_PAT: string;
+      PUBLIC_MEDIA_BASE_URL?: string;
     }
 
     interface Locals {
-      user: import("better-auth").User | null;
+      user: (import("better-auth").User & { role: string }) | null;
       session: import("better-auth").Session | null;
       db: DrizzleD1Database<typeof schema>;
       /** Cloudflare Workers context (ExecutionContext) — provided by @astrojs/cloudflare v13 */

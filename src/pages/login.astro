@@ -55,7 +55,7 @@ export const prerender = false;
     max-width: 420px;
     width: 100%;
   }
-  :global(html.dark) .login-container {
+  :global([data-theme="dark"]) .login-container {
     box-shadow: 6px 6px 0 var(--color-primary);
   }
   .login-header {
@@ -95,7 +95,7 @@ export const prerender = false;
     color: var(--text);
     transition: box-shadow 0.15s ease;
   }
-  :global(html.dark) .form-input {
+  :global([data-theme="dark"]) .form-input {
     border-color: var(--color-primary);
   }
   .form-input:focus {
@@ -116,7 +116,7 @@ export const prerender = false;
     cursor: pointer;
     transition: box-shadow 0.15s ease, transform 0.1s ease;
   }
-  :global(html.dark) .submit-btn {
+  :global([data-theme="dark"]) .submit-btn {
     background: var(--color-primary);
     border-color: var(--color-primary);
     color: white;
@@ -140,20 +140,20 @@ export const prerender = false;
     background: var(--surface);
   }
   .message.success {
-    border-color: #22c55e;
-    background: #f0fdf4;
+    border-color: var(--color-signal);
+    background: var(--color-signal) / 10%;
   }
-  :global(html.dark) .message.success {
-    background: #14532d;
-    border-color: #22c55e;
+  :global([data-theme="dark"]) .message.success {
+    background: var(--color-signal) / 20%;
+    border-color: var(--color-signal);
   }
   .message.error {
-    border-color: #ef4444;
-    background: #fef2f2;
+    border-color: var(--color-danger);
+    background: var(--color-danger) / 10%;
   }
-  :global(html.dark) .message.error {
-    background: #7f1d1d;
-    border-color: #ef4444;
+  :global([data-theme="dark"]) .message.error {
+    background: var(--color-danger) / 20%;
+    border-color: var(--color-danger);
   }
   .message p {
     margin: 0;

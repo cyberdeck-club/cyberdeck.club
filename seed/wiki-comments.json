@@ -1,0 +1,106 @@
+[
+  {
+    "id": "wc1",
+    "articleId": "w1",
+    "authorId": "circuitfae",
+    "content": "This article is such a great introduction! I've been lurking here for months and finally built my first deck last month. The community support is incredible. 💜",
+    "parentId": null,
+    "createdAt": "2026-02-01T10:00:00Z"
+  },
+  {
+    "id": "wc2",
+    "articleId": "w1",
+    "authorId": "glitchgrl",
+    "content": "Thank you for writing this! I was so intimidated to start but after reading this I decided to just go for it. My lunchbox deck isn't pretty yet but it *works*. 🎉",
+    "parentId": null,
+    "createdAt": "2026-02-05T14:20:00Z"
+  },
+  {
+    "id": "wc3",
+    "articleId": "w2",
+    "authorId": "solderqueen",
+    "content": "One thing I'd add: if you're using a Pi 5, make sure your power supply can deliver **5A**. The official 27W PSU is worth the extra cost — I had so many random reboots with cheaper supplies. ⚡",
+    "parentId": null,
+    "createdAt": "2026-02-10T09:30:00Z"
+  },
+  {
+    "id": "wc4",
+    "articleId": "w2",
+    "authorId": "bytewitch",
+    "content": "Great point! And for Kali specifically, enable **USB auto-mount** so you can quickly swap in those Alfa adapters without rebooting. It's a lifesaver during CTFs. 🔮",
+    "parentId": null,
+    "createdAt": "2026-02-10T11:00:00Z"
+  },
+  {
+    "id": "wc5",
+    "articleId": "w2",
+    "authorId": "divine_circuitry",
+    "content": "Both excellent tips! I'll add a note about power supplies to the article. @SolderQueen would you be willing to write a supplementary piece on power management? Sounds like you have great real-world experience there.",
+    "parentId": "wc3",
+    "createdAt": "2026-02-10T12:30:00Z"
+  },
+  {
+    "id": "wc6",
+    "articleId": "w3",
+    "authorId": "bytewitch",
+    "content": "The power consumption table is super helpful! One thing I'd add: the **Orange Pi 5 Plus** has better power management than the base Orange Pi 5 and supports more RAM (up to 32GB). Worth the small price difference if you're doing heavy security work. 🛡️",
+    "parentId": null,
+    "createdAt": "2026-02-15T16:00:00Z"
+  },
+  {
+    "id": "wc7",
+    "articleId": "w4",
+    "authorId": "solderqueen",
+    "content": "Can confirm on the tiling WM suggestion! I'm running **Sway** on my Hex Witch and it works beautifully. The waybar config is easy to customize and there are so many cyberpunk-themed dotfiles on GitHub. My config: https://github.com/bytewitch/configs 🌙",
+    "parentId": null,
+    "createdAt": "2026-02-20T08:45:00Z"
+  },
+  {
+    "id": "wc8",
+    "articleId": "w5",
+    "authorId": "circuitfae",
+    "content": "THRIFT STORES. Yes! I've found Pelican cases for $5-15, vintage camera bags for $8, and one time a genuinely ancient metal toolbox that became a gorgeous steampunk deck. Pro tip: check estate sales and garage sales, not just Goodwill. Estate sale prices are often better because they're not running a retail markup. 🏜️",
+    "parentId": null,
+    "createdAt": "2026-02-25T13:15:00Z"
+  },
+  {
+    "id": "wc9",
+    "articleId": "w5",
+    "authorId": "glitchgrl",
+    "content": "Adding this to my hunting list! I'm especially looking for those vintage jewelry boxes — thinking of doing a compact build with a Pi Zero 2W inside. 💎",
+    "parentId": null,
+    "createdAt": "2026-02-25T14:30:00Z"
+  },
+  {
+    "id": "wc10",
+    "articleId": "w5",
+    "authorId": "circuitfae",
+    "content": "Ooh please share photos when you find one! Jewelry box builds are *so* pretty. The hardware stores sometimes carry those divided craft boxes too — perfect for organizing internal components. 🧰",
+    "parentId": "wc9",
+    "createdAt": "2026-02-25T15:00:00Z"
+  },
+  {
+    "id": "wc11",
+    "articleId": "w8",
+    "authorId": "divine_circuitry",
+    "content": "The BBQ20KBD recommendation is solid — I've used one in three builds now. Just a heads up: they're currently **out of stock** at Solder Party due to the BlackBerry keyboard shortage. Check r/Instructables for DIY versions using Q20 keyboards from eBay. ⌨️",
+    "parentId": null,
+    "createdAt": "2026-03-01T10:30:00Z"
+  },
+  {
+    "id": "wc12",
+    "articleId": "w8",
+    "authorId": "glitchgrl",
+    "content": "Question: has anyone used the **Corne** keyboard in a build? It looks amazing but the split design seems tricky to fit inside a case. Asking for a friend (who is definitely me) 😅",
+    "parentId": null,
+    "createdAt": "2026-03-05T17:00:00Z"
+  },
+  {
+    "id": "wc13",
+    "articleId": "w8",
+    "authorId": "divine_circuitry",
+    "content": "Corne is totally doable! I've seen builds using the Pro Micro version with nice!nano controllers that fit in glasses cases. The tough part is routing the TRRS cables cleanly. Would love to see a write-up if you attempt it! 🔥",
+    "parentId": "wc12",
+    "createdAt": "2026-03-05T18:00:00Z"
+  }
+]

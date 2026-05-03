@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
 import * as schema from "../../../db/schema";
+import { checkPublishingGate } from "../../../lib/publishing-gate";
 
 /**
  * POST /api/forum/threads
@@ -17,6 +18,14 @@ export const POST: APIRoute = async (ctx) => {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // Check publishing gate (guidelines acceptance)
+  const db = ctx.locals.db;
+  const userId = ctx.locals.user.id;
+  const gateResponse = await checkPublishingGate(db, userId);
+  if (gateResponse) {
+    return gateResponse;
   }
 
   // Parse and validate request body
@@ -52,8 +61,6 @@ export const POST: APIRoute = async (ctx) => {
     });
   }
 
-  const db = ctx.locals.db;
-  const userId = ctx.locals.user.id;
   const now = Math.floor(Date.now() / 1000);
 
   // Generate slugs for thread and first post

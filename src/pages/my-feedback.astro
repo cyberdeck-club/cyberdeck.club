@@ -1,0 +1,202 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { fetchUserFeedbackIssues } from "../lib/github-feedback";
+import type { FeedbackIssue } from "../lib/github-feedback";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+
+// Redirect to login if not authenticated
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+// Fetch user's feedback issues from GitHub
+const issues = await fetchUserFeedbackIssues(user.name);
+
+// Separate open and closed
+const openIssues = issues.filter((i) => i.state === "open");
+const closedIssues = issues.filter((i) => i.state === "closed");
+
+// Date formatter
+function formatDate(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(iso));
+}
+
+// Filter out system labels
+function getDisplayLabels(labels: string[]): string[] {
+  return labels.filter(
+    (label) =>
+      label !== "feedback" &&
+      label !== "from-widget" &&
+      !label.startsWith("user:")
+  );
+}
+---
+
+<BaseLayout title="My Feedback">
+  <main class="mx-auto max-w-3xl px-4 md:px-8 py-16">
+    <!-- Page header -->
+    <div class="mb-12">
+      <p
+        class="font-pixel text-[length:var(--fs-eyebrow)] uppercase tracking-widest text-text-muted mb-3"
+      >
+        YOUR FEEDBACK
+      </p>
+      <h1 class="font-display font-extrabold text-[length:var(--fs-h2)] mb-4">
+        My Feedback
+      </h1>
+      <p class="font-sans text-[length:var(--fs-lead)] text-text-muted">
+        Here's what you've shared with us and where things stand.
+      </p>
+    </div>
+
+    {issues.length > 0 ? (
+      <>
+        <!-- Stats summary -->
+        <div class="mb-8">
+          <span
+            class="inline-flex items-center gap-2 px-4 py-2 bg-surface border-2 border-border rounded-sm font-pixel text-[11px] uppercase tracking-wider text-text-muted"
+          >
+            {openIssues.length} open · {closedIssues.length} resolved
+          </span>
+        </div>
+
+        <!-- Open issues -->
+        {openIssues.length > 0 && (
+          <section class="mb-12">
+            <h2
+              class="font-display font-bold text-xl mb-6 pb-2 border-b-2 border-border"
+            >
+              Open
+            </h2>
+            <div class="space-y-4">
+              {openIssues.map((issue: FeedbackIssue) => (
+                <article
+                  class="bg-surface border-3 border-border rounded-sm shadow-[4px_4px_0_0_var(--shadow-hard)] p-6"
+                >
+                  <div class="flex flex-wrap items-start justify-between gap-4 mb-3">
+                    <h3 class="font-display font-bold text-lg">
+                      <a
+                        href={issue.htmlUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-text hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                      >
+                        {issue.title}
+                      </a>
+                    </h3>
+                    <span
+                      class="shrink-0 px-3 py-1 bg-signal text-ink-950 border-2 border-border rounded-sm font-pixel text-[11px] uppercase tracking-wider"
+                    >
+                      Open
+                    </span>
+                  </div>
+                  <div
+                    class="flex flex-wrap items-center gap-4 text-sm text-text-muted font-sans"
+                  >
+                    <span>Submitted {formatDate(issue.createdAt)}</span>
+                    {issue.commentsCount > 0 && (
+                      <span class="flex items-center gap-1">
+                        💬 {issue.commentsCount} comment
+                        {issue.commentsCount !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                  {getDisplayLabels(issue.labels).length > 0 && (
+                    <div class="flex flex-wrap gap-2 mt-4">
+                      {getDisplayLabels(issue.labels).map((label) => (
+                        <span
+                          class="px-2 py-0.5 bg-secondary-200 text-ink-800 border-2 border-border rounded-sm font-pixel text-[11px] uppercase tracking-wider"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <!-- Resolved issues -->
+        {closedIssues.length > 0 && (
+          <section>
+            <h2
+              class="font-display font-bold text-xl mb-6 pb-2 border-b-2 border-border"
+            >
+              Resolved
+            </h2>
+            <div class="space-y-4">
+              {closedIssues.map((issue: FeedbackIssue) => (
+                <article
+                  class="bg-surface border-3 border-border rounded-sm shadow-[2px_2px_0_0_var(--shadow-hard)] p-6 opacity-80"
+                >
+                  <div class="flex flex-wrap items-start justify-between gap-4 mb-3">
+                    <h3 class="font-display font-bold text-lg">
+                      <a
+                        href={issue.htmlUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-text hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                      >
+                        {issue.title}
+                      </a>
+                    </h3>
+                    <span
+                      class="shrink-0 px-3 py-1 bg-surface-alt text-text-muted border-2 border-border rounded-sm font-pixel text-[11px] uppercase tracking-wider"
+                    >
+                      Resolved
+                    </span>
+                  </div>
+                  <div
+                    class="flex flex-wrap items-center gap-4 text-sm text-text-muted font-sans"
+                  >
+                    <span>Submitted {formatDate(issue.createdAt)}</span>
+                    {issue.commentsCount > 0 && (
+                      <span class="flex items-center gap-1">
+                        💬 {issue.commentsCount} comment
+                        {issue.commentsCount !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                  {getDisplayLabels(issue.labels).length > 0 && (
+                    <div class="flex flex-wrap gap-2 mt-4">
+                      {getDisplayLabels(issue.labels).map((label) => (
+                        <span
+                          class="px-2 py-0.5 bg-secondary-200 text-ink-800 border-2 border-border rounded-sm font-pixel text-[11px] uppercase tracking-wider"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+      </>
+    ) : (
+      <!-- Empty state -->
+      <div
+        class="text-center py-16 px-8 bg-surface border-3 border-border rounded-sm shadow-[4px_4px_0_0_var(--shadow-hard)]"
+      >
+        <div class="text-5xl mb-6">💬</div>
+        <h2 class="font-display font-bold text-2xl mb-4">
+          No feedback yet
+        </h2>
+        <p class="font-sans text-[length:var(--fs-lead)] text-text-muted max-w-md mx-auto">
+          When you share something with us using the feedback button, it'll show
+          up here.
+        </p>
+      </div>
+    )}
+  </main>
+</BaseLayout>

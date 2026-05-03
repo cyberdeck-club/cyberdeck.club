@@ -94,13 +94,13 @@ const { title, subtitle, linkText, linkHref } = Astro.props;
   }
 
   /* Dark mode */
-  :global(html.dark) .section-title {
+  :global([data-theme="dark"]) .section-title {
     color: var(--color-secondary);
     border-color: var(--color-secondary);
     box-shadow: 4px 4px 0 var(--color-secondary);
   }
 
-  :global(html.dark) .section-subtitle {
+  :global([data-theme="dark"]) .section-subtitle {
     color: var(--text-muted);
   }
 

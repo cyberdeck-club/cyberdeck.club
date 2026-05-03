@@ -11,19 +11,18 @@ import { getWikiCategories } from "@/lib/wiki";
 // Server-rendered page
 export const prerender = false;
 
-// Role values for permission checking
+// Role values for permission checking - wiki article creation requires maker role or above
 const ROLE_VALUES = {
-  subscriber: 10,
-  contributor: 20,
-  author: 30,
-  editor: 40,
-  admin: 50,
+  member: 10,
+  maker: 20,
+  moderator: 30,
+  admin: 40,
 } as const;
 
 type Role = keyof typeof ROLE_VALUES;
 
 function getUserRole(user: any): Role {
-  if (!user) return "subscriber";
+  if (!user) return "member";
   if (typeof user.role === "string") {
     const role = user.role.toLowerCase() as Role;
     if (role in ROLE_VALUES) return role;
@@ -33,7 +32,7 @@ function getUserRole(user: any): Role {
       if (user.role === value) return r as Role;
     }
   }
-  return "subscriber";
+  return "member";
 }
 
 function hasMinRole(user: any, minRole: Role): boolean {
@@ -44,7 +43,8 @@ function hasMinRole(user: any, minRole: Role): boolean {
 
 // Get user from Astro.locals
 const user = Astro.locals.user;
-const canCreate = hasMinRole(user, "contributor");
+// Only maker, moderator, or admin can create wiki articles
+const canCreate = hasMinRole(user, "maker");
 
 // Fetch categories from database
 const db = Astro.locals.db!;
@@ -62,7 +62,7 @@ const categories = categoriesResult.map(cat => ({
 <WikiLayout title="Wiki" description="The knowledge base for cyberdeck builders">
   <div class="wiki-hero">
   <h1 class="wiki-title">Wiki ✨</h1>
-  <p class="wiki-subtitle">The knowledge base for cyberdeck builders</p>
+  <p class="wiki-subtitle">Get your bearings here</p>
 </div>
 
 <div class="wiki-container">
@@ -122,22 +122,17 @@ const categories = categoriesResult.map(cat => ({
     content: "";
     position: absolute;
     inset: 0;
-    background: repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 10px,
-      rgba(255,255,255,0.05) 10px,
-      rgba(255,255,255,0.05) 20px
-    );
+    /* Gradient pattern removed - DESIGN.md §14 forbids gradients */
     pointer-events: none;
   }
 
   .wiki-title {
+    font-family: var(--font-display);
     font-size: 3.5rem;
-    font-weight: 900;
-    color: white;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--text-inverse);
     margin: 0 0 0.75rem 0;
-    text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
     letter-spacing: -0.02em;
     line-height: 1;
     position: relative;
@@ -147,7 +142,7 @@ const categories = categoriesResult.map(cat => ({
   .wiki-subtitle {
     font-size: 1.25rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
+    color: var(--text-inverse);
     margin: 0;
     position: relative;
     z-index: 1;
@@ -178,7 +173,7 @@ const categories = categoriesResult.map(cat => ({
 
   .category-card {
     background: var(--surface);
-    border: 4px solid var(--text);
+    border: 4px solid var(--border);
     border-radius: 0;
     padding: 2rem;
     text-decoration: none;
@@ -187,7 +182,12 @@ const categories = categoriesResult.map(cat => ({
     position: relative;
     display: flex;
     flex-direction: column;
-    box-shadow: 6px 6px 0 var(--text);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .category-card:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
   }
 
   .category-card:hover {
@@ -225,7 +225,7 @@ const categories = categoriesResult.map(cat => ({
   .start-here-badge {
     display: inline-block;
     padding: 0.25rem 0.625rem;
-    background: var(--color-pop-mint);
+    background: var(--color-accent);
     color: var(--text);
     font-size: 0.6875rem;
     font-weight: 800;

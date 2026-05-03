@@ -1,127 +1,184 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
-@plugin "tailwind-scrollbar-hide";
 
-/* Enable class-based dark mode for Tailwind v4 */
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Light mode (default) */
+:root,
+[data-theme="light"] {
+  --bg:           var(--color-surface-50);
+  --surface:      var(--color-surface-100);
+  --surface-alt:  var(--color-secondary-100);
+  --text:         var(--color-ink-800);
+  --text-muted:   var(--color-ink-600);
+  --text-inverse: var(--color-surface-50);
+  --border:       var(--color-ink-900);
+  --focus:        var(--color-secondary-600);
+  --shadow-hard:  var(--color-ink-900);
+}
+
+/* Dark mode — femme-coded, NOT terminal-coded */
+[data-theme="dark"] {
+  --bg:           var(--color-surface-950);
+  --surface:      var(--color-secondary-950);
+  --surface-alt:  var(--color-ink-800);
+  --text:         var(--color-surface-100);
+  --text-muted:   var(--color-surface-400);
+  --text-inverse: var(--color-ink-900);
+  --border:       var(--color-surface-100);
+  --focus:        var(--color-primary-400);
+  --shadow-hard:  var(--color-surface-100);
+}
+
+@theme inline {
+  /* Semantic tokens */
+  --color-bg:          var(--bg);
+  --color-surface:     var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-text:        var(--text);
+  --color-text-muted:  var(--text-muted);
+  --color-text-inverse:var(--text-inverse);
+  --color-border:      var(--border);
+  --color-focus:       var(--focus);
+  --color-shadow-hard: var(--shadow-hard);
+
+  /* Legacy/component variables for backward compatibility */
+  --color-surface-light:  var(--color-surface-100);
+  --color-surface-dark:   var(--color-surface-900);
+  --color-border-light:   var(--color-ink-900);
+  --color-border-dark:    var(--color-surface-100);
+  --color-text-light:     var(--color-ink-800);
+  --color-text-dark:      var(--color-surface-100);
+  --color-bg-dark:        var(--color-surface-950);
+  --color-primary-hover:  var(--color-primary-500);
+  --color-primary:        var(--color-primary-600);
+  --color-secondary:      var(--color-secondary-500);
+  --color-accent:         var(--color-accent-500);
+  --color-pop-mint:       var(--color-accent-300);
+  --color-pop-sky:        var(--color-secondary-300);
+  --color-pop-lemon:      var(--color-accent-200);
+}
 
 @theme {
-  /* Typography */
-  --font-sans: "InterVariable", sans-serif;
-
-  /* Base colors */
-  --color-white: oklch(0.991 0.012 91.5);
-  --color-black: oklch(0 0 0);
-
   /* ============================================
-     GIRLIE POP COLOR PALETTE
-     Hot pink, electric lavender, warm coral, mint sparkles
+     PALETTE RAMPS — cyberdeck.club Design System
+     See DESIGN.md §2.2 for full documentation
      ============================================ */
 
-  /* Primary - Hot Pink/Magenta */
-  --color-primary: oklch(65% 0.25 340);
-  --color-primary-hover: oklch(70% 0.22 340);
+  /* === PRIMARY — coral-pink, hue ~14–22 === */
+  --color-primary-50:  oklch(0.971 0.013 17);
+  --color-primary-100: oklch(0.936 0.038 15);
+  --color-primary-200: oklch(0.885 0.075 14);
+  --color-primary-300: oklch(0.808 0.130 14);
+  --color-primary-400: oklch(0.722 0.190 16);
+  --color-primary-500: oklch(0.660 0.220 18);
+  --color-primary-600: oklch(0.590 0.230 20);
+  --color-primary-700: oklch(0.510 0.205 22);
+  --color-primary-800: oklch(0.445 0.175 22);
+  --color-primary-900: oklch(0.395 0.140 22);
+  --color-primary-950: oklch(0.260 0.092 24);
 
-  /* Secondary - Electric Lavender */
-  --color-secondary: oklch(70% 0.18 290);
+  /* === SECONDARY — lavender / lilac, hue ~300–305 === */
+  --color-secondary-50:  oklch(0.977 0.014 305);
+  --color-secondary-100: oklch(0.946 0.033 305);
+  --color-secondary-200: oklch(0.902 0.063 305);
+  --color-secondary-300: oklch(0.827 0.110 305);
+  --color-secondary-400: oklch(0.738 0.165 302);
+  --color-secondary-500: oklch(0.660 0.205 300);
+  --color-secondary-600: oklch(0.572 0.235 300);
+  --color-secondary-700: oklch(0.496 0.215 302);
+  --color-secondary-800: oklch(0.438 0.180 304);
+  --color-secondary-900: oklch(0.385 0.145 305);
+  --color-secondary-950: oklch(0.270 0.110 305);
 
-  /* Accent - Warm Coral/Peach */
-  --color-accent: oklch(75% 0.15 25);
+  /* === ACCENT — honey / warm gold, hue ~78–95 === */
+  --color-accent-50:  oklch(0.987 0.022 95);
+  --color-accent-100: oklch(0.962 0.058 95);
+  --color-accent-200: oklch(0.924 0.115 92);
+  --color-accent-300: oklch(0.878 0.165 90);
+  --color-accent-400: oklch(0.828 0.185 86);
+  --color-accent-500: oklch(0.770 0.180 82);
+  --color-accent-600: oklch(0.665 0.175 75);
+  --color-accent-700: oklch(0.555 0.150 68);
+  --color-accent-800: oklch(0.475 0.125 62);
+  --color-accent-900: oklch(0.415 0.105 58);
+  --color-accent-950: oklch(0.285 0.075 55);
 
-  /* Sparkle colors for decorative elements */
-  --color-pop-mint: oklch(80% 0.12 170);
-  --color-pop-sky: oklch(80% 0.12 230);
-  --color-pop-lemon: oklch(88% 0.12 95);
+  /* === SURFACE — cream / warm-white, hue ~75–80 === */
+  --color-surface-50:  oklch(0.985 0.008 80);
+  --color-surface-100: oklch(0.965 0.014 80);
+  --color-surface-200: oklch(0.928 0.020 78);
+  --color-surface-300: oklch(0.875 0.024 76);
+  --color-surface-400: oklch(0.760 0.028 74);
+  --color-surface-500: oklch(0.620 0.030 72);
+  --color-surface-600: oklch(0.500 0.032 70);
+  --color-surface-700: oklch(0.395 0.035 65);
+  --color-surface-800: oklch(0.310 0.038 60);
+  --color-surface-900: oklch(0.235 0.040 50);
+  --color-surface-950: oklch(0.165 0.042 40);
 
-  /* Background colors - Light mode (warm cream) */
-  --color-bg-light: oklch(98% 0.01 80);
-  --color-surface-light: oklch(95% 0.01 80);
+  /* === INK — deep plum (NEVER pure black), hue ~350–358 === */
+  --color-ink-50:  oklch(0.972 0.008 355);
+  --color-ink-100: oklch(0.930 0.014 355);
+  --color-ink-200: oklch(0.870 0.022 354);
+  --color-ink-300: oklch(0.770 0.030 352);
+  --color-ink-400: oklch(0.610 0.045 350);
+  --color-ink-500: oklch(0.460 0.060 350);
+  --color-ink-600: oklch(0.360 0.072 350);
+  --color-ink-700: oklch(0.280 0.078 352);
+  --color-ink-800: oklch(0.220 0.075 354);
+  --color-ink-900: oklch(0.170 0.065 355);
+  --color-ink-950: oklch(0.120 0.045 358);
 
-  /* Background colors - Dark mode (deep plum/midnight purple) */
-  --color-bg-dark: oklch(18% 0.02 320);
-  --color-surface-dark: oklch(22% 0.02 320);
-
-  /* Border colors - Neobrutalist boldness */
-  --color-border-light: oklch(70% 0.12 340);
-  --color-border-dark: oklch(35% 0.08 320);
-
-  /* Text colors */
-  --color-text-light: oklch(25% 0.02 50);
-  --color-text-dark: oklch(92% 0.01 80);
+  /* === STATUS (closed set) === */
+  --color-signal:  oklch(0.72 0.17 155);
+  --color-warn:    oklch(0.75 0.16 65);
+  --color-danger:  oklch(0.58 0.22 18);
+  --color-info:    oklch(0.65 0.14 260);
 
   /* ============================================
-     ELLA MAE COMPATIBILITY SHADES
-     (Keeping for component compatibility)
+     TYPOGRAPHY
      ============================================ */
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans:    "General Sans", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+  --font-pixel:   "Departure Mono", monospace;
 
-  /* Secondary palette (warm grays - now with pink undertone) */
-  --color-secondary-50: oklch(0.97 0.01 340);
-  --color-secondary-100: oklch(0.93 0.02 340);
-  --color-secondary-200: oklch(0.86 0.04 340);
-  --color-secondary-300: oklch(0.79 0.08 340);
-  --color-secondary-400: oklch(0.71 0.12 340);
-  --color-secondary-500: oklch(65% 0.18 340);
-  --color-secondary-600: oklch(55% 0.15 340);
-  --color-secondary-700: oklch(45% 0.12 340);
-  --color-secondary-800: oklch(35% 0.08 320);
-  --color-secondary-900: oklch(25% 0.05 320);
-  --color-secondary-950: oklch(18% 0.03 320);
+  /* === FLUID TYPE SCALE (16px base, 1.25 ratio) === */
+  --fs-eyebrow: 0.6875rem;
+  --fs-small:   0.8125rem;
+  --fs-body:    1rem;
+  --fs-lead:    1.125rem;
+  --fs-h4:      1.5rem;
+  --fs-h3:      clamp(1.75rem, 2.5vw, 2.25rem);
+  --fs-h2:      clamp(2.25rem, 4vw, 3.5rem);
+  --fs-h1:      clamp(3rem, 7vw, 6rem);
 
-  /* Accent palette (lavender/purple tones) */
-  --color-accent-50: oklch(0.97 0.01 290);
-  --color-accent-100: oklch(0.93 0.02 290);
-  --color-accent-200: oklch(0.86 0.04 290);
-  --color-accent-300: oklch(0.79 0.08 290);
-  --color-accent-400: oklch(0.71 0.12 285);
-  --color-accent-500: oklch(70% 0.18 290);
-  --color-accent-600: oklch(60% 0.15 290);
-  --color-accent-700: oklch(50% 0.12 290);
-  --color-accent-800: oklch(38% 0.08 320);
-  --color-accent-900: oklch(28% 0.05 320);
-  --color-accent-950: oklch(20% 0.03 320);
+  /* ============================================
+     BORDER RADIUS
+     ============================================ */
+  --radius-sm:   0.25rem;
+  --radius-md:   0.5rem;
+  --radius-full: 9999px;
 
-  /* Base palette (warm cream/peach tones) */
-  --color-base-50: oklch(0.98 0.005 80);
-  --color-base-100: oklch(0.95 0.008 80);
-  --color-base-200: oklch(0.90 0.012 75);
-  --color-base-300: oklch(0.85 0.015 70);
-  --color-base-400: oklch(0.75 0.012 70);
-  --color-base-500: oklch(65% 0.01 65);
-  --color-base-600: oklch(55% 0.008 65);
-  --color-base-700: oklch(45% 0.006 65);
-  --color-base-800: oklch(35% 0.004 320);
-  --color-base-900: oklch(25% 0.003 320);
-  --color-base-950: oklch(18% 0.002 320);
+  /* ============================================
+     HARD OFFSET SHADOWS — neobrutalist tell
+     NEVER use soft/blurred shadows
+     ============================================ */
+  --shadow-brut-sm:      3px 3px 0 0 var(--shadow-hard);
+  --shadow-brut:         4px 4px 0 0 var(--shadow-hard);
+  --shadow-brut-lg:      6px 6px 0 0 var(--shadow-hard);
+  --shadow-brut-xl:      8px 8px 0 0 var(--shadow-hard);
+  --shadow-brut-pressed:  1px 1px 0 0 var(--shadow-hard);
 
-  /* Shadows */
-  --shadow-xs: 0px 1.5px;
-  --shadow-sm: 0px 3px;
-  --shadow: 0px 5px;
-  --shadow-lg: 0px 10px;
-
-  /* Keyframes */
-  --animate-marquee: marquee 12s linear infinite;
-  --animate-rightMarquee: rightMarquee 300s linear infinite;
-  --animate-slowMarquee: marquee 300s linear infinite;
-
-  @keyframes marquee {
-    0% {
-      transform: translateX(0%);
-    }
-    100% {
-      transform: translateX(-100%);
-    }
-  }
-
-  @keyframes rightMarquee {
-    0% {
-      transform: translateX(0%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
-  }
+  /* ============================================
+     BREAKPOINTS
+     ============================================ */
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
 }
 
 /* ============================================
@@ -129,41 +186,64 @@
    ============================================ */
 
 :root {
-  font-family: Inter, sans-serif;
-  font-feature-settings: 'liga' 1, 'calt' 1; /* fix for Chrome */
+  font-family: var(--font-sans);
 }
 
-@supports (font-variation-settings: normal) {
-  :root { font-family: InterVariable, sans-serif; }
+::selection {
+  background-color: var(--color-primary-300);
+  color: var(--color-ink-900);
 }
 
-/* Light mode (default) */
-:root,
-.light {
-  --bg: var(--color-bg-light);
-  --surface: var(--color-surface-light);
-  --border: var(--color-border-light);
-  --text: var(--color-text-light);
-  --text-muted: oklch(45% 0.01 50);
-  --accent: var(--color-accent);
-  --accent-border: var(--color-accent);
-  --accent-bg: var(--color-accent);
-  background-color: var(--bg);
-  color: var(--text);
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-/* Dark mode */
-.dark {
-  --bg: var(--color-bg-dark);
-  --surface: var(--color-surface-dark);
-  --border: var(--color-border-dark);
-  --text: var(--color-text-dark);
-  --text-muted: oklch(65% 0.01 290);
-  --accent: var(--color-accent-800);
-  --accent-border: var(--color-accent-800);
-  --accent-bg: var(--color-accent-900);
-  background-color: var(--bg);
-  color: var(--text);
+::-webkit-scrollbar-track {
+  background: var(--color-surface-100);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-secondary-400);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-400);
+}
+
+/* ============================================
+   ACCESSIBILITY - FOCUS STATES
+   ============================================ */
+
+*:focus-visible {
+  outline: none;
+  ring: 2px solid var(--focus);
+  ring-offset: 2px;
+}
+
+/* Skip to content link for screen readers */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-primary-600);
+  color: var(--color-ink-950);
+  padding: 0.5rem 1rem;
+  z-index: 1000;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  transition: top 200ms ease;
+}
+
+.skip-link:focus {
+  top: 0;
 }
 
 /* ============================================
@@ -178,202 +258,147 @@ body {
   transition: background-color 200ms ease, color 200ms ease;
 }
 
-/* Selection colors */
-.light ::selection,
-:root ::selection {
-  background-color: var(--color-primary);
-  color: white;
-}
-
-.dark ::selection {
-  background-color: var(--color-primary);
-  color: white;
-}
-
 /* ============================================
-   CUSTOM SCROLLBAR
+   DECORATIVE BACKGROUND PATTERNS
+   Grid, glows, and floating shapes
    ============================================ */
 
-.light ::-webkit-scrollbar,
-:root::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-.light ::-webkit-scrollbar-track,
-:root::-webkit-scrollbar-track {
-  background: var(--color-surface-light);
-}
-
-.light ::-webkit-scrollbar-thumb,
-:root::-webkit-scrollbar-thumb {
-  background: var(--color-secondary-400);
-  border-radius: 4px;
-}
-
-.light ::-webkit-scrollbar-thumb:hover,
-:root::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
-}
-
-.dark ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-.dark ::-webkit-scrollbar-track {
-  background: var(--color-surface-dark);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: var(--color-secondary-700);
-  border-radius: 4px;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
-}
-
-/* ============================================
-   ACCESSIBILITY - FOCUS STATES
-   ============================================ */
-
-*:focus-visible {
-  outline: 3px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* Skip to content link for screen readers */
-.skip-link {
-  position: absolute;
-  top: -100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--color-primary);
-  color: white;
-  padding: 0.5rem 1rem;
-  z-index: 1000;
-  font-weight: 600;
-  border-radius: 0 0 8px 8px;
-  transition: top 200ms ease;
-}
-
-.skip-link:focus {
-  top: 0;
-}
-
-/* ============================================
-   DYNAMIC BACKGROUND DECORATIONS
-   Grid, glow orbs, and floating shapes from landing page
-   ============================================ */
-
-/* Grid overlay */
+/* Subtle dot grid pattern */
 .bg-grid {
   position: fixed;
   inset: 0;
-  background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 50px 50px;
-  opacity: 0.3;
-  pointer-events: none;
   z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(
+    circle,
+    var(--color-ink-200) 1px,
+    transparent 1px
+  );
+  background-size: 32px 32px;
+  opacity: 0.4;
 }
 
-.dark .bg-grid {
-  opacity: 0.35;
+[data-theme="dark"] .bg-grid {
+  background-image: radial-gradient(
+    circle,
+    var(--color-ink-600) 1px,
+    transparent 1px
+  );
+  opacity: 0.2;
 }
 
-/* Ambient glow orbs */
+/* Glow effects */
 .bg-glow {
   position: fixed;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  filter: blur(150px);
-  opacity: 0.4;
-  pointer-events: none;
   z-index: 0;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
 }
 
 .bg-glow-1 {
+  width: 600px;
+  height: 600px;
   top: -200px;
   right: -200px;
-  background: var(--color-primary);
+  background: var(--color-primary-300);
 }
 
 .bg-glow-2 {
-  bottom: -200px;
-  left: -200px;
-  background: var(--color-secondary);
+  width: 400px;
+  height: 400px;
+  bottom: -100px;
+  left: -100px;
+  background: var(--color-secondary-300);
+}
+
+[data-theme="dark"] .bg-glow-1 {
+  background: var(--color-primary-700);
+  opacity: 0.1;
+}
+
+[data-theme="dark"] .bg-glow-2 {
+  background: var(--color-secondary-700);
+  opacity: 0.1;
 }
 
 /* Floating decorative shapes */
 .floating-elements {
   position: fixed;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
-  z-index: 1;
   overflow: hidden;
 }
 
 .floating-shape {
   position: absolute;
-  border: 2px solid var(--border);
-  opacity: 0.5;
+  opacity: 0.08;
+}
+
+[data-theme="dark"] .floating-shape {
+  opacity: 0.05;
 }
 
 .shape-1 {
+  width: 120px;
+  height: 120px;
   top: 15%;
   left: 10%;
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
+  background: var(--color-primary-400);
   transform: rotate(15deg);
-  animation: bgFloat 6s ease-in-out infinite;
+  animation: float1 20s ease-in-out infinite;
 }
 
 .shape-2 {
-  top: 25%;
+  width: 80px;
+  height: 80px;
+  top: 60%;
   right: 15%;
-  width: 40px;
-  height: 40px;
+  background: var(--color-secondary-400);
   border-radius: 50%;
-  animation: bgFloat 8s ease-in-out infinite reverse;
+  transform: rotate(-20deg);
+  animation: float2 25s ease-in-out infinite;
 }
 
 .shape-3 {
+  width: 60px;
+  height: 60px;
   bottom: 20%;
-  left: 15%;
-  width: 80px;
-  height: 80px;
-  border-radius: 12px;
-  transform: rotate(-20deg);
-  animation: bgFloat 7s ease-in-out infinite;
+  left: 20%;
+  background: var(--color-accent-400);
+  transform: rotate(45deg);
+  animation: float3 18s ease-in-out infinite;
 }
 
 .shape-4 {
-  bottom: 30%;
-  right: 10%;
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  animation: bgFloat 5s ease-in-out infinite reverse;
+  width: 100px;
+  height: 100px;
+  top: 40%;
+  right: 8%;
+  background: var(--color-primary-300);
+  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+  transform: rotate(-10deg);
+  animation: float4 22s ease-in-out infinite;
 }
 
-@keyframes bgFloat {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(5deg); }
+@keyframes float1 {
+  0%, 100% { transform: rotate(15deg) translate(0, 0); }
+  50% { transform: rotate(25deg) translate(20px, 30px); }
 }
 
-.dark .shape-1 { border-color: var(--color-primary); opacity: 0.3; }
-.dark .shape-2 { border-color: var(--color-secondary); opacity: 0.3; }
-.dark .shape-3 { border-color: var(--color-primary); opacity: 0.2; }
-.dark .shape-4 { border-color: var(--color-secondary); opacity: 0.3; }
+@keyframes float2 {
+  0%, 100% { transform: rotate(-20deg) translate(0, 0); }
+  50% { transform: rotate(-10deg) translate(-30px, -20px); }
+}
 
-/* Hide floating shapes on small screens */
-@media (max-width: 640px) {
-  .floating-elements {
-    display: none;
-  }
+@keyframes float3 {
+  0%, 100% { transform: rotate(45deg) translate(0, 0); }
+  50% { transform: rotate(55deg) translate(15px, -25px); }
+}
+
+@keyframes float4 {
+  0%, 100% { transform: rotate(-10deg) scale(1); }
+  50% { transform: rotate(5deg) scale(1.1); }
 }

@@ -29,10 +29,10 @@ const {
 } = Astro.props;
 
 const statusConfig = {
-  "upcoming": { label: "Upcoming", bgColor: "var(--color-pop-mint)", textColor: "var(--color-text)" },
-  "in-progress": { label: "In Progress", bgColor: "var(--color-pop-lemon)", textColor: "var(--color-text)" },
-  "completed": { label: "Completed", bgColor: "var(--color-base-400)", textColor: "var(--color-white)" },
-  "cancelled": { label: "Cancelled", bgColor: "var(--color-accent)", textColor: "var(--color-white)" }
+  "upcoming": { label: "Upcoming", bgColor: "var(--color-accent-300)", textColor: "var(--text)" },
+  "in-progress": { label: "In Progress", bgColor: "var(--color-secondary-300)", textColor: "var(--text)" },
+  "completed": { label: "Completed", bgColor: "var(--color-ink-500)", textColor: "var(--text-inverse)" },
+  "cancelled": { label: "Cancelled", bgColor: "var(--color-danger)", textColor: "var(--text-inverse)" }
 };
 
 const statusStyle = statusConfig[status];
@@ -480,12 +480,12 @@ const formattedEndTime = dateEnd ? formatTime(dateEnd) : null;
   }
 
   /* Dark mode adjustments */
-  :global(html.dark) .hero-title {
+  :global([data-theme="dark"]) .hero-title {
     text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
   }
 
-  :global(html.dark) .description-card,
-  :global(html.dark) .sidebar-card {
+  :global([data-theme="dark"]) .description-card,
+  :global([data-theme="dark"]) .sidebar-card {
     border-color: var(--color-text);
   }
 

@@ -1,0 +1,536 @@
+---
+/**
+ * Community Guidelines Page
+ *
+ * Users must read and accept these guidelines before they can
+ * publish content (forum posts, builds, wiki articles, comments).
+ */
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { hasAcceptedGuidelines, CURRENT_GUIDELINES_VERSION } from "@/lib/guidelines";
+
+export const prerender = false;
+
+// Get user from locals (set by middleware)
+const user = Astro.locals.user;
+const db = Astro.locals.db;
+
+// Check if user has already accepted guidelines
+let alreadyAccepted = false;
+if (user && db) {
+  alreadyAccepted = await hasAcceptedGuidelines(db, user.id);
+}
+
+// Get redirect param for where to send user after acceptance
+const redirectTo = Astro.url.searchParams.get("redirect") ?? "/";
+
+// Get public Turnstile site key from environment
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "1x00000000000000000000AA";
+---
+
+<BaseLayout title="Community Guidelines - CyberDeck">
+  <div class="guidelines-page">
+    <div class="guidelines-container">
+      <div class="guidelines-header">
+        <span class="eyebrow">/// COMMUNITY GUIDELINES</span>
+        <h1 class="guidelines-title">Welcome to cyberdeck.club</h1>
+        <p class="guidelines-intro">
+          We're glad you're here. Before you jump into sharing builds, asking questions,
+          or posting in the forum, please take a moment to read through our community guidelines.
+        </p>
+      </div>
+
+      <div class="guidelines-content">
+        <section class="guideline-section">
+          <h2>Our Community Values</h2>
+          <p>
+            cyberdeck.club is a space for cyberdeck builders, hackers, and enthusiasts —
+            especially those who've historically been left out of tech and maker spaces.
+            Women, femmes, queer folks, beginners, and anyone who's ever been told "that's not
+            how it's done" are not just welcome here — this space was <em>built</em> for you.
+          </p>
+          <p>
+            We celebrate cyberdecks as aesthetic expression and creative self-defense.
+            Whether your build is a Polly Pocket with a Raspberry Pi inside, a vintage
+            clamshell compact, or a souped-up Pelican case — it counts. There are no
+            gatekeepers here.
+          </p>
+        </section>
+
+        <section class="guideline-section">
+          <h2>Be Excellent to Each Other</h2>
+          <ul>
+            <li>
+              <strong>Celebrate creativity, not specs.</strong> A cyberdeck is more than
+              its processor speed. Comment on what makes a build unique, not what it lacks.
+            </li>
+            <li>
+              <strong>Constructive feedback only.</strong> If someone asks for help, offer
+              solutions, not criticism. "Have you considered..." beats "Why would you..."
+            </li>
+            <li>
+              <strong>Respect pronouns and names.</strong> Use the display name someone
+              chooses. If you're unsure, ask politely.
+            </li>
+            <li>
+              <strong>No question is too basic.</strong> We were all beginners once.
+              Asking "how do I solder?" takes courage, not weakness.
+            </li>
+          </ul>
+        </section>
+
+        <section class="guideline-section">
+          <h2>What's Not Okay</h2>
+          <ul>
+            <li>
+              <strong>Harassment, discrimination, or exclusionary behavior</strong> —
+              including but not limited to racism, sexism, homophobia, transphobia,
+              ableism, or any form of hate speech.
+            </li>
+            <li>
+              <strong>Gatekeeping.</strong> Telling someone their cyberdeck "isn't a
+              real cyberdeck" is not cool. Different aesthetics, different skill levels,
+              different contexts — all valid.
+            </li>
+            <li>
+              <strong>Spam and self-promotion without contribution.</strong> Feel free to
+              share your builds, but don't just drop links and disappear.
+            </li>
+            <li>
+              <strong>Doxing or sharing personal information</strong> without consent.
+            </li>
+            <li>
+              <strong>Content that violates others' intellectual property.</strong> Credit
+              inspire-ers, attribute properly, and keep it original (or clearly mark
+              derivatives).
+            </li>
+          </ul>
+        </section>
+
+        <section class="guideline-section">
+          <h2>Privacy and Safety</h2>
+          <p>
+            Your privacy matters. We don't require real names, and we respect the choice
+            to stay anonymous. Don't push others to reveal more than they're comfortable
+            sharing.
+          </p>
+          <p>
+            If you see something that breaks these guidelines, flag it for moderators.
+            We take reports seriously and will respond appropriately.
+          </p>
+        </section>
+
+        <section class="guideline-section">
+          <h2>Keep It Warm</h2>
+          <p>
+            This isn't a corporate code of conduct. It's a bunch of makers, builders, and
+            creative weirdos trying to make cool things together. Be friendly. Be patient.
+            Be yourself (preferably the kind version).
+          </p>
+          <p>
+            Questions? Reach out to the mod team anytime. We're here to help.
+          </p>
+        </section>
+
+        <!-- Sentinel element for scroll detection -->
+        <div id="scroll-sentinel" class="scroll-sentinel" aria-hidden="true"></div>
+      </div>
+
+      <div class="guidelines-action">
+        {alreadyAccepted ? (
+          <div class="already-accepted">
+            <div class="success-icon">✓</div>
+            <h2>You're all set!</h2>
+            <p>
+              You've already accepted the community guidelines (version {CURRENT_GUIDELINES_VERSION}).
+              Thanks for being part of our community!
+            </p>
+            <a href={redirectTo} class="btn btn-primary">
+              Continue to {redirectTo === "/" ? "home" : "your content"}
+            </a>
+          </div>
+        ) : user ? (
+          <div class="acceptance-form">
+            <h2>Accept the Guidelines</h2>
+            <p class="acceptance-instructions">
+              Once you've read through the guidelines above and completed the verification,
+              click the button to confirm your acceptance.
+            </p>
+
+            <div class="turnstile-container">
+              <div class="cf-turnstile" data-sitekey={turnstileSiteKey} data-callback="onTurnstileSuccess"></div>
+            </div>
+
+            <button
+              type="button"
+              id="accept-btn"
+              class="btn btn-primary accept-btn"
+              disabled
+            >
+              I've read and accept these guidelines
+            </button>
+
+            <p class="acceptance-note">
+              This helps us keep the community safe from spam and ensures everyone
+              has a positive experience.
+            </p>
+          </div>
+        ) : (
+          <div class="login-prompt">
+            <h2>Sign in to accept the guidelines</h2>
+            <p>
+              You need to be signed in to accept the community guidelines and start
+              publishing content.
+            </p>
+            <a href={`/login?redirect=${encodeURIComponent(Astro.url.pathname)}`} class="btn btn-primary">
+              Sign in or Register
+            </a>
+            <p class="login-note">
+              We'll redirect you back here after you sign in.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script define:vars={{ redirectTo }}>
+  // Scroll detection via Intersection Observer
+  const sentinel = document.getElementById("scroll-sentinel");
+  const acceptBtn = document.getElementById("accept-btn");
+  let scrolledToBottom = false;
+  let turnstileToken = null;
+
+  if (sentinel && acceptBtn) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            scrolledToBottom = true;
+            updateButtonState();
+          }
+        });
+      },
+      { threshold: 1.0 }
+    );
+    observer.observe(sentinel);
+  }
+
+  // Turnstile callback
+  window.onTurnstileSuccess = (token) => {
+    turnstileToken = token;
+    updateButtonState();
+  };
+
+  function updateButtonState() {
+    if (acceptBtn) {
+      if (scrolledToBottom && turnstileToken) {
+        acceptBtn.removeAttribute("disabled");
+      } else {
+        acceptBtn.setAttribute("disabled", "true");
+      }
+    }
+  }
+
+  // Handle acceptance
+  if (acceptBtn) {
+    acceptBtn.addEventListener("click", async () => {
+      if (!turnstileToken) {
+        alert("Please complete the verification first.");
+        return;
+      }
+
+      acceptBtn.setAttribute("disabled", "true");
+      acceptBtn.textContent = "Accepting...";
+
+      try {
+        const res = await fetch("/api/guidelines/accept", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ turnstileToken }),
+        });
+
+        if (res.ok) {
+          // Redirect to intended destination
+          window.location.href = redirectTo;
+        } else {
+          const data = await res.json();
+          alert(data.error || "Something went wrong. Please try again.");
+          acceptBtn.removeAttribute("disabled");
+          acceptBtn.textContent = "I've read and accept these guidelines";
+        }
+      } catch (err) {
+        alert("Something went wrong. Please try again.");
+        acceptBtn.removeAttribute("disabled");
+        acceptBtn.textContent = "I've read and accept these guidelines";
+      }
+    });
+  }
+</script>
+
+<!-- Cloudflare Turnstile API -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<style>
+  .guidelines-page {
+    min-height: 100vh;
+    padding: 3rem 1rem;
+    background: var(--bg);
+  }
+
+  .guidelines-container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .guidelines-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .eyebrow {
+    font-family: var(--font-pixel);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: inline-block;
+    background: var(--color-secondary-200);
+    color: var(--text);
+    border: 2px solid var(--border);
+    padding: 4px 8px;
+    box-shadow: 3px 3px 0 var(--shadow-hard);
+    margin-bottom: 1rem;
+  }
+
+  .guidelines-title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1;
+    font-size: clamp(2rem, 5vw, 3rem);
+    color: var(--text);
+    margin: 0 0 1rem 0;
+    line-height: 1.1;
+  }
+
+  .guidelines-intro {
+    font-size: 1.125rem;
+    color: var(--text-muted);
+    max-width: 560px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .guidelines-content {
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .guideline-section {
+    margin-bottom: 2rem;
+  }
+
+  .guideline-section:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .guideline-section h2 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.375rem;
+    color: var(--text);
+    margin: 0 0 0.75rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .guideline-section p {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text);
+    margin: 0 0 1rem 0;
+  }
+
+  .guideline-section p:last-child {
+    margin-bottom: 0;
+  }
+
+  .guideline-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .guideline-section li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .guideline-section li::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: var(--color-primary-500);
+    font-weight: bold;
+  }
+
+  .guideline-section li:last-child {
+    margin-bottom: 0;
+  }
+
+  .guideline-section strong {
+    font-weight: 700;
+  }
+
+  .guideline-section em {
+    font-style: italic;
+  }
+
+  .scroll-sentinel {
+    height: 1px;
+    margin-top: 2rem;
+  }
+
+  .guidelines-action {
+    background: var(--surface-alt);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .guidelines-action h2 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: var(--text);
+    margin: 0 0 1rem 0;
+  }
+
+  .guidelines-action p {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin: 0 0 1rem 0;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 75ms, box-shadow 75ms;
+  }
+
+  .btn-primary {
+    background: var(--color-primary-600);
+    color: var(--color-ink-950);
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .btn-primary:active:not(:disabled) {
+    transform: translate(0, 0);
+    box-shadow: 1px 1px 0 var(--shadow-hard);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .accept-btn {
+    margin-top: 1.5rem;
+    font-size: 1rem;
+  }
+
+  .turnstile-container {
+    display: flex;
+    justify-content: center;
+    margin: 1.5rem 0;
+  }
+
+  .acceptance-instructions {
+    max-width: 480px;
+    margin: 0 auto 1rem auto;
+  }
+
+  .acceptance-note {
+    font-size: 0.875rem;
+    opacity: 0.7;
+    margin-top: 1rem;
+  }
+
+  .already-accepted {
+    text-align: center;
+  }
+
+  .success-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--color-signal);
+    color: var(--color-ink-950);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0 auto 1rem auto;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .login-prompt {
+    text-align: center;
+  }
+
+  .login-note {
+    font-size: 0.875rem;
+    opacity: 0.7;
+    margin-top: 1rem;
+  }
+
+  /* Dark mode adjustments */
+  :global([data-theme="dark"]) .guidelines-content {
+    box-shadow: 6px 6px 0 var(--color-primary-700);
+  }
+
+  :global([data-theme="dark"]) .guidelines-action {
+    box-shadow: 6px 6px 0 var(--color-primary-700);
+  }
+
+  :global([data-theme="dark"]) .eyebrow {
+    background: var(--color-secondary-800);
+    box-shadow: 3px 3px 0 var(--color-primary-700);
+  }
+
+  @media (max-width: 640px) {
+    .guidelines-page {
+      padding: 2rem 0.75rem;
+    }
+
+    .guidelines-content,
+    .guidelines-action {
+      padding: 1.5rem;
+    }
+  }
+</style>

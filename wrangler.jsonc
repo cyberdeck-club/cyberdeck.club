@@ -53,7 +53,13 @@
 			],
 			"vars": {
 				"PUBLIC_BASE_URL": "https://beta.cyberdeck.club"
-			}
+			},
+			"r2_buckets": [
+				{
+					"binding": "MEDIA",
+					"bucket_name": "cyberdeck-club-media"
+				}
+			]
 		}
 	},
 
@@ -75,12 +81,13 @@
       "persist": true,
       "head_sampling_rate": 1
     }
-  }
+  },
 
-	// "r2_buckets": [
-	//   {
-	//     "binding": "MEDIA",
-	//     "bucket_name": "cyberdeck-club-media",
-	//   },
-	// ],
+ // ─── Production R2 bucket ───────────────────────────────────────────
+ "r2_buckets": [
+  {
+  	"binding": "MEDIA",
+  	"bucket_name": "cyberdeck-club-media"
+  }
+ ]
 }

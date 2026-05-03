@@ -13,19 +13,18 @@ import { getWikiArticles, getWikiCategories } from "@/lib/wiki";
 // Server-rendered page
 export const prerender = false;
 
-// Role values for permission checking
+// Role values for permission checking - wiki article creation requires maker role or above
 const ROLE_VALUES = {
-  subscriber: 10,
-  contributor: 20,
-  author: 30,
-  editor: 40,
-  admin: 50,
+  member: 10,
+  maker: 20,
+  moderator: 30,
+  admin: 40,
 } as const;
 
 type Role = keyof typeof ROLE_VALUES;
 
 function getUserRole(user: any): Role {
-  if (!user) return "subscriber";
+  if (!user) return "member";
   if (typeof user.role === "string") {
     const role = user.role.toLowerCase() as Role;
     if (role in ROLE_VALUES) return role;
@@ -35,7 +34,7 @@ function getUserRole(user: any): Role {
       if (user.role === value) return r as Role;
     }
   }
-  return "subscriber";
+  return "member";
 }
 
 function hasMinRole(user: any, minRole: Role): boolean {
@@ -46,7 +45,8 @@ function hasMinRole(user: any, minRole: Role): boolean {
 
 // Get user from Astro.locals
 const user = Astro.locals.user;
-const canCreate = hasMinRole(user, "contributor");
+// Only maker, moderator, or admin can create wiki articles
+const canCreate = hasMinRole(user, "maker");
 
 // Get category from URL params
 const { category } = Astro.params;
@@ -168,9 +168,9 @@ const articles = articlesResult.map(({ article, authorName }) => ({
   }
 
   .new-to-wiki-prompt {
-    background: var(--color-pop-mint);
-    border: 2px solid var(--color-pop-mint);
-    border-radius: 8px;
+    background: var(--color-accent);
+    border: 2px solid var(--color-accent);
+    border-radius: 4px;
     padding: 1rem 1.25rem;
     margin-top: 2rem;
   }

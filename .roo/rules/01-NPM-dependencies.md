@@ -1,0 +1,1 @@
+When adding or removing npm dependencies from a node/ts project, NEVER directly write to package.json. ALWAYS use npm to first check latest version, then to install/uninstall. Direct writing to package.json will often hallucinate version numbers or be out of date.

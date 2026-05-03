@@ -3,6 +3,7 @@
  * Export all React components for wiki inline editing functionality.
  */
 
+export { WikiCommentForm } from './CommentForm';
 export { CreateArticleButton } from './CreateArticleButton';
 export { DeleteConfirmationModal } from './DeleteConfirmationModal';
 export { InlineEditor } from './InlineEditor';

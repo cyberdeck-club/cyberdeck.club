@@ -10,6 +10,7 @@ import { getForumCategories } from "@/lib/forum";
 export const prerender = false;
 
 const db = Astro.locals.db!;
+const user = Astro.locals.user;
 const categoriesResult = await getForumCategories(db);
 const categories = categoriesResult.map((cat) => ({
   slug: cat.slug,
@@ -28,8 +29,18 @@ const categories = categoriesResult.map((cat) => ({
   <div class="forum-landing">
     <!-- Hero Section -->
     <header class="forum-hero">
-      <h1 class="forum-title">Forum ✨</h1>
-      <p class="forum-subtitle">Join the conversation</p>
+      <div class="hero-content">
+        <h1 class="forum-title">Forum ✨</h1>
+        <p class="forum-subtitle">Join the conversation</p>
+      </div>
+      {user && (
+        <a href="/forum/new" class="new-thread-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Start a Thread
+        </a>
+      )}
     </header>
 
     <!-- Categories Grid -->
@@ -62,7 +73,7 @@ const categories = categoriesResult.map((cat) => ({
       <div class="cta-content">
         <h2 class="cta-title">Ready to dive in?</h2>
         <p class="cta-text">
-          Join thousands of cyberdeck builders sharing builds, helping each other, and pushing the limits of portable computing.
+          Join cyberdeck builders sharing builds, helping each other, and exploring what's possible with portable computing.
         </p>
         <a href="/forum/introductions" class="cta-button">
           Introduce Yourself →
@@ -86,12 +97,13 @@ const categories = categoriesResult.map((cat) => ({
   }
 
   .forum-title {
-    font-size: 3rem;
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(2.5rem, 6vw, 4rem);
     color: var(--text);
     margin: 0 0 0.5rem;
-    line-height: 1.1;
-    text-transform: uppercase;
+    line-height: 1.05;
     letter-spacing: -0.02em;
   }
 
@@ -122,12 +134,12 @@ const categories = categoriesResult.map((cat) => ({
     gap: 1rem;
     padding: 1.75rem;
     background: var(--surface);
-    border: 4px solid var(--color-primary);
-    border-radius: 12px;
+    border: 3px solid var(--border);
+    border-radius: 4px;
     text-decoration: none;
     color: var(--text);
     transition: all 0.2s ease;
-    box-shadow: 6px 6px 0 var(--color-primary);
+    box-shadow: 4px 4px 0 var(--shadow-hard);
   }
 
   .category-card:hover {
@@ -137,9 +149,9 @@ const categories = categoriesResult.map((cat) => ({
   }
 
   .category-card.highlighted {
-    background: var(--color-pop-mint);
-    border-color: var(--color-secondary);
-    box-shadow: 8px 8px 0 var(--color-secondary);
+    background: var(--color-accent);
+    border-color: var(--border);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
   }
 
   .highlight-badge {
@@ -148,10 +160,10 @@ const categories = categoriesResult.map((cat) => ({
     right: 1rem;
     padding: 0.4rem 0.85rem;
     background: var(--color-secondary);
-    color: white;
+    color: var(--text-inverse);
     font-size: 0.7rem;
     font-weight: 800;
-    border-radius: 8px;
+    border-radius: 4px;
     white-space: nowrap;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -180,10 +192,10 @@ const categories = categoriesResult.map((cat) => ({
     flex-shrink: 0;
     padding: 0.3rem 0.7rem;
     background: var(--color-secondary);
-    color: white;
+    color: var(--text-inverse);
     font-size: 0.65rem;
     font-weight: 800;
-    border-radius: 6px;
+    border-radius: 4px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     border: 2px solid var(--text);
@@ -228,9 +240,9 @@ const categories = categoriesResult.map((cat) => ({
     padding: 4rem 3rem;
     background: var(--color-secondary);
     border: 4px solid var(--text);
-    border-radius: 16px;
+    border-radius: 4px;
     text-align: center;
-    box-shadow: 10px 10px 0 var(--color-primary);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
   }
 
   .cta-content {
@@ -239,17 +251,18 @@ const categories = categoriesResult.map((cat) => ({
   }
 
   .cta-title {
-    font-size: 2rem;
-    font-weight: 800;
-    color: white;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 400;
+    color: var(--text-inverse);
     margin: 0 0 0.75rem;
-    text-transform: uppercase;
     letter-spacing: -0.02em;
   }
 
   .cta-text {
     font-size: 1.05rem;
-    color: rgba(255, 255, 255, 0.95);
+    color: var(--text-inverse);
     margin: 0 0 2rem;
     line-height: 1.6;
     font-weight: 500;
@@ -258,23 +271,82 @@ const categories = categoriesResult.map((cat) => ({
   .cta-button {
     display: inline-block;
     padding: 1rem 2.5rem;
-    background: white;
-    color: var(--color-secondary);
+    background: var(--surface);
+    color: var(--text);
     font-weight: 800;
     font-size: 1rem;
     text-decoration: none;
-    border: 4px solid var(--text);
-    border-radius: 10px;
+    border: 3px solid var(--border);
+    border-radius: 4px;
     transition: all 0.2s ease;
-    box-shadow: 5px 5px 0 var(--text);
+    box-shadow: 4px 4px 0 var(--shadow-hard);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   .cta-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 8px 8px 0 var(--text);
-    background: var(--color-pop-mint);
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+    background: var(--color-accent);
+  }
+
+  .cta-button:focus-visible {
+    outline: none;
+    ring: 2px solid var(--focus);
+    ring-offset: 2px;
+  }
+
+  /* New Thread Button */
+  .new-thread-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: var(--color-primary);
+    color: var(--text-inverse);
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+    white-space: nowrap;
+  }
+
+  .new-thread-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+    background: var(--color-secondary);
+  }
+
+  .new-thread-btn:focus-visible {
+    outline: none;
+    ring: 2px solid var(--focus);
+    ring-offset: 2px;
+  }
+
+  .login-link {
+    display: inline-block;
+    margin-top: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: var(--color-secondary);
+    color: var(--text-inverse);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+  }
+
+  .login-link:hover {
+    background: var(--color-primary);
+  }
+
+  .login-link:focus-visible {
+    outline: none;
+    ring: 2px solid var(--focus);
+    ring-offset: 2px;
   }
 
   /* Responsive */

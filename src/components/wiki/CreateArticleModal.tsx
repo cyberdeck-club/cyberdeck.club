@@ -4,6 +4,7 @@
  */
 
 import React, { useCallback, useState } from "react";
+import { SharedMarkdownEditor } from "@/components/editor/SharedMarkdownEditor";
 
 type ArticleStatus = "stub" | "needs-review" | "good" | "featured";
 
@@ -111,16 +112,17 @@ export function CreateArticleModal({
           maxWidth: "600px",
           maxHeight: "90vh",
           overflow: "auto",
-          backgroundColor: "#ffffff",
+          backgroundColor: "var(--surface)",
+          border: "3px solid var(--border)",
           borderRadius: "8px",
-          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+          boxShadow: "6px 6px 0 var(--shadow-hard)",
         }}
       >
         <div
           className="create-article-modal-header"
           style={{
             padding: "1rem 1.5rem",
-            borderBottom: "1px solid #e5e7eb",
+            borderBottom: "3px solid var(--border)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -130,8 +132,9 @@ export function CreateArticleModal({
             style={{
               margin: 0,
               fontSize: "1.25rem",
-              fontWeight: 600,
-              color: "#111827",
+              fontWeight: 700,
+              fontFamily: "var(--font-display)",
+              color: "var(--text)",
             }}
           >
             Create New Article
@@ -141,11 +144,11 @@ export function CreateArticleModal({
             onClick={handleClose}
             disabled={isSubmitting}
             style={{
-              padding: "0.25rem",
-              border: "none",
-              background: "transparent",
+              padding: "0.5rem",
+              border: "3px solid var(--border)",
+              background: "var(--surface)",
               cursor: isSubmitting ? "not-allowed" : "pointer",
-              color: "#6b7280",
+              color: "var(--text-muted)",
               borderRadius: "4px",
             }}
           >
@@ -177,11 +180,12 @@ export function CreateArticleModal({
               <div
                 style={{
                   padding: "0.75rem",
-                  backgroundColor: "#fef2f2",
-                  border: "1px solid #dc2626",
-                  borderRadius: "6px",
-                  color: "#dc2626",
+                  backgroundColor: "var(--color-danger)",
+                  border: "3px solid var(--color-danger)",
+                  borderRadius: "4px",
+                  color: "var(--surface)",
                   fontSize: "0.875rem",
+                  fontWeight: 600,
                 }}
               >
                 {error}
@@ -192,9 +196,11 @@ export function CreateArticleModal({
                 htmlFor="article-title"
                 style={{
                   display: "block",
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                  color: "#374151",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "var(--text)",
                   marginBottom: "0.25rem",
                 }}
               >
@@ -209,10 +215,13 @@ export function CreateArticleModal({
                 disabled={isSubmitting}
                 style={{
                   width: "100%",
-                  padding: "0.5rem 0.75rem",
-                  fontSize: "0.875rem",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "6px",
+                  padding: "0.75rem 1rem",
+                  fontSize: "1rem",
+                  fontFamily: "inherit",
+                  background: "var(--bg)",
+                  border: "3px solid var(--border)",
+                  borderRadius: "4px",
+                  color: "var(--text)",
                   outline: "none",
                   boxSizing: "border-box",
                 }}
@@ -224,9 +233,11 @@ export function CreateArticleModal({
                   htmlFor="article-category"
                   style={{
                     display: "block",
-                    fontSize: "0.875rem",
-                    fontWeight: 500,
-                    color: "#374151",
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    color: "var(--text)",
                     marginBottom: "0.25rem",
                   }}
                 >
@@ -239,12 +250,14 @@ export function CreateArticleModal({
                   disabled={isSubmitting}
                   style={{
                     width: "100%",
-                    padding: "0.5rem 0.75rem",
-                    fontSize: "0.875rem",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
+                    padding: "0.75rem 1rem",
+                    fontSize: "1rem",
+                    fontFamily: "inherit",
+                    background: "var(--bg)",
+                    border: "3px solid var(--border)",
+                    borderRadius: "4px",
+                    color: "var(--text)",
                     outline: "none",
-                    backgroundColor: "#ffffff",
                     boxSizing: "border-box",
                   }}
                 >
@@ -262,9 +275,11 @@ export function CreateArticleModal({
                 htmlFor="article-status"
                 style={{
                   display: "block",
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                  color: "#374151",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "var(--text)",
                   marginBottom: "0.25rem",
                 }}
               >
@@ -277,12 +292,14 @@ export function CreateArticleModal({
                 disabled={isSubmitting}
                 style={{
                   width: "100%",
-                  padding: "0.5rem 0.75rem",
-                  fontSize: "0.875rem",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "6px",
+                  padding: "0.75rem 1rem",
+                  fontSize: "1rem",
+                  fontFamily: "inherit",
+                  background: "var(--bg)",
+                  border: "3px solid var(--border)",
+                  borderRadius: "4px",
+                  color: "var(--text)",
                   outline: "none",
-                  backgroundColor: "#ffffff",
                   boxSizing: "border-box",
                 }}
               >
@@ -297,32 +314,23 @@ export function CreateArticleModal({
                 htmlFor="article-content"
                 style={{
                   display: "block",
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                  color: "#374151",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "var(--text)",
                   marginBottom: "0.25rem",
                 }}
               >
                 Content
               </label>
-              <textarea
-                id="article-content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
+              <SharedMarkdownEditor
+                surface="wiki"
+                initialContent={content}
+                onChange={setContent}
                 placeholder="Enter initial content (Markdown supported)"
-                disabled={isSubmitting}
-                rows={8}
-                style={{
-                  width: "100%",
-                  padding: "0.5rem 0.75rem",
-                  fontSize: "0.875rem",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "6px",
-                  outline: "none",
-                  resize: "vertical",
-                  fontFamily: "inherit",
-                  boxSizing: "border-box",
-                }}
+                readOnly={isSubmitting}
+                minHeight="200px"
               />
             </div>
           </div>
@@ -330,7 +338,7 @@ export function CreateArticleModal({
             className="create-article-modal-footer"
             style={{
               padding: "1rem 1.5rem",
-              borderTop: "1px solid #e5e7eb",
+              borderTop: "3px solid var(--border)",
               display: "flex",
               justifyContent: "flex-end",
               gap: "0.75rem",
@@ -341,13 +349,15 @@ export function CreateArticleModal({
               onClick={handleClose}
               disabled={isSubmitting}
               style={{
-                padding: "0.5rem 1rem",
+                padding: "0.75rem 1.25rem",
                 fontSize: "0.875rem",
-                fontWeight: 500,
-                border: "1px solid #d1d5db",
-                borderRadius: "6px",
-                backgroundColor: "#ffffff",
-                color: "#374151",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                border: "3px solid var(--border)",
+                borderRadius: "4px",
+                backgroundColor: "var(--surface)",
+                color: "var(--text)",
                 cursor: isSubmitting ? "not-allowed" : "pointer",
               }}
             >
@@ -357,14 +367,17 @@ export function CreateArticleModal({
               type="submit"
               disabled={isSubmitting || !title.trim()}
               style={{
-                padding: "0.5rem 1rem",
+                padding: "0.75rem 1.25rem",
                 fontSize: "0.875rem",
-                fontWeight: 500,
-                border: "none",
-                borderRadius: "6px",
-                backgroundColor: isSubmitting || !title.trim() ? "#9ca3af" : "#3b82f6",
-                color: "#ffffff",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                border: "3px solid var(--border)",
+                borderRadius: "4px",
+                backgroundColor: isSubmitting || !title.trim() ? "var(--text-muted)" : "var(--color-primary)",
+                color: "var(--surface)",
                 cursor: isSubmitting || !title.trim() ? "not-allowed" : "pointer",
+                boxShadow: isSubmitting || !title.trim() ? "none" : "4px 4px 0 var(--shadow-hard)",
               }}
             >
               {isSubmitting ? "Creating..." : "Create Article"}

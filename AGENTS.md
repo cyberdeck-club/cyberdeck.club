@@ -1,77 +1,318 @@
-# AGENTS.md
+# AGENTS.md — cyberdeck.club
 
-## Overview
-
-`cyberdeck.club` is a community platform for **women, femmes, queers, and people historically under‑represented in STEM and tech** who are passionate about cyberdecks. It combines a **wiki**, **forum**, **build showcase**, and **meetup calendar** into a single, cohesive, fun, and colorful application. The site is built with **Astro 6** (SSR with island architecture), uses **Better Auth** for magic‑link authentication, **Drizzle ORM** for type‑safe database access, and runs on **Cloudflare Workers** with a **D1** SQLite‑compatible database.
-
-## Architecture
-
-- **Frontend** – Astro components (`src/components/**`) render pages and interactive islands (**React only** via `@astrojs/react`). Tailwind CSS v4 provides vibrant, approachable styling (`src/styles/global.css`).
-- **API Layer** – Astro API routes (`src/pages/api/**`) expose REST‑style endpoints for authentication, wiki, forum, builds, meetups, and static pages, running as Cloudflare Workers.
-- **Middleware** – `src/middleware.ts` runs on every request: creates per‑request auth and DB instances, resolves the Better Auth session, and injects `locals.user`, `locals.session`, and `locals.db` for use in pages and API routes.
-- **Auth** – Better Auth (`src/lib/auth.ts`) is a **per-request factory** (`getAuth(cfEnv)`) — not a module-level singleton — to avoid SQLite WAL-lock issues. It handles magic‑link sign‑in via Resend. `better-auth.config.ts` (root) is used **only** for schema generation (`npm auth:generate`).
-- **Database** – Drizzle ORM (`src/db/**`) defines schema in two files:
-  - `src/db/auth-schema.ts` — Better Auth tables: `user`, `session`, `account`, `verification`
-  - `src/db/schema.ts` — App tables: `wikiCategories`, `wikiArticles`, `wikiRevisions`, `forumCategories`, `forumThreads`, `forumPosts`, `builds`, `meetups`, `staticPages`
-  - DB client factory: `src/db/client.ts` (`getDb(cfEnv)`) — also per-request
-  - Migrations live in `drizzle/migrations/`
-- **D1 Binding** – The database is accessed via the Cloudflare `DB` binding (not a `DATABASE_URL`). Configured in `wrangler.jsonc`.
-- **Deployment** – `wrangler.jsonc` configures the deployment; `npm deploy` runs `astro build && wrangler deploy` to publish to **Cloudflare Workers**.
-
-## User Roles
-
-The app uses a four-tier role system stored on the `user` table:
-
-| Role | Description |
-|------|-------------|
-| `member` | Default role for all new sign-ups |
-| `maker` | Has submitted one build, can create forum threads, create wiki pages, comment like a member, manage own content |
-| `moderator` | Can view and manage content (forum, wiki, static pages) |
-| `admin` | Full access; auto-assigned to the email matching `ADMIN_EMAIL` env var on first sign-up |
-
-## Agents
-
-| Agent | Responsibility | Key Files |
-|-------|----------------|-----------|
-| **Auth Agent** | Handles login, signup, session validation, and magic‑link email delivery. | `src/lib/auth.ts`, `src/lib/resend.ts`, `src/db/auth-schema.ts`, `src/pages/api/auth/[...all].ts`, `src/middleware.ts` |
-| **Forum Agent** | Manages forum categories, threads, posts, and moderation actions (pin, lock). | `src/lib/forum.ts`, `src/pages/api/forum/threads.ts`, `src/pages/api/forum/posts.ts`, `src/pages/api/admin/forum/**`, `src/components/ForumSidebar.astro`, `src/components/ForumThreadPreview.astro` |
-| **Wiki Agent** | Provides CRUD for wiki articles with revision history, markdown rendering, and inline editing. | `src/lib/wiki.ts`, `src/pages/api/wiki/**`, `src/components/wiki/**`, `src/utils/MarkdownRenderer.tsx` |
-| **Build Agent** | Stores and displays user‑submitted cyberdeck builds with images and specs. | `src/lib/builds.ts`, `src/pages/api/builds/**`, `src/components/BuildCard.astro`, `src/layouts/BuildLayout.astro` |
-| **Meetup Agent** | Manages meetup events and calendar view. | `src/lib/meetups.ts`, `src/pages/api/meetups/**`, `src/pages/meetups/**`, `src/layouts/MeetupLayout.astro` |
-| **Admin Agent** | Provides admin dashboards for managing users, content, and static pages. | `src/pages/admin/**`, `src/pages/api/admin/**`, `src/layouts/AdminLayout.astro` |
-| **Static‑Page Agent** | Serves and manages DB-driven static informational pages (about, FAQ, etc.). | `src/pages/api/static-pages/[slug].ts`, `src/pages/api/admin/static-pages/**`, `src/pages/admin/static/index.astro` |
-
-## Data Flow
-
-1. **User Request** – Browser sends a request to an Astro‑generated page or an API endpoint.
-2. **Middleware** – `src/middleware.ts` runs first: creates per-request `auth` and `db` instances, resolves the session, and attaches `locals.user`, `locals.session`, and `locals.db`.
-3. **Auth Check** – API routes and admin pages inspect `locals.user` and `locals.user.role` to enforce authentication and authorization (`member` / `moderator` / `admin`).
-4. **Business Logic** – The appropriate agent lib function (e.g., `getForumThreads()`) is called, using `locals.db` (a per-request Drizzle instance) to read/write the D1 database.
-5. **Response** – Data is returned as JSON (API) or rendered HTML (Astro page) and sent back to the client.
-6. **Client‑Side** – Interactive React islands hydrate on the client, enabling dynamic UI without full page reloads.
-
-## Deployment
-
-- **Build** – `npm build` compiles Astro pages and bundles the Worker script.
-- **Deploy** – `npm deploy` runs `astro build && wrangler deploy` to publish to Cloudflare Workers.
-- **Environment** – Required variables (set in `.env` locally or Cloudflare dashboard in production):
-  - `BETTER_AUTH_SECRET` – Secret for Better Auth session signing
-  - `RESEND_API_KEY` – Resend API key for magic-link email delivery
-  - `EMAIL_FROM` or `RESEND_FROM_ADDRESS` – Sender address for auth emails (defaults to `CyberDeck <noreply@cyberdeck.club>`)
-  - `ADMIN_EMAIL` – Email address to auto-promote to `admin` role on first sign-up
-  - `PUBLIC_BASE_URL` – Public-facing base URL (e.g., `https://cyberdeck.club`)
-  - D1 database is accessed via the `DB` Cloudflare binding configured in `wrangler.jsonc` — no `DATABASE_URL` needed.
-- **CI/CD** – GitHub Actions can be set up to run `npm build` and deploy on merges to `main`.
-
-## Contributing
-
-1. **Fork the repository** and clone your fork.
-2. **Create a feature branch** (`git checkout -b feature/your‑feature`).
-3. **Install dependencies** (`npm install`).
-4. **Run locally** (`npm dev` — runs `astro build && wrangler dev` for the full Workers-compatible environment).
-5. **Type-check** – Run `npm lint` (`astro check`) to catch TypeScript errors. Note: there is no ESLint or Prettier configuration; formatting is left to editor defaults.
-6. **Submit a Pull Request** – Reference any related issues and request a review.
+> Single source of truth for onboarding coding agents to this repository.
+> This file is included in every agentic coding session — follow it strictly.
+>
+> **For all design, color, typography, component, copy tone, and accessibility
+> decisions, read `DESIGN.md` BEFORE generating any UI code.** This file covers
+> architecture, stack, conventions, and guardrails only.
 
 ---
 
-*Last updated by the Roo architecture assistant.*
+## 0. What This Is
+
+**cyberdeck.club** is a community platform for cyberdeck builders — part wiki,
+part forum, part build showcase. The primary audience is women, femmes, queer
+folk, and people historically excluded from tech/maker spaces. The community
+celebrates cyberdecks as aesthetic expression — builds in Polly Pocket toys,
+dinosaur toys, purses, clamshell compacts — not just utilitarian Pelican case
+builds.
+
+**Design direction:** Femme maximalist neobrutalism. See `DESIGN.md` for the
+complete design system — palette, typography, components, copy tone, inclusive
+identity patterns, and accessibility requirements.
+
+**Repository:** `https://github.com/cyberdeck-club/cyberdeck.club/`
+
+---
+
+## 1. Tech Stack
+
+| Layer           | Technology                          | Notes                                    |
+|-----------------|-------------------------------------|------------------------------------------|
+| **Framework**   | Astro 6                             | SSR mode, file-based routing             |
+| **Styling**     | Tailwind CSS v4                     | CSS-first config — NO `tailwind.config.js` |
+| **Database**    | Drizzle ORM + Cloudflare D1         | SQLite at the edge                       |
+| **Auth**        | Resend magic links                  | Passwordless email authentication        |
+| **Deployment**  | Cloudflare Pages + Workers          | `wrangler.jsonc`                         |
+| **Language**    | TypeScript (strict)                 | Throughout                               |
+
+### Key Dependencies
+
+- `@tailwindcss/vite` — Tailwind v4 Vite plugin (NOT `tailwind.config.js`)
+- `@tailwindcss/forms` — Form reset styles
+- `@tailwindcss/typography` — Prose styling for wiki/blog content
+- `drizzle-orm` + `drizzle-kit` — Schema, migrations, queries
+- `resend` — Transactional email (magic links)
+
+---
+
+## 2. Folder Map
+
+```
+cyberdeck.club/
+├── AGENTS.md              ← You are here
+├── DESIGN.md              ← Design system (READ BEFORE UI WORK)
+├── astro.config.mjs       ← Astro + Tailwind vite plugin
+├── wrangler.jsonc         ← Cloudflare Workers/D1 config
+├── drizzle.config.ts      ← Drizzle Kit config
+├── package.json
+├── tsconfig.json
+├── public/                ← Static assets
+├── src/
+│   ├── components/        ← Astro components
+│   ├── layouts/           ← Page layouts (BaseLayout, WikiLayout, etc.)
+│   ├── pages/             ← File-based routing
+│   │   ├── wiki/          ← Wiki section
+│   │   ├── forum/         ← Forum section
+│   │   ├── builds/        ← Build showcase
+│   │   ├── meetups/       ← Events
+│   │   └── api/           ← API routes (auth, data)
+│   ├── db/
+│   │   ├── schema.ts      ← Drizzle schema definitions
+│   │   └── index.ts       ← DB client / connection
+│   ├── lib/
+│   │   ├── auth.ts        ← Magic link auth logic
+│   │   └── utils.ts       ← cn() helper (clsx + tailwind-merge)
+│   └── styles/
+│       └── global.css     ← Tailwind v4 @theme, design tokens
+└── migrations/            ← Drizzle migrations (DO NOT hand-edit)
+```
+
+---
+
+## 3. Development Commands
+
+| Command                        | Action                                      |
+|--------------------------------|---------------------------------------------|
+| `pnpm install`                 | Install dependencies                        |
+| `pnpm dev`                     | Start dev server (localhost:4321)            |
+| `pnpm build`                   | Production build                            |
+| `pnpm preview`                 | Preview production build locally             |
+| `pnpm drizzle-kit generate`    | Generate migration from schema changes      |
+| `pnpm drizzle-kit migrate`     | Apply migrations                            |
+| `pnpm drizzle-kit studio`      | Open Drizzle Studio (DB browser)            |
+| `npx wrangler d1 execute ...`  | Run SQL against D1 database                 |
+| `npx wrangler pages deploy`    | Deploy to Cloudflare Pages                  |
+
+---
+
+## 4. Architecture Decisions
+
+### 4.1 Authentication — Resend Magic Links
+
+- Passwordless login via email magic links sent through Resend.
+- No passwords stored. No OAuth providers (GitHub login is an exclusion
+  vector for non-developer community members).
+- Session tokens stored as HTTP-only cookies.
+- ALWAYS use display name in transactional emails. NEVER "Real name."
+
+### 4.2 Database — Drizzle + Cloudflare D1
+
+- Schema defined in `src/db/schema.ts` using Drizzle's SQLite dialect.
+- Migrations generated by `drizzle-kit generate`, applied via `drizzle-kit migrate`.
+- NEVER hand-edit migration files.
+- D1 bindings configured in `wrangler.jsonc`.
+
+### 4.3 Styling — Tailwind CSS v4
+
+- CSS-first configuration in `src/styles/global.css`.
+- NO `tailwind.config.js` or `tailwind.config.ts`. NEVER create one.
+- Design tokens defined via `@theme` and `@theme inline` blocks.
+- See `DESIGN.md` §2 (Color System) and §15 (Tailwind v4 Configuration)
+  for the complete token set.
+- Class helper: `cn()` from `src/lib/utils.ts` (clsx + tailwind-merge).
+
+### 4.4 Astro Configuration (`astro.config.mjs`)
+
+```js
+import { defineConfig } from "astro/config";
+import tailwindcss from "@tailwindcss/vite";
+
+export default defineConfig({
+  output: "server",
+  vite: {
+    plugins: [tailwindcss()],
+  },
+  // ... adapter config for Cloudflare
+});
+```
+
+---
+
+## 5. Page Routing
+
+| Section   | Index         | Entry                              |
+|-----------|---------------|------------------------------------|
+| Home      | `/`           | —                                  |
+| Wiki      | `/wiki/`      | `/wiki/[category]/[slug]`          |
+| Forum     | `/forum/`     | `/forum/[category]/`, `/forum/thread/[id]` |
+| Builds    | `/builds/`    | `/builds/[slug]`                   |
+| Meetups   | `/meetups/`   | `/meetups/[slug]`                  |
+| About     | `/about`      | —                                  |
+| Auth      | `/api/auth/*` | Magic link send/verify endpoints   |
+
+---
+
+## 6. Layout Hierarchy
+
+```
+BaseLayout.astro
+├── WikiLayout.astro      (sidebar + article — two-column)
+├── ForumLayout.astro     (sidebar + thread list — two-column)
+├── BuildLayout.astro     (full-width build detail)
+└── MeetupLayout.astro    (full-width event detail)
+```
+
+**WikiLayout** uses a two-column grid with a mobile-toggle sidebar. The wiki
+index page (`/wiki/index.astro`) MUST use WikiLayout — without it, the sidebar
+and CSS grid break.
+
+---
+
+## 7. Coding Conventions
+
+### 7.1 TypeScript
+
+- Strict mode enabled (`tsconfig.json`).
+- Prefer `type` over `interface` unless extending.
+- No `any` — use `unknown` and narrow.
+
+### 7.2 Components
+
+- Astro components (`.astro`) for all server-rendered UI.
+- React/client components ONLY when island interactivity is required
+  (e.g., theme toggle, form validation). Use `client:load` or
+  `client:visible` directives — prefer `client:visible` for
+  below-the-fold content.
+- Component files: PascalCase (`BuildCard.astro`, `ForumThreadPreview.astro`).
+- Colocate component-specific types at the top of the file.
+
+### 7.3 Styling
+
+- Use semantic design tokens from `DESIGN.md`. NEVER raw Tailwind palette
+  colors (`bg-zinc-*`, `bg-rose-*`).
+- NEVER arbitrary values (`bg-[#hex]`, `p-[7px]`) except where explicitly
+  shown in `DESIGN.md` component recipes.
+- NEVER `dark:` class overrides. Theme switching is CSS-variable-only via
+  `data-theme` attribute.
+- Use `cn()` for conditional class merging.
+
+### 7.4 Database
+
+- All queries through Drizzle ORM — no raw SQL in application code.
+- Schema changes go through `drizzle-kit generate` → migration files.
+- Table and column names: `snake_case`.
+- Timestamps: ISO 8601 strings stored as TEXT (D1/SQLite).
+
+### 7.5 API Routes
+
+- API routes live in `src/pages/api/`.
+- Return JSON with appropriate status codes.
+- Validate input before processing. Never trust client data.
+- Auth-required routes check session cookie first.
+
+---
+
+## 8. Key Gotchas and Lessons Learned
+
+### 1. WikiLayout Is Required for Wiki Pages
+
+The wiki landing page (`/wiki/index.astro`) MUST use `WikiLayout`, not
+`BaseLayout`. Without it, the sidebar grid breaks.
+
+### 2. Tailwind v4 Requires `@tailwindcss/vite`
+
+Tailwind v4 is NOT configured via `tailwind.config.js`. It uses the Vite
+plugin + CSS-first `@theme` blocks in `global.css`. If you create a
+`tailwind.config.js`, things will break.
+
+### 3. Theme Toggle Script in `<head>`
+
+The theme initialization script MUST be in `<head>` with `is:inline` to
+prevent flash of unstyled content (FOUC):
+
+```html
+<script is:inline>
+  (function() {
+    const theme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (theme === 'dark' || (!theme && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  })();
+</script>
+```
+
+Do NOT remove `is:inline`. Do NOT move this script out of `<head>`.
+
+### 4. D1 Binding Names
+
+D1 database bindings are defined in `wrangler.jsonc`. The binding name used
+in application code MUST match the name in `wrangler.jsonc`. Check there
+first if you get "binding not found" errors.
+
+### 5. Status Config Lookups Need Fallbacks
+
+When looking up status configurations (builds, meetups), always provide a
+fallback to prevent runtime errors on undefined status values:
+
+```ts
+const statusConfig = config.statuses.find(s => s.value === status) ?? {
+  label: status,
+  color: "secondary",
+};
+```
+
+### 6. Resend API Key Is Server-Side Only
+
+The Resend API key (`RESEND_API_KEY`) MUST only be used in server-side code
+(API routes, server-rendered pages). NEVER expose it to the client. Store in
+Cloudflare environment variables, not in client-accessible code.
+
+### 7. Magic Link Tokens Are Single-Use
+
+Magic link tokens should be invalidated after first use AND after expiration
+(recommend 15 minutes). Always check both conditions on verification.
+
+---
+
+## 9. Guardrails
+
+These rules apply in every coding session, regardless of task type:
+
+- **Do NOT** replace `WikiLayout` with `BaseLayout` on wiki pages.
+- **Do NOT** use hardcoded color values — use CSS variables / design tokens
+  from `DESIGN.md`.
+- **Do NOT** remove `is:inline` from the theme script in `<head>`.
+- **Do NOT** create a `tailwind.config.js` or `tailwind.config.ts`.
+- **Do NOT** use Tailwind v3 syntax (`darkMode: 'class'`, `theme.extend`,
+  config-file-based customization).
+- **Do NOT** use `dark:` class prefixes. Theming is CSS-variable-only
+  (`data-theme` attribute on `<html>`).
+- **Do NOT** hand-edit Drizzle migration files.
+- **Do NOT** expose `RESEND_API_KEY` to client-side code.
+- **Do NOT** use Tailwind palette colors (`bg-zinc-*`, `text-blue-*`, etc.).
+- **Do NOT** use arbitrary hex values (`bg-[#abc]`).
+- **Do NOT** generate UI code without first reading `DESIGN.md`.
+
+---
+
+## 10. Reference Documents
+
+| Document                  | Purpose                                              |
+|---------------------------|------------------------------------------------------|
+| `DESIGN.md`               | Complete design system — colors, typography, spacing, components, copy tone, accessibility, inclusive identity patterns |
+| `astro.config.mjs`        | Astro + Tailwind vite plugin configuration           |
+| `wrangler.jsonc`          | Cloudflare Workers/D1 bindings                       |
+| `src/db/schema.ts`        | Drizzle schema definitions                           |
+| `src/styles/global.css`   | Tailwind v4 `@theme` tokens (implements `DESIGN.md`) |
+| `src/lib/utils.ts`        | `cn()` class helper                                  |
+| `src/lib/auth.ts`         | Magic link authentication logic                      |
+| `src/layouts/BaseLayout.astro` | Root layout (nav, footer, theme toggle)         |
+
+---
+
+*Last updated: 2026-05-01*

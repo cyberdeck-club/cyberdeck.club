@@ -12,6 +12,9 @@
     "forum_threads": "forum-threads.json",
     "forum_posts": "forum-posts.json",
     "builds": "builds.json",
-    "meetups": "meetups.json"
+    "meetups": "meetups.json",
+    "community_guidelines_acceptances": "community-guidelines-acceptances.json",
+    "build_comments": "build-comments.json",
+    "wiki_comments": "wiki-comments.json"
   }
 }

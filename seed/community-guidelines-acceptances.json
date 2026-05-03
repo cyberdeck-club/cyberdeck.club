@@ -1,0 +1,23 @@
+[
+  {
+    "id": "cga1",
+    "userId": "divine_circuitry",
+    "version": "1.0",
+    "acceptedAt": "2026-01-15T10:30:00Z",
+    "ipAddress": "192.168.1.100"
+  },
+  {
+    "id": "cga2",
+    "userId": "solderqueen",
+    "version": "1.0",
+    "acceptedAt": "2026-02-20T14:45:00Z",
+    "ipAddress": "192.168.1.101"
+  },
+  {
+    "id": "cga3",
+    "userId": "bytewitch",
+    "version": "1.0",
+    "acceptedAt": "2026-03-05T09:15:00Z",
+    "ipAddress": "192.168.1.102"
+  }
+]

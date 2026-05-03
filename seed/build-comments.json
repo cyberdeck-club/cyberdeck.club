@@ -1,0 +1,98 @@
+[
+  {
+    "id": "bc1",
+    "buildId": "b1",
+    "authorId": "solderqueen",
+    "content": "This is **gorgeous**! I love the choice of the Pelican 1300 — such a perfect size for a Pi 5. The tool-free access is genius. Did you 3D print the screen bracket yourself?",
+    "parentId": null,
+    "createdAt": "2026-03-01T11:20:00Z"
+  },
+  {
+    "id": "bc2",
+    "buildId": "b1",
+    "authorId": "bytewitch",
+    "content": "The recovery kit was my gateway build too! Great to see someone iterate on it. If you ever want to add an RV3049 RTC like I did in my Hex Witch, the wiring is super simple via I2C.\n\n```\nSDA → Pin 3\nSCL → Pin 5\n3.3V → Pin 1\nGND → Pin 6\n```\n\nCongrats on finishing! 🔮",
+    "parentId": null,
+    "createdAt": "2026-03-01T14:30:00Z"
+  },
+  {
+    "id": "bc3",
+    "buildId": "b1",
+    "authorId": "divine_circuitry",
+    "content": "The brass standoffs are such a nice touch — gives it that premium feel without breaking the bank. Really solid first build! 💜",
+    "parentId": "bc1",
+    "createdAt": "2026-03-01T15:45:00Z"
+  },
+  {
+    "id": "bc4",
+    "buildId": "b2",
+    "authorId": "circuitfae",
+    "content": "I've been dreaming about a bamboo case build! The fern pattern is *so* pretty. Did you use a wood burner or laser cutter?",
+    "parentId": null,
+    "createdAt": "2026-03-10T08:00:00Z"
+  },
+  {
+    "id": "bc5",
+    "buildId": "b2",
+    "authorId": "divine_circuitry",
+    "content": "This is solarpunk perfection. 🤩 The e-ink display is such a practical choice for field work — I bet the battery life is incredible. What's your typical runtime like?",
+    "parentId": null,
+    "createdAt": "2026-03-10T09:30:00Z"
+  },
+  {
+    "id": "bc6",
+    "buildId": "b2",
+    "authorId": "circuitfae",
+    "content": "Wood burner! It took about 3 hours to get the fern pattern right, but totally worth it. And yes, the Pi Zero 2W + e-ink combo gives me like 40+ hours on a single charge. It's amazing for writing retreats. 🌿",
+    "parentId": "bc5",
+    "createdAt": "2026-03-10T10:15:00Z"
+  },
+  {
+    "id": "bc7",
+    "buildId": "b3",
+    "authorId": "solderqueen",
+    "content": "OK the dual screen setup is *goals*. Do you actually use the HyperPixel for real-time network visualization? That's such a cool idea for a security research rig. 🪄",
+    "parentId": null,
+    "createdAt": "2026-03-15T16:00:00Z"
+  },
+  {
+    "id": "bc8",
+    "buildId": "b3",
+    "authorId": "glitchgrl",
+    "content": "As someone who's just learning about pentesting, this is so inspiring! What resources would you recommend for getting started? I'm running Kali in a VM right now but want something more portable.",
+    "parentId": null,
+    "createdAt": "2026-03-18T12:30:00Z"
+  },
+  {
+    "id": "bc9",
+    "buildId": "b3",
+    "authorId": "bytewitch",
+    "content": "I use the HyperPixel for **gkrellm** — shows CPU temp, network throughput, and active connections. Super helpful when running multiple reconnaissance tools simultaneously.\n\n@GlitchGrl Start with the PortSwigger Web Academy — it's free and fantastic. Then once you're comfortable with that, move to HackTheBox. And yes, building a deck for it is the best way to learn because you'll actually *use* it every day. ✨",
+    "parentId": "bc8",
+    "createdAt": "2026-03-18T14:00:00Z"
+  },
+  {
+    "id": "bc10",
+    "buildId": "b4",
+    "authorId": "divine_circuitry",
+    "content": "The holographic vinyl wrap is *chef's kiss*. 🎀 This is peak femme maximalist energy! Love the trans flag stickers too — representation matters.",
+    "parentId": null,
+    "createdAt": "2026-03-20T17:30:00Z"
+  },
+  {
+    "id": "bc11",
+    "buildId": "b4",
+    "authorId": "bytewitch",
+    "content": "The ortholinear layout is such a great choice for a portable keyboard. I'm building something similar but with a Ferris sweep. Would you mind sharing the keycap profile you used?",
+    "parentId": null,
+    "createdAt": "2026-03-21T09:00:00Z"
+  },
+  {
+    "id": "bc12",
+    "buildId": "b4",
+    "authorId": "glitchgrl",
+    "content": "They're **Cherry** profile keycaps from a local shop — not the prettiest legends but the sculpt is perfect for ortholinear layouts. I'm planning to get some custom ones printed eventually with cyberdeck-themed legends! 🌈",
+    "parentId": "bc11",
+    "createdAt": "2026-03-21T10:30:00Z"
+  }
+]

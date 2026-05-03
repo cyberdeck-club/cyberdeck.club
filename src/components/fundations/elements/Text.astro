@@ -25,34 +25,91 @@ export interface Props {
   ariaLabel?: string;
 }
 
-// Define text styles for each variant
+// Define text styles using fluid type scale from DESIGN.md §3.4
+// All display variants use font-display with WONK variation for femme-editorial signature
 const textStyles: Record<string, string> = {
-  display6XL: "text-4xl sm:text-7xl md:text-9xl lg:text-[12rem]",
-  display5XL: "text-4xl sm:text-7xl md:text-8xl lg:text-[10rem]",
-  display4XL: "text-4xl sm:text-7xl md:text-8xl lg:text-9xl",
-  display3XL: "text-5xl sm:text-6xl md:text-7xl lg:text-8xl",
-  display2XL: "text-5xl sm:text-5xl md:text-6xl lg:text-7xl",
-  displayXL: "text-4xl sm:text-4xl md:text-5xl lg:text-6xl",
-  displayLG: "text-3xl sm:text-3xl md:text-4xl lg:text-5xl",
-  displayMD: "text-2xl sm:text-2xl md:text-3xl lg:text-4xl",
-  displaySM: "text-lg sm:text-xl md:text-2xl lg:text-3xl",
-  textXL: "text-lg sm:text-xl md:text-2xl",
-  textLG: "text-base sm:text-lg md:text-xl",
-  textBase: "text-base",
-  textSM: "text-sm",
-  textXS: "text-xs",
+  // Display variants (use font-display with WONK)
+  displayXL: [
+    "font-display",
+    "italic",
+    "font-normal",
+    "text-[clamp(3rem,7vw,6rem)]",
+    "leading-[1.02]",
+    "tracking-tight",
+    "[font-variation-settings:'opsz'_144,'SOFT'_100,'WONK'_1]",
+  ].join(" "),
+  displayLG: [
+    "font-display",
+    "italic",
+    "font-normal",
+    "text-[clamp(2.25rem,4vw,3.5rem)]",
+    "leading-[1.05]",
+    "[font-variation-settings:'opsz'_72,'SOFT'_100,'WONK'_1]",
+  ].join(" "),
+  displayMD: [
+    "font-display",
+    "font-bold",
+    "text-[clamp(1.75rem,2.5vw,2.25rem)]",
+    "leading-[1.1]",
+  ].join(" "),
+  displaySM: [
+    "font-display",
+    "font-bold",
+    "text-xl",
+  ].join(" "),
+
+  // Heading variants (use font-sans per DESIGN.md)
+  h1: [
+    "font-sans",
+    "font-extrabold",
+    "text-[clamp(3rem,7vw,6rem)]",
+    "leading-[1.02]",
+    "tracking-tight",
+  ].join(" "),
+  h2: [
+    "font-sans",
+    "font-bold",
+    "text-[clamp(2.25rem,4vw,3.5rem)]",
+    "leading-[1.1]",
+  ].join(" "),
+  h3: [
+    "font-sans",
+    "font-bold",
+    "text-[clamp(1.75rem,2.5vw,2.25rem)]",
+    "leading-[1.15]",
+  ].join(" "),
+  h4: [
+    "font-sans",
+    "font-bold",
+    "text-2xl",
+    "leading-[1.2]",
+  ].join(" "),
+
+  // Body variants (use font-sans per DESIGN.md §3.1)
+  lead: "font-sans text-lg leading-relaxed text-text",
+  body: "font-sans text-base leading-relaxed text-text",
+  small: "font-sans text-sm text-text-muted",
+
+  // Eyebrow (use font-pixel per DESIGN.md §3.3)
+  eyebrow: [
+    "font-pixel",
+    "text-[11px]",
+    "uppercase",
+    "tracking-wider",
+    "text-text-muted",
+  ].join(" "),
 };
 
 // Destructure props with default values
 const {
   tag: Tag = "p",
   class: className = "",
-  variant = "textBase",
+  variant = "body",
   ...rest
 } = Astro.props;
 
 // Get the base classes for the specified variant
-const baseClasses = textStyles[variant] || textStyles.textBase;
+const baseClasses = textStyles[variant] || textStyles.body;
 
 // Combine base classes with any additional custom classes
 const combinedClasses = `${baseClasses} ${className}`.trim();

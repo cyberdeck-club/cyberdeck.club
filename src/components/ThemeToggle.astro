@@ -11,7 +11,7 @@
   <!-- Sun icon (shown in dark mode to switch to light) -->
   <svg
     id="sun-icon"
-    class="w-6 h-6 hidden dark:block"
+    class="w-6 h-6"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -28,7 +28,7 @@
   <!-- Moon icon (shown in light mode to switch to dark) -->
   <svg
     id="moon-icon"
-    class="w-6 h-6 block dark:hidden"
+    class="w-6 h-6"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -50,7 +50,7 @@
     color: var(--color-text-light);
   }
 
-  :global(html.dark) .theme-toggle {
+  :global([data-theme="dark"]) .theme-toggle {
     background-color: var(--color-surface-dark);
     border-color: var(--color-border-dark);
     color: var(--color-text-dark);
@@ -62,7 +62,7 @@
     color: white;
   }
 
-  :global(html.dark) .theme-toggle:hover {
+  :global([data-theme="dark"]) .theme-toggle:hover {
     background-color: var(--color-primary-hover);
     border-color: var(--color-primary-hover);
   }
@@ -79,36 +79,52 @@
 </style>
 
 <script>
+  function updateIconVisibility() {
+    const sunIcon = document.getElementById('sun-icon');
+    const moonIcon = document.getElementById('moon-icon');
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    if (sunIcon && moonIcon) {
+      if (isDark) {
+        sunIcon.style.display = 'block';
+        moonIcon.style.display = 'none';
+      } else {
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+      }
+    }
+  }
+
   function initThemeToggle() {
     const toggle = document.getElementById('theme-toggle');
     const html = document.documentElement;
 
+    updateIconVisibility();
     if (!toggle) return;
 
     toggle.addEventListener('click', () => {
-      const isDark = html.classList.contains('dark');
+      const isDark = html.getAttribute('data-theme') === 'dark';
 
       if (isDark) {
-        html.classList.remove('dark');
-        html.classList.add('light');
+        html.removeAttribute('data-theme');
         localStorage.setItem('theme', 'light');
       } else {
-        html.classList.remove('light');
-        html.classList.add('dark');
+        html.setAttribute('data-theme', 'dark');
         localStorage.setItem('theme', 'dark');
       }
+      
+      updateIconVisibility();
     });
 
     // Listen for system theme changes
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
       if (!localStorage.getItem('theme')) {
         if (e.matches) {
-          html.classList.remove('light');
-          html.classList.add('dark');
+          html.setAttribute('data-theme', 'dark');
         } else {
-          html.classList.remove('dark');
-          html.classList.add('light');
+          html.removeAttribute('data-theme');
         }
+        updateIconVisibility();
       }
     });
   }
