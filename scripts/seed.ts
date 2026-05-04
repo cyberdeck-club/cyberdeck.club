@@ -30,6 +30,8 @@ interface SeedManifest {
     community_guidelines_acceptances: string;
     build_comments: string;
     wiki_comments: string;
+    personal_access_tokens: string;
+    pat_usage_logs: string;
   };
 }
 
@@ -176,6 +178,30 @@ interface WikiComment {
   createdAt: string;
 }
 
+interface PersonalAccessToken {
+  id: string;
+  userSlug: string;
+  name: string;
+  tokenHash: string;
+  tokenPrefix: string;
+  scopes: string;
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}
+
+interface PatUsageLog {
+  id: string;
+  tokenId: string;
+  userSlug: string;
+  method: string;
+  path: string;
+  statusCode: number;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function uid(): string {
@@ -263,6 +289,8 @@ const meetupEvents = loadSeedFile<MeetupEvent[]>(manifest.files.meetups);
 const communityGuidelinesAcceptances = loadSeedFile<CommunityGuidelinesAcceptance[]>(manifest.files.community_guidelines_acceptances);
 const buildComments = loadSeedFile<BuildComment[]>(manifest.files.build_comments);
 const wikiComments = loadSeedFile<WikiComment[]>(manifest.files.wiki_comments);
+const personalAccessTokens = loadSeedFile<PersonalAccessToken[]>(manifest.files.personal_access_tokens);
+const patUsageLogs = loadSeedFile<PatUsageLog[]>(manifest.files.pat_usage_logs);
 
 // Build user slug → userId map
 const userSlugToId = new Map<string, string>();
@@ -276,6 +304,7 @@ const forumCategoryIds = new Map<string, string>();
 const threadIds = new Map<string, string>();
 const buildIds = new Map<string, string>();
 const wikiArticleIds = new Map<string, string>();
+const patIds = new Map<string, string>();
 
 // ── Seed functions ─────────────────────────────────────────────────────────────
 
@@ -574,6 +603,50 @@ function seedWikiComments(): void {
   console.log(`  Created ${wikiComments.length} wiki comments`);
 }
 
+function seedPersonalAccessTokens(): void {
+  console.log("Seeding personal access tokens...");
+
+  const now = Date.now();
+  const sqls: string[] = [];
+
+  for (const pat of personalAccessTokens) {
+    const tokenId = uid();
+    patIds.set(pat.id, tokenId);
+    const userId = userSlugToId.get(pat.userSlug) ?? pat.userSlug;
+    const expiresAt = pat.expiresAt ? parseIsoToEpoch(pat.expiresAt) : null;
+    const lastUsedAt = pat.lastUsedAt ? parseIsoToEpoch(pat.lastUsedAt) : null;
+    const revokedAt = pat.revokedAt ? parseIsoToEpoch(pat.revokedAt) : null;
+
+    sqls.push(
+      `INSERT OR REPLACE INTO personal_access_tokens (id, user_id, name, token_hash, token_prefix, scopes, expires_at, last_used_at, revoked_at, created_at) VALUES (` +
+      `${sqlStr(tokenId)}, ${sqlStr(userId)}, ${sqlStr(pat.name)}, ${sqlStr(pat.tokenHash)}, ${sqlStr(pat.tokenPrefix)}, ${sqlStr(pat.scopes)}, ${expiresAt ?? "NULL"}, ${lastUsedAt ?? "NULL"}, ${revokedAt ?? "NULL"}, ${now})`
+    );
+  }
+
+  execSqlBatch(sqls);
+  console.log(`  Created ${personalAccessTokens.length} personal access tokens`);
+}
+
+function seedPatUsageLogs(): void {
+  console.log("Seeding PAT usage logs...");
+
+  const sqls: string[] = [];
+
+  for (const log of patUsageLogs) {
+    const tokenId = patIds.get(log.tokenId) ?? log.tokenId;
+    const userId = userSlugToId.get(log.userSlug) ?? log.userSlug;
+    const createdAt = parseIsoToEpoch(log.createdAt);
+
+    sqls.push(
+      `INSERT OR REPLACE INTO pat_usage_logs (id, token_id, user_id, method, path, status_code, ip_address, user_agent, created_at) VALUES (` +
+      `${sqlStr(uid())}, ${sqlStr(tokenId)}, ${sqlStr(userId)}, ${sqlStr(log.method)}, ${sqlStr(log.path)}, ${log.statusCode}, ${sqlStr(log.ipAddress ?? null)}, ${sqlStr(log.userAgent ?? null)}, ${createdAt})`
+    );
+  }
+
+  execSqlBatch(sqls);
+  console.log(`  Created ${patUsageLogs.length} PAT usage logs`);
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────────
 
 function resolveBylineRef(ref: string): string | null {
@@ -598,6 +671,8 @@ function main() {
     seedCommunityGuidelinesAcceptances();
     seedBuildComments();
     seedWikiComments();
+    seedPersonalAccessTokens();
+    seedPatUsageLogs();
 
     console.log("\n✅ Seed complete!");
   } catch (error) {

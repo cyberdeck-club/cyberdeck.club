@@ -1,0 +1,499 @@
+---
+/**
+ * User Settings Page
+ * Allows authenticated users to edit their profile (name, bio, image)
+ */
+
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import TokenManager from "@/components/tokens/TokenManager";
+
+export const prerender = false;
+
+// Check if user is logged in
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login?redirect=/settings");
+}
+
+// Get user data from locals (set by middleware)
+const currentUser = user;
+---
+
+<BaseLayout title="Settings - CyberDeck" description="Manage your profile settings">
+  <div class="settings-page">
+    <header class="page-header">
+      <div class="header-sparkles">
+        <span class="sparkle">✦</span>
+        <span class="sparkle">✧</span>
+        <span class="sparkle">✦</span>
+      </div>
+      <h1 class="page-title">Profile Settings</h1>
+      <p class="page-subtitle">Update how you appear to the community</p>
+    </header>
+
+    <div class="settings-container">
+      <form id="settings-form" class="settings-form">
+        <!-- Display Name -->
+        <div class="form-group">
+          <label for="name" class="form-label">Display Name <span class="required">*</span></label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            class="form-input"
+            value={currentUser.name ?? ""}
+            placeholder="Your display name"
+            required
+            maxlength="200"
+          />
+          <span class="form-hint">This is how other users will see you</span>
+        </div>
+
+        <!-- Email (read-only) -->
+        <div class="form-group">
+          <label for="email" class="form-label">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            class="form-input form-input--disabled"
+            value={currentUser.email ?? ""}
+            disabled
+            readonly
+          />
+          <span class="form-hint">Email cannot be changed</span>
+        </div>
+
+        <!-- Bio -->
+        <div class="form-group">
+          <label for="bio" class="form-label">Bio</label>
+          <div class="bio-wrapper">
+            <textarea
+              id="bio"
+              name="bio"
+              class="form-textarea"
+              placeholder="Tell the community a bit about yourself and your cyberdeck journey..."
+              maxlength="500"
+            >{currentUser.bio ?? ""}</textarea>
+            <div class="bio-counter">
+              <span id="bio-count">{currentUser.bio?.length ?? 0}</span>/500
+            </div>
+          </div>
+          <span class="form-hint">Optional — max 500 characters</span>
+        </div>
+
+        <!-- Avatar URL -->
+        <div class="form-group">
+          <label for="image" class="form-label">Avatar URL</label>
+          <input
+            type="url"
+            id="image"
+            name="image"
+            class="form-input"
+            value={currentUser.image ?? ""}
+            placeholder="https://example.com/your-avatar.jpg"
+          />
+          <span class="form-hint">Optional — paste a URL to your photo or avatar</span>
+          
+          <!-- Avatar Preview -->
+          <div id="avatar-preview" class="avatar-preview" style="display: none;">
+            <img id="avatar-img" src="" alt="Avatar preview" class="avatar-img" />
+            <span class="avatar-preview-label">Preview</span>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-actions">
+          <button type="submit" class="btn-save" id="save-btn">
+            <span class="btn-text">Save Changes ✨</span>
+            <span class="btn-loading" style="display: none;">Saving...</span>
+          </button>
+        </div>
+
+        <!-- Feedback Messages -->
+        <div id="form-success" class="form-success" style="display: none;">
+          <svg class="success-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          <span>Profile updated successfully!</span>
+        </div>
+
+        <div id="form-error" class="form-error" style="display: none;"></div>
+      </form>
+    </div>
+
+    <!-- API Tokens Section -->
+    <div class="settings-container" style="margin-top: var(--space-8);">
+      <h2 class="section-title">API Access Tokens 🔑</h2>
+      <p class="section-description">
+        Personal Access Tokens let you use the cyberdeck.club API from scripts, tools, and AI assistants.
+      </p>
+      <TokenManager client:load userRole={currentUser.role} />
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  /* ============================================
+     Settings Page Styles
+     ============================================ */
+  
+  .settings-page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: var(--space-10);
+  }
+
+  .header-sparkles {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+
+  .sparkle {
+    font-size: var(--fs-h3);
+    animation: sparkle 1.5s ease-in-out infinite;
+  }
+
+  .sparkle:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .sparkle:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes sparkle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.9); }
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-size: var(--fs-h2);
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0 0 var(--space-2);
+  }
+
+  .page-subtitle {
+    font-size: var(--fs-lead);
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .settings-container {
+    background: var(--color-surface);
+    border: 3px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-8);
+    box-shadow: var(--shadow-brut-lg);
+  }
+
+  .settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .form-label {
+    font-family: var(--font-sans);
+    font-size: var(--fs-body);
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .required {
+    color: var(--color-danger);
+  }
+
+  .form-input,
+  .form-textarea {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    font-family: var(--font-sans);
+    font-size: var(--fs-body);
+    color: var(--color-text);
+    background: var(--color-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .form-input:focus,
+  .form-textarea:focus {
+    outline: none;
+    border-color: var(--color-focus);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus) 20%, transparent);
+  }
+
+  .form-input::placeholder,
+  .form-textarea::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .form-input--disabled {
+    background: var(--color-surface-alt);
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+  }
+
+  .form-textarea {
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+
+  .form-hint {
+    font-size: var(--fs-small);
+    color: var(--color-text-muted);
+  }
+
+  /* Bio with character counter */
+  .bio-wrapper {
+    position: relative;
+  }
+
+  .bio-counter {
+    position: absolute;
+    bottom: var(--space-2);
+    right: var(--space-3);
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    color: var(--color-text-muted);
+    pointer-events: none;
+  }
+
+  /* Avatar preview */
+  .avatar-preview {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+    padding: var(--space-3);
+    background: var(--color-surface-alt);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+
+  .avatar-img {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+    border: 2px solid var(--color-border);
+  }
+
+  .avatar-preview-label {
+    font-family: var(--font-pixel);
+    font-size: var(--fs-small);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Form actions */
+  .form-actions {
+    padding-top: var(--space-4);
+  }
+
+  .btn-save {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-8);
+    font-family: var(--font-display);
+    font-size: var(--fs-body);
+    font-weight: 700;
+    color: var(--color-ink-950);
+    background: var(--color-primary-600);
+    border: 3px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-brut);
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  .btn-save:hover {
+    transform: translate(2px, 2px);
+    box-shadow: var(--shadow-brut-pressed);
+  }
+
+  .btn-save:active {
+    transform: translate(1px, 1px);
+    box-shadow: none;
+  }
+
+  .btn-save:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Success message */
+  .form-success {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: color-mix(in srgb, var(--color-signal) 15%, transparent);
+    border: 2px solid var(--color-signal);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-weight: 500;
+  }
+
+  .success-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--color-signal);
+    flex-shrink: 0;
+  }
+
+  /* Error message */
+  .form-error {
+    padding: var(--space-4);
+    background: color-mix(in srgb, var(--color-danger) 15%, transparent);
+    border: 2px solid var(--color-danger);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-weight: 500;
+  }
+
+  /* ============================================
+     Dark mode overrides (using CSS variables)
+     ============================================ */
+  
+  [data-theme="dark"] .settings-container {
+    background: var(--color-surface);
+  }
+
+  [data-theme="dark"] .avatar-preview {
+    background: var(--color-surface-alt);
+  }
+</style>
+
+<script>
+  // Form elements
+  const form = document.getElementById("settings-form") as HTMLFormElement;
+  const nameInput = document.getElementById("name") as HTMLInputElement;
+  const bioTextarea = document.getElementById("bio") as HTMLTextAreaElement;
+  const bioCount = document.getElementById("bio-count") as HTMLSpanElement;
+  const imageInput = document.getElementById("image") as HTMLInputElement;
+  const avatarPreview = document.getElementById("avatar-preview") as HTMLDivElement;
+  const avatarImg = document.getElementById("avatar-img") as HTMLImageElement;
+  const saveBtn = document.getElementById("save-btn") as HTMLButtonElement;
+  const btnText = saveBtn.querySelector(".btn-text") as HTMLSpanElement;
+  const btnLoading = saveBtn.querySelector(".btn-loading") as HTMLSpanElement;
+  const successMsg = document.getElementById("form-success") as HTMLDivElement;
+  const errorMsg = document.getElementById("form-error") as HTMLDivElement;
+
+  // Bio character counter
+  bioTextarea.addEventListener("input", () => {
+    bioCount.textContent = bioTextarea.value.length.toString();
+  });
+
+  // Avatar URL preview
+  imageInput.addEventListener("input", () => {
+    const url = imageInput.value.trim();
+    if (url) {
+      try {
+        new URL(url);
+        avatarImg.src = url;
+        avatarPreview.style.display = "flex";
+      } catch {
+        avatarPreview.style.display = "none";
+      }
+    } else {
+      avatarPreview.style.display = "none";
+    }
+  });
+
+  // Initialize avatar preview if there's already a value
+  if (imageInput.value.trim()) {
+    try {
+      new URL(imageInput.value);
+      avatarImg.src = imageInput.value;
+      avatarPreview.style.display = "flex";
+    } catch {
+      // Invalid URL, hide preview
+    }
+  }
+
+  // Handle form submission
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // Hide previous messages
+    successMsg.style.display = "none";
+    errorMsg.style.display = "none";
+
+    // Disable button and show loading state
+    saveBtn.disabled = true;
+    btnText.style.display = "none";
+    btnLoading.style.display = "inline";
+
+    // Gather form data
+    const data: { name?: string; bio?: string; image?: string | null } = {};
+
+    if (nameInput.value.trim()) {
+      data.name = nameInput.value.trim();
+    }
+
+    if (bioTextarea.value.trim()) {
+      data.bio = bioTextarea.value.trim();
+    } else {
+      data.bio = null; // Allow clearing bio
+    }
+
+    if (imageInput.value.trim()) {
+      data.image = imageInput.value.trim();
+    } else {
+      data.image = null; // Allow clearing image
+    }
+
+    try {
+      const response = await fetch("/api/users/me", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Show success message
+        successMsg.style.display = "flex";
+        // Scroll to success message
+        successMsg.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        // Show error message
+        errorMsg.textContent = result.error || "Failed to update profile";
+        errorMsg.style.display = "block";
+      }
+    } catch (err) {
+      // Network error
+      errorMsg.textContent = "Network error. Please try again.";
+      errorMsg.style.display = "block";
+    } finally {
+      // Re-enable button
+      saveBtn.disabled = false;
+      btnText.style.display = "inline";
+      btnLoading.style.display = "none";
+    }
+  });
+</script>

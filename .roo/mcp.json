@@ -1,0 +1,52 @@
+{
+	"mcpServers": {
+		"cyberdeck-local": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@cyberdeck-club/mcp-server"
+			],
+			"env": {
+				"CYBERDECK_PAT": "${env:CYBERDECK_PAT_LOCAL}",
+				"CYBERDECK_API_URL": "${env:CYBERDECK_API_URL_LOCAL}"
+			},
+			"disabled": false,
+			"alwaysAllow": [
+				"get_my_profile",
+				"list_builds",
+				"list_forum_threads",
+				"list_forum_posts",
+				"list_meetups",
+				"list_wiki_articles",
+				"get_wiki_article",
+				"list_users",
+				"list_all_tokens",
+				"list_token_logs"
+			]
+		},
+		"cyberdeck-beta": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@cyberdeck-club/mcp-server"
+			],
+			"env": {
+				"CYBERDECK_PAT": "${env:CYBERDECK_PAT_BETA}",
+				"CYBERDECK_API_URL": "${env:CYBERDECK_API_URL_BETA}"
+			},
+			"disabled": true
+		},
+		"cyberdeck-prod": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@cyberdeck-club/mcp-server"
+			],
+			"env": {
+				"CYBERDECK_PAT": "${env:CYBERDECK_PAT_PROD}",
+				"CYBERDECK_API_URL": "${env:CYBERDECK_API_URL_PROD}"
+			},
+			"disabled": true
+		}
+	}
+}

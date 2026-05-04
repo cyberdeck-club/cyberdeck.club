@@ -29,6 +29,13 @@
       "when": 1777833425270,
       "tag": "0003_perpetual_fenris",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1777847669832,
+      "tag": "0004_mean_nightshade",
+      "breakpoints": true
     }
   ]
 }

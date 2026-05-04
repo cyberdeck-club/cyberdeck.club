@@ -23,6 +23,7 @@ const builds = buildsResult.map(({ build, authorName }) => ({
   slug: build.slug,
   title: build.title,
   builderName: authorName,
+  builderId: build.authorId,
   difficulty: "intermediate" as const, // Default - schema doesn't have difficulty yet
   computePlatform: "Raspberry Pi", // Default - schema doesn't have computePlatform yet
   estimatedCost: 0, // Default - schema doesn't have estimatedCost yet
@@ -105,6 +106,7 @@ const costRanges = [
         <BuildCard
           title={build.title}
           builderName={build.builderName}
+          builderId={build.builderId}
           featuredImage={build.featuredImage}
           difficulty={build.difficulty}
           computePlatform={build.computePlatform}

@@ -82,6 +82,7 @@ const notFound = !articleResult || articleResult.length === 0;
 // Article data (only if found)
 let article: any = null;
 let authorName: string | null = null;
+let authorId: string | null = null;
 let categoryName: string | null = null;
 let breadcrumbs: Array<{ label: string; href: string }> = [];
 let canEdit = false;
@@ -125,6 +126,7 @@ if (!notFound) {
   const result = articleResult[0];
   article = result.article;
   authorName = result.authorName;
+  authorId = result.authorId;
   categoryName = result.categoryName;
 
   // Increment view count (fire and forget)
@@ -193,7 +195,11 @@ if (!notFound) {
               <circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/>
               <path d="M2 14C2 11.2386 4.68629 9 8 9C11.3137 9 14 11.2386 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
-            {authorName ?? "Unknown"}
+            {authorId ? (
+              <a href={`/user/${authorId}`} class="author-link">{authorName ?? "Unknown"}</a>
+            ) : (
+              authorName ?? "Unknown"
+            )}
           </span>
           <span class="meta-item">
             <svg class="meta-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -269,7 +275,13 @@ if (!notFound) {
                   return (
                     <div class={`comment ${isReply ? 'comment-reply' : ''}`}>
                       <div class="comment-header">
-                        <span class="comment-author">{comment.authorName ?? "Anonymous"}</span>
+                        <span class="comment-author">
+                          {comment.authorId ? (
+                            <a href={`/user/${comment.authorId}`} class="author-link">{comment.authorName ?? "Anonymous"}</a>
+                          ) : (
+                            comment.authorName ?? "Anonymous"
+                          )}
+                        </span>
                         <span class="comment-date">{formattedDate}</span>
                       </div>
                       <div class="comment-content" set:html={commentHtml} />
@@ -538,6 +550,16 @@ if (!notFound) {
     font-size: 0.875rem;
     font-weight: 700;
     color: var(--color-primary);
+  }
+
+  .author-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .author-link:hover {
+    text-decoration: underline;
   }
 
   .comment-date {

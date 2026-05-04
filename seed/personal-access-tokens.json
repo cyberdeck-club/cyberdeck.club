@@ -1,0 +1,68 @@
+[
+  {
+    "id": "pat-1",
+    "userSlug": "divine_circuitry",
+    "name": "Admin CLI Token",
+    "tokenHash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+    "tokenPrefix": "cdc_a1b2",
+    "scopes": "[\"*\"]",
+    "expiresAt": null,
+    "lastUsedAt": "2026-05-02T18:30:00Z",
+    "revokedAt": null
+  },
+  {
+    "id": "pat-2",
+    "userSlug": "divine_circuitry",
+    "name": "MCP Server - Read Only",
+    "tokenHash": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+    "tokenPrefix": "cdc_b2c3",
+    "scopes": "[\"builds:read\",\"wiki:read\",\"forum:read\"]",
+    "expiresAt": "2026-08-01T00:00:00Z",
+    "lastUsedAt": "2026-05-01T10:15:00Z",
+    "revokedAt": null
+  },
+  {
+    "id": "pat-3",
+    "userSlug": "solderqueen",
+    "name": "Build Upload Script",
+    "tokenHash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+    "tokenPrefix": "cdc_c3d4",
+    "scopes": "[\"builds:read\",\"builds:write\"]",
+    "expiresAt": "2026-09-15T00:00:00Z",
+    "lastUsedAt": "2026-04-28T22:10:00Z",
+    "revokedAt": null
+  },
+  {
+    "id": "pat-4",
+    "userSlug": "bytewitch",
+    "name": "Mod Dashboard Bot",
+    "tokenHash": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
+    "tokenPrefix": "cdc_d4e5",
+    "scopes": "[\"builds:read\",\"builds:write\",\"wiki:read\",\"wiki:write\",\"forum:read\",\"forum:write\"]",
+    "expiresAt": null,
+    "lastUsedAt": "2026-05-03T08:00:00Z",
+    "revokedAt": null
+  },
+  {
+    "id": "pat-5",
+    "userSlug": "circuitfae",
+    "name": "Old Integration (revoked)",
+    "tokenHash": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
+    "tokenPrefix": "cdc_e5f6",
+    "scopes": "[\"builds:read\"]",
+    "expiresAt": null,
+    "lastUsedAt": "2026-03-15T14:20:00Z",
+    "revokedAt": "2026-04-01T09:00:00Z"
+  },
+  {
+    "id": "pat-6",
+    "userSlug": "nova_spark",
+    "name": "MCP Server Token",
+    "tokenHash": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7",
+    "tokenPrefix": "cdc_f6a7",
+    "scopes": "[\"builds:read\",\"builds:write\",\"wiki:read\"]",
+    "expiresAt": "2026-07-01T00:00:00Z",
+    "lastUsedAt": null,
+    "revokedAt": null
+  }
+]

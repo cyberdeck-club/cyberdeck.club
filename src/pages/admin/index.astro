@@ -56,6 +56,7 @@ const recentThreads = await db
     createdAt: schema.forumThreads.createdAt,
     isLocked: schema.forumThreads.isLocked,
     isPinned: schema.forumThreads.isPinned,
+    authorId: schema.forumThreads.authorId,
     authorName: schema.user.name,
   })
   .from(schema.forumThreads)
@@ -70,6 +71,7 @@ const recentArticles = await db
     title: schema.wikiArticles.title,
     status: schema.wikiArticles.status,
     updatedAt: schema.wikiArticles.updatedAt,
+    authorId: schema.wikiArticles.authorId,
     authorName: schema.user.name,
   })
   .from(schema.wikiArticles)
@@ -254,7 +256,7 @@ const isAdmin = userRole === "admin";
                   {thread.title}
                 </a>
                 <span class="activity-meta">
-                  by {thread.authorName} • {new Date(thread.createdAt).toLocaleDateString()}
+                  by <a href={`/admin/users/${thread.authorId}`} class="author-link">{thread.authorName}</a> • {new Date(thread.createdAt).toLocaleDateString()}
                 </span>
               </div>
             </div>
@@ -284,7 +286,7 @@ const isAdmin = userRole === "admin";
                   {article.title}
                 </a>
                 <span class="activity-meta">
-                  by {article.authorName || "Unknown"} • {new Date(article.updatedAt).toLocaleDateString()}
+                  by <a href={`/admin/users/${article.authorId}`} class="author-link">{article.authorName || "Unknown"}</a> • {new Date(article.updatedAt).toLocaleDateString()}
                 </span>
               </div>
             </div>

@@ -96,7 +96,7 @@ function parseAutoReviewResult(jsonStr: string | null) {
               </div>
               <div class="build-card-meta">
                 <span class="build-card-author">
-                  by {item.authorName}
+                  by <a href={`/admin/users/${item.authorId}`} class="author-link">{item.authorName}</a>
                 </span>
                 <span class="build-card-date">
                   Submitted {new Date(item.buildCreatedAt * 1000).toLocaleDateString()}

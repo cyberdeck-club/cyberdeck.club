@@ -63,6 +63,7 @@ export function getWikiArticle(
     .select({
       article: schema.wikiArticles,
       authorName: schema.user.name,
+      authorId: schema.wikiArticles.authorId,
       categoryName: schema.wikiCategories.name,
     })
     .from(schema.wikiArticles)
@@ -127,6 +128,7 @@ export function getWikiRevisions(
   return db
     .select({
       revision: schema.wikiRevisions,
+      authorId: schema.wikiRevisions.authorId,
       authorName: schema.user.name,
     })
     .from(schema.wikiRevisions)

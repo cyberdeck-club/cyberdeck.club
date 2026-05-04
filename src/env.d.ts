@@ -47,6 +47,12 @@ declare global {
       db: DrizzleD1Database<typeof schema>;
       /** Cloudflare Workers context (ExecutionContext) — provided by @astrojs/cloudflare v13 */
       cfContext?: ExecutionContext;
+      /** True when the request was authenticated via Personal Access Token (not session cookie) */
+      isPATAuth?: boolean;
+      /** PAT scopes — set when authenticated via Personal Access Token, undefined for session auth */
+      patScopes?: string[];
+      /** PAT token ID — set when authenticated via PAT, for usage logging */
+      patTokenId?: string;
     }
   }
 }

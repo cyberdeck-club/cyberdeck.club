@@ -1,0 +1,246 @@
+---
+/**
+ * UserProfileCard Component
+ * Displays a user's public profile information in a card format.
+ * Used on the public user profile page.
+ */
+
+import RoleBadge from "./RoleBadge.astro";
+
+interface Props {
+  user: {
+    id: string;
+    name: string;
+    image: string | null | undefined;
+    bio: string | null | undefined;
+    role: string | null | undefined;
+    createdAt: Date | string | number;
+  };
+  isOwnProfile?: boolean;
+  isAdmin?: boolean;
+}
+
+const { user, isOwnProfile = false, isAdmin = false } = Astro.props;
+
+// Format join date
+const formatJoinDate = (date: Date | string | number): string => {
+  const d = new Date(date);
+  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+};
+
+// Get initials from name
+const getInitials = (name: string): string => {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+const joinDate = formatJoinDate(user.createdAt);
+const initials = getInitials(user.name);
+const hasImage = !!user.image;
+---
+
+<article class="profile-card">
+  <div class="profile-header">
+    <!-- Avatar -->
+    <div class="profile-avatar">
+      {hasImage ? (
+        <img
+          src={user.image}
+          alt={`${user.name}'s avatar`}
+          width="120"
+          height="120"
+          class="avatar-image"
+        />
+      ) : (
+        <div class="avatar-placeholder">
+          <span class="avatar-initials">{initials}</span>
+        </div>
+      )}
+    </div>
+
+    <!-- Basic Info -->
+    <div class="profile-info">
+      <div class="profile-name-row">
+        <h1 class="profile-name">{user.name}</h1>
+        <RoleBadge role={user.role} />
+      </div>
+      <p class="profile-join-date">Joined {joinDate}</p>
+    </div>
+  </div>
+
+  <!-- Bio -->
+  {user.bio && (
+    <div class="profile-bio">
+      <p>{user.bio}</p>
+    </div>
+  )}
+
+  <!-- Actions -->
+  {(isOwnProfile || isAdmin) && (
+    <div class="profile-actions">
+      {isOwnProfile && (
+        <a href="/settings" class="profile-action-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M11.5 2.5L13.5 4.5M2 14L3.5 9L12.5 1L15 3.5L7 12.5L2 14Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Edit Profile
+        </a>
+      )}
+      {isAdmin && (
+        <a href={`/admin/users/${user.id}`} class="profile-action-btn admin-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 4V12M4 8H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Admin View
+        </a>
+      )}
+    </div>
+  )}
+</article>
+
+<style>
+  .profile-card {
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    padding: 2rem;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .profile-header {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .profile-avatar {
+    flex-shrink: 0;
+  }
+
+  .avatar-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 4px;
+    border: 3px solid var(--border);
+    object-fit: cover;
+  }
+
+  .avatar-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 4px;
+    border: 3px solid var(--border);
+    background: var(--color-primary-200);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .avatar-initials {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--color-primary-700);
+    text-transform: uppercase;
+  }
+
+  .profile-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+
+  .profile-name {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .profile-join-date {
+    font-size: 0.9375rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .profile-bio {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--border);
+  }
+
+  .profile-bio p {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .profile-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .profile-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    color: var(--text);
+    background: var(--surface);
+    border: 3px solid var(--border);
+    box-shadow: 3px 3px 0 var(--shadow-hard);
+    transition: all 0.15s ease;
+  }
+
+  .profile-action-btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+    background: var(--color-primary-100);
+  }
+
+  .admin-btn {
+    background: var(--color-secondary-100);
+  }
+
+  .admin-btn:hover {
+    background: var(--color-secondary-200);
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .profile-header {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .profile-name-row {
+      justify-content: center;
+    }
+
+    .profile-actions {
+      justify-content: center;
+    }
+  }
+</style>

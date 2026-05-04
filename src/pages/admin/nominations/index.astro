@@ -103,7 +103,7 @@ function formatDate(timestamp: number | null): string {
                 )}
               </div>
               <div class="user-info">
-                <span class="user-name">{nomination.name}</span>
+                <a href={`/admin/users/${nomination.id}`} class="author-link">{nomination.name}</a>
                 <span class={`role-badge ${getRoleBadgeClass(nomination.role || "member")}`}>
                   {nomination.role || "member"}
                 </span>

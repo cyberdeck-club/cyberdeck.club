@@ -1,0 +1,297 @@
+---
+/**
+ * Public User Profile Page
+ * Displays a user's public profile with their builds, forum threads, and wiki articles.
+ * This page is PUBLIC — no auth required to view.
+ */
+
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import UserProfileCard from "@/components/UserProfileCard.astro";
+import BuildCard from "@/components/BuildCard.astro";
+import ForumThreadPreview from "@/components/ForumThreadPreview.astro";
+import WikiArticleCard from "@/components/WikiArticleCard.astro";
+import SectionHeader from "@/components/SectionHeader.astro";
+import { eq, desc, and } from "drizzle-orm";
+import { user, builds, forumThreads, wikiArticles, forumCategories, wikiCategories } from "@/db/schema";
+import { getRoleLevel, ROLES } from "@/lib/roles";
+
+// Server-rendered page
+export const prerender = false;
+
+// Get the user ID from the URL
+const { id } = Astro.params;
+if (!id) {
+  return Astro.redirect("/404");
+}
+
+// Get database and current user from locals
+const db = Astro.locals.db!;
+const currentUser = Astro.locals.user;
+
+// Fetch the user by ID
+const userResult = await db
+  .select()
+  .from(user)
+  .where(eq(user.id, id))
+  .limit(1);
+
+if (!userResult || userResult.length === 0) {
+  return Astro.redirect("/404");
+}
+
+const profileUser = userResult[0];
+
+// Determine if this is the user's own profile
+const isOwnProfile = !!currentUser && currentUser.id === id;
+
+// Determine if current user is admin
+const isAdmin = !!(currentUser && getRoleLevel(currentUser.role) >= ROLES.ADMIN);
+
+// Fetch user's published builds
+const userBuilds = await db
+  .select({
+    build: builds,
+    authorName: user.name,
+  })
+  .from(builds)
+  .innerJoin(user, eq(builds.authorId, user.id))
+  .where(and(eq(builds.authorId, id), eq(builds.status, "published")))
+  .orderBy(desc(builds.createdAt));
+
+// Fetch user's forum threads
+const userThreads = await db
+  .select({
+    thread: forumThreads,
+    authorName: user.name,
+    categoryName: forumCategories.name,
+  })
+  .from(forumThreads)
+  .innerJoin(user, eq(forumThreads.authorId, user.id))
+  .innerJoin(forumCategories, eq(forumThreads.categoryId, forumCategories.id))
+  .where(eq(forumThreads.authorId, id))
+  .orderBy(desc(forumThreads.createdAt));
+
+// Fetch user's wiki articles (published only)
+const userArticles = await db
+  .select({
+    article: wikiArticles,
+    authorName: user.name,
+    categoryName: wikiCategories.name,
+    categorySlug: wikiCategories.slug,
+  })
+  .from(wikiArticles)
+  .innerJoin(user, eq(wikiArticles.authorId, user.id))
+  .innerJoin(wikiCategories, eq(wikiArticles.categoryId, wikiCategories.id))
+  .where(and(eq(wikiArticles.authorId, id), eq(wikiArticles.status, "published")))
+  .orderBy(desc(wikiArticles.createdAt));
+
+// Transform data for components
+const buildCards = userBuilds.map(({ build }) => ({
+  title: build.title,
+  builderName: profileUser.name,
+  featuredImage: build.heroImageUrl ? { url: build.heroImageUrl, alt: build.title } : undefined,
+  difficulty: "intermediate" as const, // Default - schema doesn't have difficulty yet
+  computePlatform: "Raspberry Pi", // Default
+  estimatedCost: 0, // Default
+  href: `/builds/${build.slug}`,
+}));
+
+const threadPreviews = userThreads.map(({ thread, categoryName }) => ({
+  title: thread.title,
+  category: categoryName,
+  replyCount: thread.postCount,
+  lastActivity: thread.lastReplyAt
+    ? new Date(thread.lastReplyAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : new Date(thread.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+  href: `/forum/thread/${thread.id}`,
+}));
+
+const articleCards = userArticles.map(({ article, categoryName, categorySlug }) => ({
+  title: article.title,
+  category: categoryName,
+  excerpt: article.excerpt || article.content?.slice(0, 150) + "..." || "",
+  href: `/wiki/${categorySlug}/${article.slug}`,
+}));
+
+// Format date for display
+const joinDate = profileUser.createdAt 
+  ? new Date(profileUser.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+  : "Unknown";
+
+// Prepare user data for UserProfileCard
+const userData = {
+  id: profileUser.id,
+  name: profileUser.name,
+  image: profileUser.image,
+  bio: profileUser.bio,
+  role: profileUser.role,
+  createdAt: profileUser.createdAt,
+};
+---
+
+<BaseLayout 
+  title={`${profileUser.name} ✨`} 
+  description={`${profileUser.bio || `${profileUser.name}'s profile on cyberdeck.club`}`}
+>
+  <div class="profile-page">
+    <!-- Profile Card -->
+    <section class="profile-card-section">
+      <UserProfileCard 
+        user={userData} 
+        isOwnProfile={isOwnProfile} 
+        isAdmin={isAdmin}
+      />
+    </section>
+
+    <!-- Builds Section -->
+    <section class="profile-content-section">
+      <SectionHeader 
+        title="Builds" 
+        subtitle={`${buildCards.length} ${buildCards.length === 1 ? "build" : "builds"} shared`}
+      />
+      
+      {buildCards.length > 0 ? (
+        <div class="builds-grid">
+          {buildCards.map((build) => (
+            <BuildCard {...build} />
+          ))}
+        </div>
+      ) : (
+        <div class="empty-state">
+          <p>No builds yet</p>
+          {isOwnProfile && (
+            <a href="/builds/new" class="empty-state-link">Share your first build →</a>
+          )}
+        </div>
+      )}
+    </section>
+
+    <!-- Forum Threads Section -->
+    <section class="profile-content-section">
+      <SectionHeader 
+        title="Forum Threads" 
+        subtitle={`${threadPreviews.length} ${threadPreviews.length === 1 ? "thread" : "threads"} started`}
+      />
+      
+      {threadPreviews.length > 0 ? (
+        <div class="threads-list">
+          {threadPreviews.map((thread) => (
+            <ForumThreadPreview {...thread} />
+          ))}
+        </div>
+      ) : (
+        <div class="empty-state">
+          <p>No forum threads yet</p>
+          {isOwnProfile && (
+            <a href="/forum" class="empty-state-link">Join the conversation →</a>
+          )}
+        </div>
+      )}
+    </section>
+
+    <!-- Wiki Articles Section -->
+    <section class="profile-content-section">
+      <SectionHeader 
+        title="Wiki Articles" 
+        subtitle={`${articleCards.length} ${articleCards.length === 1 ? "article" : "articles"} written`}
+      />
+      
+      {articleCards.length > 0 ? (
+        <div class="articles-grid">
+          {articleCards.map((article) => (
+            <WikiArticleCard {...article} />
+          ))}
+        </div>
+      ) : (
+        <div class="empty-state">
+          <p>No wiki articles yet</p>
+          {isOwnProfile && (
+            <a href="/wiki" class="empty-state-link">Explore the wiki →</a>
+          )}
+        </div>
+      )}
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .profile-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  .profile-card-section {
+    margin-bottom: 1rem;
+  }
+
+  .profile-content-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .builds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .threads-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .empty-state {
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    padding: 3rem 2rem;
+    text-align: center;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .empty-state p {
+    font-size: 1.125rem;
+    color: var(--text-muted);
+    margin: 0 0 1rem;
+  }
+
+  .empty-state-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .empty-state-link:hover {
+    color: var(--color-primary-700);
+    text-decoration: underline;
+  }
+
+  @media (max-width: 600px) {
+    .profile-page {
+      padding: 1.5rem 1rem;
+    }
+
+    .builds-grid,
+    .articles-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

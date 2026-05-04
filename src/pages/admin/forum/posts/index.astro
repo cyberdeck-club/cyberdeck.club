@@ -116,7 +116,7 @@ function truncateContent(content: string, maxLength: number = 150) {
               {post.threadTitle || "Unknown Thread"}
             </a>
             <span class="meta-separator">•</span>
-            <span class="author">{post.authorName || "Unknown"}</span>
+            <a href={`/admin/users/${post.authorId}`} class="author-link">{post.authorName || "Unknown"}</a>
             <span class="meta-separator">•</span>
             <span class="date">{new Date(post.createdAt).toLocaleDateString()}</span>
           </div>

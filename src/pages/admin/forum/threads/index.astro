@@ -127,7 +127,7 @@ const totalPages = Math.ceil(totalThreads / perPage);
               </a>
             </td>
             <td class="category-cell">{thread.categoryName || "Uncategorized"}</td>
-            <td class="author-cell">{thread.authorName || "Unknown"}</td>
+            <td class="author-cell"><a href={`/admin/users/${thread.authorId}`} class="author-link">{thread.authorName || "Unknown"}</a></td>
             <td class="count-cell">{thread.postCount || 0}</td>
             <td>
               <div class="status-badges">

@@ -62,6 +62,7 @@ export function getForumThread(
     .select({
       thread: schema.forumThreads,
       authorName: schema.user.name,
+      authorId: schema.forumThreads.authorId,
       categoryName: schema.forumCategories.name,
       categorySlug: schema.forumCategories.slug,
     })
@@ -89,6 +90,7 @@ export function getForumPosts(
     .select({
       post: schema.forumPosts,
       authorName: schema.user.name,
+      authorId: schema.forumPosts.authorId,
     })
     .from(schema.forumPosts)
     .innerJoin(schema.user, eq(schema.forumPosts.authorId, schema.user.id))

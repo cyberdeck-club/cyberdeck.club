@@ -14,6 +14,7 @@ interface Props {
   description?: string;
   featuredImage?: ImageData;
   builderName?: string;
+  builderId?: string | null;
   difficulty?: "beginner" | "intermediate" | "advanced";
   computePlatform?: string;
   estimatedCost?: number;
@@ -21,11 +22,12 @@ interface Props {
   tags?: string[];
 }
 
-const { 
+const {
   title,
   description = "A cyberdeck build from the community",
   featuredImage,
   builderName,
+  builderId,
   difficulty,
   computePlatform,
   estimatedCost,
@@ -118,7 +120,11 @@ const formatCurrency = (amount: number) => {
             <circle cx="12" cy="8" r="4"/>
             <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
           </svg>
-          Built by <span class="builder-name">{builderName}</span>
+          Built by {builderId ? (
+            <a href={`/user/${builderId}`} class="builder-name-link">{builderName}</a>
+          ) : (
+            <span class="builder-name">{builderName}</span>
+          )}
         </p>
       )}
       {tags.length > 0 && (
@@ -184,7 +190,11 @@ const formatCurrency = (amount: number) => {
                   <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
                 </svg>
               </div>
-              <span class="builder-card-name">{builderName}</span>
+              {builderId ? (
+                <a href={`/user/${builderId}`} class="builder-card-link">{builderName}</a>
+              ) : (
+                <span class="builder-card-name">{builderName}</span>
+              )}
             </div>
           </div>
         )}
@@ -338,6 +348,17 @@ const formatCurrency = (amount: number) => {
     color: var(--color-primary);
   }
 
+  .builder-name-link {
+    font-weight: 800;
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .builder-name-link:hover {
+    text-decoration: underline;
+  }
+
   .build-tags {
     display: flex;
     flex-wrap: wrap;
@@ -469,6 +490,18 @@ const formatCurrency = (amount: number) => {
   .builder-card-name {
     font-weight: 800;
     color: var(--text);
+  }
+
+  .builder-card-link {
+    font-weight: 800;
+    color: var(--text);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .builder-card-link:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
   }
 
   /* Dark mode */

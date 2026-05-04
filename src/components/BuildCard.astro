@@ -9,6 +9,7 @@ interface ImageData {
 interface Props {
   title: string;
   builderName: string;
+  builderId?: string | null;
   featuredImage?: ImageData;
   difficulty: "beginner" | "intermediate" | "advanced";
   computePlatform?: string;
@@ -17,11 +18,12 @@ interface Props {
   variant?: "default" | "featured";
 }
 
-const { 
-  title, 
-  builderName, 
-  featuredImage, 
-  difficulty, 
+const {
+  title,
+  builderName,
+  builderId,
+  featuredImage,
+  difficulty,
   computePlatform,
   estimatedCost,
   href,
@@ -103,7 +105,11 @@ const formatCurrency = (amount: number) => {
             <circle cx="12" cy="8" r="4"/>
             <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
           </svg>
-          {builderName}
+          {builderId ? (
+            <a href={`/user/${builderId}`} class="builder-link">{builderName}</a>
+          ) : (
+            builderName
+          )}
         </span>
         {estimatedCost !== undefined && (
           <span class="build-cost">{formatCurrency(estimatedCost)}</span>
@@ -258,6 +264,17 @@ const formatCurrency = (amount: number) => {
   .builder-icon {
     width: 1rem;
     height: 1rem;
+  }
+
+  .builder-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .builder-link:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
   }
 
   .build-cost {

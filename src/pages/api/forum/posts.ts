@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
 
@@ -126,6 +126,81 @@ export const POST: APIRoute = async (ctx) => {
       headers: { "Content-Type": "application/json" },
     });
   }
+};
+
+/**
+ * GET /api/forum/posts
+ *
+ * Lists posts for a forum thread with pagination.
+ * Public endpoint - no authentication required.
+ *
+ * Query params:
+ *   - threadId: string (required) - The thread whose posts to list
+ *   - page: number (default 1) - Page number for pagination
+ *   - limit: number (default 20, max 100) - Results per page
+ */
+export const GET: APIRoute = async (ctx) => {
+  const db = ctx.locals.db;
+  const url = new URL(ctx.request.url);
+
+  const threadId = url.searchParams.get("threadId");
+  if (!threadId) {
+    return new Response(JSON.stringify({ error: "threadId is required" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Parse pagination params
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10) || 20));
+  const offset = (page - 1) * limit;
+
+  // Verify thread exists
+  const threads = await db
+    .select({ id: schema.forumThreads.id })
+    .from(schema.forumThreads)
+    .where(eq(schema.forumThreads.id, threadId))
+    .limit(1);
+
+  if (threads.length === 0) {
+    return new Response(JSON.stringify({ error: "Thread not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Fetch posts for the thread
+  const results = await db
+    .select({
+      post: schema.forumPosts,
+      authorName: schema.user.name,
+      authorId: schema.forumPosts.authorId,
+    })
+    .from(schema.forumPosts)
+    .innerJoin(schema.user, eq(schema.forumPosts.authorId, schema.user.id))
+    .where(eq(schema.forumPosts.threadId, threadId))
+    .orderBy(asc(schema.forumPosts.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  const posts = results.map((row) => ({
+    id: row.post.id,
+    threadId: row.post.threadId,
+    authorId: row.post.authorId,
+    authorName: row.authorName,
+    content: row.post.content,
+    createdAt: row.post.createdAt,
+    updatedAt: row.post.updatedAt,
+  }));
+
+  return new Response(
+    JSON.stringify({ posts }),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
 };
 
 export const prerender = false;

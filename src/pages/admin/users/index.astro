@@ -149,7 +149,7 @@ function getRoleBadgeClass(role: string) {
                   <span class="user-initials">{user.name?.charAt(0) || "?"}</span>
                 )}
               </div>
-              <span class="user-name">{user.name}</span>
+              <a href={`/admin/users/${user.id}`} class="user-name-link">{user.name}</a>
               {!user.emailVerified && (
                 <span class="unverified-badge" title="Email not verified">⚠️</span>
               )}
@@ -380,6 +380,18 @@ function getRoleBadgeClass(role: string) {
   .user-name {
     font-weight: 600;
     color: var(--text);
+  }
+
+  .user-name-link {
+    font-weight: 600;
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .user-name-link:hover {
+    color: var(--color-accent-600);
+    text-decoration: underline;
   }
 
   .unverified-badge {

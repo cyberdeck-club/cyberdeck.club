@@ -1,0 +1,112 @@
+[
+  {
+    "id": "pat-log-1",
+    "tokenId": "pat-1",
+    "userSlug": "divine_circuitry",
+    "method": "GET",
+    "path": "/api/builds",
+    "statusCode": 200,
+    "ipAddress": "192.168.1.100",
+    "userAgent": "cyberdeck-cli/1.0",
+    "createdAt": "2026-05-02T18:30:00Z"
+  },
+  {
+    "id": "pat-log-2",
+    "tokenId": "pat-1",
+    "userSlug": "divine_circuitry",
+    "method": "GET",
+    "path": "/api/admin/users",
+    "statusCode": 200,
+    "ipAddress": "192.168.1.100",
+    "userAgent": "cyberdeck-cli/1.0",
+    "createdAt": "2026-05-02T18:31:00Z"
+  },
+  {
+    "id": "pat-log-3",
+    "tokenId": "pat-2",
+    "userSlug": "divine_circuitry",
+    "method": "GET",
+    "path": "/api/wiki/articles",
+    "statusCode": 200,
+    "ipAddress": "10.0.0.5",
+    "userAgent": "mcp-server/0.1.0",
+    "createdAt": "2026-05-01T10:15:00Z"
+  },
+  {
+    "id": "pat-log-4",
+    "tokenId": "pat-3",
+    "userSlug": "solderqueen",
+    "method": "POST",
+    "path": "/api/builds",
+    "statusCode": 201,
+    "ipAddress": "172.16.0.42",
+    "userAgent": "curl/8.5.0",
+    "createdAt": "2026-04-28T22:10:00Z"
+  },
+  {
+    "id": "pat-log-5",
+    "tokenId": "pat-3",
+    "userSlug": "solderqueen",
+    "method": "GET",
+    "path": "/api/builds",
+    "statusCode": 200,
+    "ipAddress": "172.16.0.42",
+    "userAgent": "curl/8.5.0",
+    "createdAt": "2026-04-28T22:09:00Z"
+  },
+  {
+    "id": "pat-log-6",
+    "tokenId": "pat-4",
+    "userSlug": "bytewitch",
+    "method": "GET",
+    "path": "/api/builds",
+    "statusCode": 200,
+    "ipAddress": "203.0.113.10",
+    "userAgent": "mod-dashboard-bot/2.0",
+    "createdAt": "2026-05-03T08:00:00Z"
+  },
+  {
+    "id": "pat-log-7",
+    "tokenId": "pat-4",
+    "userSlug": "bytewitch",
+    "method": "PUT",
+    "path": "/api/wiki/articles/some-article-id",
+    "statusCode": 200,
+    "ipAddress": "203.0.113.10",
+    "userAgent": "mod-dashboard-bot/2.0",
+    "createdAt": "2026-05-03T08:01:00Z"
+  },
+  {
+    "id": "pat-log-8",
+    "tokenId": "pat-5",
+    "userSlug": "circuitfae",
+    "method": "GET",
+    "path": "/api/builds",
+    "statusCode": 200,
+    "ipAddress": "198.51.100.22",
+    "userAgent": "python-requests/2.31.0",
+    "createdAt": "2026-03-15T14:20:00Z"
+  },
+  {
+    "id": "pat-log-9",
+    "tokenId": "pat-1",
+    "userSlug": "divine_circuitry",
+    "method": "DELETE",
+    "path": "/api/admin/forum/threads/old-thread-id",
+    "statusCode": 204,
+    "ipAddress": "192.168.1.100",
+    "userAgent": "cyberdeck-cli/1.0",
+    "createdAt": "2026-05-02T18:35:00Z"
+  },
+  {
+    "id": "pat-log-10",
+    "tokenId": "pat-2",
+    "userSlug": "divine_circuitry",
+    "method": "GET",
+    "path": "/api/forum/threads",
+    "statusCode": 200,
+    "ipAddress": "10.0.0.5",
+    "userAgent": "mcp-server/0.1.0",
+    "createdAt": "2026-05-01T10:16:00Z"
+  }
+]

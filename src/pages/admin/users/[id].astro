@@ -1,0 +1,702 @@
+---
+/**
+ * Admin User Detail Page
+ * Shows ALL database information about a specific user.
+ * Admin-only access.
+ */
+
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import * as schema from "@/db/schema";
+import { eq, desc, count } from "drizzle-orm";
+import { ROLES, getRoleLevel, getRoleName } from "@/lib/roles";
+
+export const prerender = false;
+
+// Get current user for auth check
+const currentUser = Astro.locals.user!;
+const currentUserRole = (currentUser as any).role;
+
+// Admin-only access check
+if (getRoleLevel(currentUserRole) < ROLES.ADMIN) {
+  return Astro.redirect("/");
+}
+
+// Get user ID from URL
+const { id } = Astro.params;
+if (!id) {
+  return Astro.redirect("/admin/users");
+}
+
+const db = Astro.locals.db;
+
+// Fetch the user by ID
+const userResult = await db
+  .select()
+  .from(schema.user)
+  .where(eq(schema.user.id, id))
+  .limit(1);
+
+if (!userResult || userResult.length === 0) {
+  return Astro.redirect("/admin/users");
+}
+
+const targetUser = userResult[0];
+
+// Fetch user's sessions
+const userSessions = await db
+  .select()
+  .from(schema.session)
+  .where(eq(schema.session.userId, id))
+  .orderBy(desc(schema.session.createdAt));
+
+// Fetch user's builds (all statuses)
+const userBuildsResult = await db
+  .select({ count: count() })
+  .from(schema.builds)
+  .where(eq(schema.builds.authorId, id));
+
+const buildCount = userBuildsResult[0]?.count ?? 0;
+
+// Fetch user's forum threads
+const userThreadsResult = await db
+  .select({ count: count() })
+  .from(schema.forumThreads)
+  .where(eq(schema.forumThreads.authorId, id));
+
+const threadCount = userThreadsResult[0]?.count ?? 0;
+
+// Fetch user's wiki articles
+const userArticlesResult = await db
+  .select({ count: count() })
+  .from(schema.wikiArticles)
+  .where(eq(schema.wikiArticles.authorId, id));
+
+const articleCount = userArticlesResult[0]?.count ?? 0;
+
+// Helper for role badge colors
+function getRoleBadgeClass(role: string | null) {
+  switch (role) {
+    case "admin": return "role-admin";
+    case "moderator": return "role-moderator";
+    case "maker": return "role-maker";
+    case "trusted_maker": return "role-trusted-maker";
+    default: return "role-member";
+  }
+}
+
+// Helper to format date
+function formatDate(date: Date | string | number | null | undefined): string {
+  if (!date) return "Not set";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "Invalid date";
+  return d.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// Helper to format relative time
+function formatRelativeTime(date: Date | string | number | null | undefined): string {
+  if (!date) return "Never";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "Invalid date";
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+  return `${Math.floor(diffDays / 365)} years ago`;
+}
+
+// Get role display name
+const roleDisplayName = getRoleName(targetUser.role);
+const roleLevel = getRoleLevel(targetUser.role);
+
+// Check if user is banned
+const isBanned = !!targetUser.bannedAt;
+
+// Check if user is mod nominated
+const isModNominated = !!targetUser.isModNominated;
+---
+
+<AdminLayout title={`User: ${targetUser.name}`} section="users">
+  <!-- Back link -->
+  <div class="back-link">
+    <a href="/admin/users" class="back-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Back to Users
+    </a>
+  </div>
+
+  <!-- User Header -->
+  <div class="user-header">
+    <div class="user-avatar-large">
+      {targetUser.image ? (
+        <img src={targetUser.image} alt={targetUser.name} />
+      ) : (
+        <span class="user-initials">{targetUser.name?.charAt(0) || "?"}</span>
+      )}
+    </div>
+    <div class="user-header-info">
+      <h1 class="user-name">{targetUser.name}</h1>
+      <div class="user-meta">
+        <span class={`role-badge ${getRoleBadgeClass(targetUser.role)}`}>
+          {roleDisplayName}
+        </span>
+        {isBanned && (
+          <span class="banned-badge">Banned</span>
+        )}
+        {isModNominated && (
+          <span class="nominated-badge">Mod Nominated</span>
+        )}
+        {!targetUser.emailVerified && (
+          <span class="unverified-badge" title="Email not verified">⚠️ Unverified</span>
+        )}
+      </div>
+      <div class="user-actions">
+        <a href={`/user/${targetUser.id}`} class="btn-link" target="_blank">
+          <Button variant="primary" size="sm">
+            View Public Profile
+          </Button>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Grid -->
+  <div class="detail-grid">
+    <!-- Account Info Section -->
+    <section class="detail-section">
+      <h2 class="section-title">Account Information</h2>
+      <dl class="detail-list">
+        <div class="detail-row">
+          <dt>User ID</dt>
+          <dd class="mono">{targetUser.id}</dd>
+        </div>
+        <div class="detail-row">
+          <dt>Email</dt>
+          <dd>{targetUser.email}</dd>
+        </div>
+        <div class="detail-row">
+          <dt>Display Name</dt>
+          <dd>{targetUser.name}</dd>
+        </div>
+        <div class="detail-row">
+          <dt>Avatar URL</dt>
+          <dd class="mono">{targetUser.image || "Not set"}</dd>
+        </div>
+        <div class="detail-row">
+          <dt>Bio</dt>
+          <dd>{targetUser.bio || "Not set"}</dd>
+        </div>
+        <div class="detail-row">
+          <dt>Email Verified</dt>
+          <dd>
+            {targetUser.emailVerified ? (
+              <span class="status-yes">✓ Yes</span>
+            ) : (
+              <span class="status-no">✗ No</span>
+            )}
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Role & Status Section -->
+    <section class="detail-section">
+      <h2 class="section-title">Role & Status</h2>
+      <dl class="detail-list">
+        <div class="detail-row">
+          <dt>Current Role</dt>
+          <dd>
+            <span class={`role-badge ${getRoleBadgeClass(targetUser.role)}`}>
+              {roleDisplayName}
+            </span>
+          </dd>
+        </div>
+        <div class="detail-row">
+          <dt>Role Value</dt>
+          <dd class="mono">{roleLevel} ({targetUser.role || "null"})</dd>
+        </div>
+        <div class="detail-row">
+          <dt>Role Level</dt>
+          <dd class="mono">
+            {roleLevel === ROLES.VISITOR && "Visitor (0)"}
+            {roleLevel === ROLES.MEMBER && "Member (10)"}
+            {roleLevel === ROLES.MAKER && "Maker (20)"}
+            {roleLevel === ROLES.TRUSTED_MAKER && "Trusted Maker (30)"}
+            {roleLevel === ROLES.MODERATOR && "Moderator (40)"}
+            {roleLevel === ROLES.ADMIN && "Admin (50)"}
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Ban Info Section -->
+    <section class="detail-section">
+      <h2 class="section-title">Ban Information</h2>
+      <dl class="detail-list">
+        <div class="detail-row">
+          <dt>Is Banned</dt>
+          <dd>
+            {isBanned ? (
+              <span class="status-no">✓ Yes</span>
+            ) : (
+              <span class="status-yes">✗ No</span>
+            )}
+          </dd>
+        </div>
+        {isBanned && (
+          <>
+            <div class="detail-row">
+              <dt>Banned At</dt>
+              <dd>{formatDate(targetUser.bannedAt)}</dd>
+            </div>
+            <div class="detail-row">
+              <dt>Banned By</dt>
+              <dd class="mono">{targetUser.bannedBy || "Unknown"}</dd>
+            </div>
+            <div class="detail-row">
+              <dt>Ban Reason</dt>
+              <dd>{targetUser.banReason || "No reason provided"}</dd>
+            </div>
+          </>
+        )}
+      </dl>
+    </section>
+
+    <!-- Mod Nomination Section -->
+    <section class="detail-section">
+      <h2 class="section-title">Moderator Nomination</h2>
+      <dl class="detail-list">
+        <div class="detail-row">
+          <dt>Is Mod Nominated</dt>
+          <dd>
+            {isModNominated ? (
+              <span class="status-yes">✓ Yes</span>
+            ) : (
+              <span class="status-no">✗ No</span>
+            )}
+          </dd>
+        </div>
+        {isModNominated && (
+          <>
+            <div class="detail-row">
+              <dt>Nominated By</dt>
+              <dd class="mono">{targetUser.modNominatedBy || "Unknown"}</dd>
+            </div>
+            <div class="detail-row">
+              <dt>Nominated At</dt>
+              <dd>{formatDate(targetUser.modNominatedAt)}</dd>
+            </div>
+          </>
+        )}
+      </dl>
+    </section>
+
+    <!-- Build Stats Section -->
+    <section class="detail-section">
+      <h2 class="section-title">Build Statistics</h2>
+      <dl class="detail-list">
+        <div class="detail-row">
+          <dt>Accepted Build Count</dt>
+          <dd>{targetUser.acceptedBuildCount ?? 0}</dd>
+        </div>
+        <div class="detail-row">
+          <dt>First Build Published At</dt>
+          <dd>{formatDate(targetUser.firstBuildPublishedAt)}</dd>
+        </div>
+        <div class="detail-row">
+          <dt>Total Builds (all statuses)</dt>
+          <dd>{buildCount}</dd>
+        </div>
+        <div class="detail-row">
+          <dt>Forum Threads Created</dt>
+          <dd>{threadCount}</dd>
+        </div>
+        <div class="detail-row">
+          <dt>Wiki Articles Created</dt>
+          <dd>{articleCount}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Timestamps Section -->
+    <section class="detail-section">
+      <h2 class="section-title">Timestamps</h2>
+      <dl class="detail-list">
+        <div class="detail-row">
+          <dt>Created At</dt>
+          <dd>{formatDate(targetUser.createdAt)}</dd>
+        </div>
+        <div class="detail-row">
+          <dt>Account Age</dt>
+          <dd>{formatRelativeTime(targetUser.createdAt)}</dd>
+        </div>
+        <div class="detail-row">
+          <dt>Updated At</dt>
+          <dd>{formatDate(targetUser.updatedAt)}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Active Sessions Section -->
+    <section class="detail-section full-width">
+      <h2 class="section-title">Active Sessions ({userSessions.length})</h2>
+      {userSessions.length > 0 ? (
+        <div class="sessions-table-container">
+          <table class="sessions-table">
+            <thead>
+              <tr>
+                <th>Session ID</th>
+                <th>Created</th>
+                <th>Expires</th>
+                <th>IP Address</th>
+                <th>User Agent</th>
+              </tr>
+            </thead>
+            <tbody>
+              {userSessions.map(session => (
+                <tr>
+                  <td class="mono">{session.id}</td>
+                  <td>{formatDate(session.createdAt)}</td>
+                  <td class={new Date(session.expiresAt) < new Date() ? "expired" : ""}>
+                    {formatDate(session.expiresAt)}
+                  </td>
+                  <td class="mono">{session.ipAddress || "Unknown"}</td>
+                  <td class="user-agent">{session.userAgent || "Unknown"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p class="no-sessions">No active sessions found for this user.</p>
+      )}
+    </section>
+  </div>
+</AdminLayout>
+
+<style>
+  .back-link {
+    margin-bottom: 1.5rem;
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+  }
+
+  .back-btn:hover {
+    color: var(--text);
+  }
+
+  .back-btn svg {
+    flex-shrink: 0;
+  }
+
+  .user-header {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 4px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .user-avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .user-avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .user-initials {
+    color: var(--text-inverse);
+    font-weight: 700;
+    font-size: 2rem;
+  }
+
+  .user-header-info {
+    flex: 1;
+  }
+
+  .user-name {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 0 0.5rem;
+  }
+
+  .user-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .user-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .btn-link {
+    text-decoration: none;
+  }
+
+  .role-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .role-admin {
+    background: var(--color-primary);
+    color: var(--text-inverse);
+  }
+
+  .role-moderator {
+    background: var(--color-secondary);
+    color: var(--text-inverse);
+  }
+
+  .role-maker {
+    background: var(--color-info);
+    color: var(--text-inverse);
+  }
+
+  .role-trusted-maker {
+    background: var(--color-signal);
+    color: var(--text-inverse);
+  }
+
+  .role-member {
+    background: var(--color-bg);
+    color: var(--text);
+    border: 2px solid var(--text-muted);
+  }
+
+  .banned-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    background: var(--color-danger);
+    color: var(--text-inverse);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .nominated-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    background: var(--color-warning);
+    color: var(--text);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .unverified-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    background: var(--color-bg);
+    color: var(--text-muted);
+    border: 2px solid var(--text-muted);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .detail-section {
+    background: var(--surface);
+    border: 4px solid var(--border);
+    border-radius: 4px;
+    padding: 1.25rem;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .detail-section.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .section-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 0 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid var(--color-primary);
+  }
+
+  .detail-list {
+    margin: 0;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--color-bg);
+    gap: 1rem;
+  }
+
+  .detail-row:last-child {
+    border-bottom: none;
+  }
+
+  .detail-row dt {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .detail-row dd {
+    color: var(--text);
+    font-size: 0.9rem;
+    text-align: right;
+    word-break: break-all;
+  }
+
+  .detail-row dd.mono {
+    font-family: ui-monospace, monospace;
+    font-size: 0.8rem;
+  }
+
+  .status-yes {
+    color: var(--color-signal);
+    font-weight: 700;
+  }
+
+  .status-no {
+    color: var(--color-danger);
+    font-weight: 700;
+  }
+
+  .sessions-table-container {
+    overflow-x: auto;
+  }
+
+  .sessions-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .sessions-table th {
+    text-align: left;
+    padding: 0.75rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    background: var(--color-bg);
+    border-bottom: 2px solid var(--color-primary);
+  }
+
+  .sessions-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--color-bg);
+    vertical-align: top;
+  }
+
+  .sessions-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .sessions-table td.mono {
+    font-family: ui-monospace, monospace;
+    font-size: 0.75rem;
+  }
+
+  .sessions-table td.user-agent {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sessions-table td.expired {
+    color: var(--color-danger);
+  }
+
+  .no-sessions {
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .detail-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .user-header {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .user-meta {
+      justify-content: center;
+    }
+
+    .user-actions {
+      justify-content: center;
+    }
+
+    .detail-row {
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .detail-row dd {
+      text-align: left;
+    }
+  }
+</style>

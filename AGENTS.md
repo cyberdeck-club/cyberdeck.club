@@ -59,6 +59,7 @@ cyberdeck.club/
 ├── package.json
 ├── tsconfig.json
 ├── public/                ← Static assets
+├── mcp-server/            ← MCP server package (PAT-authenticated API client)
 ├── src/
 │   ├── components/        ← Astro components
 │   ├── layouts/           ← Page layouts (BaseLayout, WikiLayout, etc.)
@@ -74,6 +75,8 @@ cyberdeck.club/
 │   ├── lib/
 │   │   ├── auth.ts        ← Magic link auth + role system (ROLES, requireRole)
 │   │   ├── moderation.ts  ← Build moderation pipeline + role promotion logic
+│   │   ├── pat-auth.ts    ← PAT validation, token generation, usage logging
+│   │   ├── token-scopes.ts← PAT scope definitions and route mapping
 │   │   └── utils.ts       ← cn() helper (clsx + tailwind-merge)
 │   └── styles/
 │       └── global.css     ← Tailwind v4 @theme, design tokens
@@ -427,6 +430,13 @@ Cloudflare environment variables, not in client-accessible code.
 Magic link tokens should be invalidated after first use AND after expiration
 (recommend 15 minutes). Always check both conditions on verification.
 
+### 8. PAT Auth Is Scope-Checked
+
+PAT-authenticated requests go through scope validation in middleware. The
+token's scopes AND the user's current role must both permit the operation. If
+a user's role is demoted, their existing tokens are effectively narrowed — the
+request fails if all scopes become invalid for the new role level.
+
 ---
 
 ## 10. Guardrails
@@ -469,7 +479,12 @@ These rules apply in every coding session, regardless of task type:
 | `src/styles/global.css`       | Tailwind v4 `@theme` tokens (implements `DESIGN.md`) |
 | `src/lib/utils.ts`            | `cn()` class helper                                  |
 | `src/lib/auth.ts`             | Magic link auth + role checking (`requireRole()`)    |
+| `src/lib/pat-auth.ts`         | PAT validation, token generation, usage logging       |
+| `src/lib/token-scopes.ts`     | PAT scope definitions and route-to-scope mapping     |
 | `src/layouts/BaseLayout.astro`| Root layout (nav, footer, theme toggle)              |
+| `docs/PAT-API-TOKENS.md`      | Personal access token system, API authentication, scopes |
+| `docs/MCP-SERVER.md`          | MCP server setup and usage guide                     |
+| `mcp-server/README.md`       | MCP server package documentation                     |
 
 ---
 

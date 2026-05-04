@@ -1,10 +1,80 @@
 import type { APIRoute } from "astro";
 import * as schema from "../../../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, sql, count } from "drizzle-orm";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
 import { autoReviewBuild } from "../../../lib/moderation";
 import { requireAuth } from "../../../lib/require-auth";
 import { ROLES, requireRole } from "../../../lib/roles";
+
+/**
+ * GET /api/builds
+ *
+ * Lists builds with optional filters.
+ * Supports PAT auth (via middleware) or session auth.
+ *
+ * Query params:
+ * - status: filter by build status (e.g., 'published')
+ * - category: filter by category slug (category_id in DB)
+ * - page: page number (default: 1)
+ * - limit: results per page (default: 20, max: 100)
+ */
+export const GET: APIRoute = async (ctx) => {
+  const db = ctx.locals.db!;
+
+  // Parse query params
+  const url = new URL(ctx.request.url);
+  const status = url.searchParams.get("status");
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10) || 20));
+  const offset = (page - 1) * limit;
+
+  // Build where conditions
+  const conditions = [];
+  if (status) {
+    conditions.push(eq(schema.builds.status, status));
+  }
+
+  try {
+    // Get total count
+    const totalResult = await db
+      .select({ count: count() })
+      .from(schema.builds)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
+    const total = totalResult[0]?.count ?? 0;
+
+    // Get builds with author name
+    const builds = await db
+      .select({
+        build: schema.builds,
+        authorName: schema.user.name,
+      })
+      .from(schema.builds)
+      .innerJoin(schema.user, eq(schema.builds.authorId, schema.user.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(sql`${schema.builds.createdAt} DESC`)
+      .limit(limit)
+      .offset(offset);
+
+    return new Response(
+      JSON.stringify({
+        builds: builds.map((b) => b.build),
+        total,
+        page,
+        pageSize: limit,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    console.error("Failed to list builds:", err);
+    return new Response(JSON.stringify({ error: "Failed to list builds" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+};
 
 /**
  * POST /api/builds

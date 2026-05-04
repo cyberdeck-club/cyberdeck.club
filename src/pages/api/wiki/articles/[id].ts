@@ -5,6 +5,59 @@ import { checkPublishingGate } from "../../../../lib/publishing-gate";
 import { ROLES, requireRole, getRoleLevel } from "../../../../lib/roles";
 
 /**
+ * GET /api/wiki/articles/[id]
+ *
+ * Gets a single wiki article by ID.
+ * Public endpoint - no auth required.
+ */
+export const GET: APIRoute = async (ctx) => {
+  const db = ctx.locals.db!;
+
+  // Get article ID from URL params
+  const articleId = ctx.params.id;
+  if (!articleId || typeof articleId !== "string") {
+    return new Response(JSON.stringify({ error: "Article ID is required" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    // Fetch article with author name
+    const articles = await db
+      .select({
+        article: schema.wikiArticles,
+        authorName: schema.user.name,
+      })
+      .from(schema.wikiArticles)
+      .innerJoin(schema.user, eq(schema.wikiArticles.authorId, schema.user.id))
+      .where(eq(schema.wikiArticles.id, articleId))
+      .limit(1);
+
+    if (articles.length === 0) {
+      return new Response(JSON.stringify({ error: "Article not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(
+      JSON.stringify({ article: articles[0].article }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    console.error("Failed to get wiki article:", err);
+    return new Response(JSON.stringify({ error: "Failed to get wiki article" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+};
+
+/**
  * PUT /api/wiki/articles/[id]
  *
  * Updates a wiki article by creating a new revision.

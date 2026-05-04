@@ -1,0 +1,32 @@
+{
+  "name": "@cyberdeck-club/mcp-server",
+  "version": "0.1.2",
+  "description": "MCP server for cyberdeck.club — manage builds, wiki, forum, meetups via AI assistants",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "cyberdeck-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "dev": "tsup src/index.ts --format esm --watch",
+    "start": "node dist/index.js",
+    "postinstall": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "cyberdeck",
+    "ai"
+  ],
+  "author": "cyberdeck.club",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

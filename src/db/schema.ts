@@ -379,3 +379,77 @@ export const wikiCommentsRelations = relations(wikiComments, ({ one }) => ({
     references: [wikiComments.id],
   }),
 }));
+
+// Personal Access Tokens table
+
+export const personalAccessTokens = sqliteTable(
+  "personal_access_tokens",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    tokenPrefix: text("token_prefix").notNull(),
+    scopes: text("scopes").notNull(), // JSON array string, e.g. '["builds:read","wiki:write"]'
+    expiresAt: integer("expires_at"), // unix timestamp, nullable for non-expiring
+    lastUsedAt: integer("last_used_at"), // unix timestamp
+    revokedAt: integer("revoked_at"), // unix timestamp, set when token is revoked
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("pat_token_hash_idx").on(table.tokenHash),
+    index("pat_user_id_idx").on(table.userId),
+  ]
+);
+
+// PAT usage logs table
+
+export const patUsageLogs = sqliteTable(
+  "pat_usage_logs",
+  {
+    id: text("id").primaryKey(),
+    tokenId: text("token_id")
+      .notNull()
+      .references(() => personalAccessTokens.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    method: text("method").notNull(), // HTTP method: GET, POST, PUT, DELETE, PATCH
+    path: text("path").notNull(), // API path accessed
+    statusCode: integer("status_code").notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    index("pat_usage_logs_token_id_idx").on(table.tokenId),
+    index("pat_usage_logs_user_id_idx").on(table.userId),
+    index("pat_usage_logs_created_at_idx").on(table.createdAt),
+  ]
+);
+
+// PAT relations
+
+export const personalAccessTokensRelations = relations(
+  personalAccessTokens,
+  ({ one, many }) => ({
+    user: one(user, {
+      fields: [personalAccessTokens.userId],
+      references: [user.id],
+    }),
+    usageLogs: many(patUsageLogs),
+  })
+);
+
+export const patUsageLogsRelations = relations(patUsageLogs, ({ one }) => ({
+  token: one(personalAccessTokens, {
+    fields: [patUsageLogs.tokenId],
+    references: [personalAccessTokens.id],
+  }),
+  user: one(user, {
+    fields: [patUsageLogs.userId],
+    references: [user.id],
+  }),
+}));

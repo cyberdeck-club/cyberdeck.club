@@ -63,6 +63,7 @@ export function getMeetup(
   return db
     .select({
       meetup: schema.meetups,
+      organizerId: schema.meetups.organizerId,
       organizerName: schema.user.name,
     })
     .from(schema.meetups)

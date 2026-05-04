@@ -1,7 +1,76 @@
 import type { APIRoute } from "astro";
-import { eq } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
+
+/**
+ * GET /api/wiki/articles
+ *
+ * Lists wiki articles with optional filters.
+ * Public endpoint - no auth required.
+ *
+ * Query params:
+ * - category: filter by category ID
+ * - page: page number (default: 1)
+ * - limit: results per page (default: 20, max: 100)
+ */
+export const GET: APIRoute = async (ctx) => {
+  const db = ctx.locals.db!;
+
+  // Parse query params
+  const url = new URL(ctx.request.url);
+  const categoryId = url.searchParams.get("category");
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10) || 20));
+  const offset = (page - 1) * limit;
+
+  // Build where conditions
+  const conditions = [];
+  if (categoryId) {
+    conditions.push(eq(schema.wikiArticles.categoryId, categoryId));
+  }
+
+  try {
+    // Get total count
+    const totalResult = await db
+      .select({ count: count() })
+      .from(schema.wikiArticles)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
+    const total = totalResult[0]?.count ?? 0;
+
+    // Get articles with author name
+    const articles = await db
+      .select({
+        article: schema.wikiArticles,
+        authorName: schema.user.name,
+      })
+      .from(schema.wikiArticles)
+      .innerJoin(schema.user, eq(schema.wikiArticles.authorId, schema.user.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(schema.wikiArticles.createdAt)
+      .limit(limit)
+      .offset(offset);
+
+    return new Response(
+      JSON.stringify({
+        articles: articles.map((a) => a.article),
+        total,
+        page,
+        pageSize: limit,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    console.error("Failed to list wiki articles:", err);
+    return new Response(JSON.stringify({ error: "Failed to list wiki articles" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+};
 
 /**
  * POST /api/wiki/articles

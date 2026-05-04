@@ -9,19 +9,21 @@ interface Props {
   dateEnd?: string;
   locationName: string;
   organizer: string;
+  organizerId?: string;
   attendeeCount: number;
   maxAttendees?: number;
   status: "upcoming" | "in-progress" | "completed" | "cancelled";
   region: string;
 }
 
-const { 
+const {
   title,
   description = "Join us for a cyberdeck build meetup!",
   dateStart,
   dateEnd,
   locationName,
   organizer,
+  organizerId,
   attendeeCount,
   maxAttendees,
   status,
@@ -153,7 +155,13 @@ const formattedEndTime = dateEnd ? formatTime(dateEnd) : null;
               </svg>
               Organizer
             </div>
-            <div class="detail-value organizer-value">{organizer}</div>
+            <div class="detail-value organizer-value">
+              {organizerId ? (
+                <a href={`/user/${organizerId}`} class="author-link">{organizer}</a>
+              ) : (
+                organizer
+              )}
+            </div>
           </div>
 
           <div class="detail-item">

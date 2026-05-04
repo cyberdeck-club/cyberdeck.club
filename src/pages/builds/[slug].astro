@@ -31,11 +31,13 @@ if (notFound) {
 const result = buildResult[0];
 const build = result.build;
 const authorName = result.authorName;
+const authorId = build.authorId;
 
 // Transform build data for the template
 interface BuildData {
   title: string;
   builderName: string;
+  builderId?: string | null;
   difficulty: "beginner" | "intermediate" | "advanced";
   computePlatform: string;
   estimatedCost: number;
@@ -53,6 +55,7 @@ interface BuildData {
 const buildData: BuildData = {
   title: build.title,
   builderName: authorName,
+  builderId: authorId,
   difficulty: "intermediate" as const, // Default - schema doesn't have difficulty yet
   computePlatform: "Raspberry Pi", // Default - schema doesn't have computePlatform yet
   estimatedCost: 0, // Default - schema doesn't have estimatedCost yet
@@ -76,6 +79,7 @@ const relatedBuilds = allBuildsResult
     slug: b.slug,
     title: b.title,
     builderName: name,
+    builderId: b.authorId,
     difficulty: "intermediate" as const,
     computePlatform: "Raspberry Pi",
     estimatedCost: 0,
@@ -133,6 +137,7 @@ if (user) {
   description={`${buildData.title} by ${buildData.builderName} - ${buildData.computePlatform} cyberdeck build`}
   featuredImage={buildData.featuredImage}
   builderName={buildData.builderName}
+  builderId={buildData.builderId}
   difficulty={buildData.difficulty}
   computePlatform={buildData.computePlatform}
   estimatedCost={buildData.estimatedCost}
@@ -223,6 +228,7 @@ if (user) {
           <BuildCard
             title={related.title}
             builderName={related.builderName}
+            builderId={related.builderId}
             featuredImage={related.featuredImage}
             difficulty={related.difficulty}
             computePlatform={related.computePlatform}
@@ -269,7 +275,7 @@ if (user) {
         {comments.map(comment => (
           <div class="comment" data-comment-id={comment.id}>
             <div class="comment-header">
-              <span class="comment-author">{comment.authorName}</span>
+              <a href={`/user/${comment.authorId}`} class="author-link">{comment.authorName}</a>
               <span class="comment-time">
                 {new Date(comment.createdAt * 1000).toLocaleDateString('en-US', {
                   year: 'numeric',

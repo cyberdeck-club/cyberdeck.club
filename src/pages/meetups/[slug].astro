@@ -27,6 +27,7 @@ if (notFound) {
 const result = meetupResult[0];
 const meetup = result.meetup;
 const organizerName = result.organizerName;
+const organizerId = result.organizerId;
 
 // Transform meetup data
 const startDate = new Date(meetup.startsAt! * 1000);
@@ -85,6 +86,7 @@ const formatDateShort = (dateStr: string) => {
   dateEnd={endDate ? endDate.toISOString() : undefined}
   locationName={meetup.location || "TBD"}
   organizer={organizerName}
+  organizerId={organizerId}
   attendeeCount={0}
   maxAttendees={undefined}
   status={status}

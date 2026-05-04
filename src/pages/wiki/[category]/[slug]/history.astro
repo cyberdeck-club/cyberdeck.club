@@ -193,7 +193,7 @@ function formatRelativeTime(timestamp: number): string {
                 <div class="revision-card-body">
                   <div class="revision-author">
                     <span class="author-label">Edited by</span>
-                    <span class="author-name">{rev.authorName ?? "Unknown"}</span>
+                    <a href={`/user/${rev.authorId}`} class="author-link">{rev.authorName ?? "Unknown"}</a>
                   </div>
 
                   {rev.revision.diffSummary && (

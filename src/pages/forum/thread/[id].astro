@@ -48,6 +48,7 @@ if (currentUser) {
 let posts: Array<{
   post: { id: string; threadId: string; authorId: string; content: string; createdAt: number; updatedAt: number };
   authorName: string;
+  authorId: string;
 }> = [];
 if (!notFound && threadData) {
   postsResult = await getForumPosts(db, id);
@@ -124,7 +125,7 @@ function formatRelativeTime(timestamp: number | null): string {
               <circle cx="8" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/>
               <path d="M2 14C2 11.2386 4.23858 9 7 9H9C11.7614 9 14 11.2386 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
-            <span>Started by <strong>{threadData.authorName}</strong></span>
+            <span>Started by <strong><a href={`/user/${threadData.authorId}`} class="author-link">{threadData.authorName}</a></strong></span>
           </span>
           <span class="meta-separator">•</span>
           <span class="meta-item">{formatDate(threadData.thread.createdAt)}</span>
@@ -142,7 +143,7 @@ function formatRelativeTime(timestamp: number | null): string {
               <div class="user-avatar">
                 {threadData.authorName.charAt(0).toUpperCase()}
               </div>
-              <div class="user-name">{threadData.authorName}</div>
+              <div class="user-name"><a href={`/user/${threadData.authorId}`} class="author-link">{threadData.authorName}</a></div>
               <div class="user-badge">Member</div>
             </div>
             <div class="post-content">
@@ -165,7 +166,7 @@ function formatRelativeTime(timestamp: number | null): string {
                   <div class="user-avatar secondary">
                     {item.authorName.charAt(0).toUpperCase()}
                   </div>
-                  <div class="user-name">{item.authorName}</div>
+                  <div class="user-name"><a href={`/user/${item.authorId}`} class="author-link">{item.authorName}</a></div>
                   <div class="user-badge">Member</div>
                 </div>
                 <div class="post-content">
@@ -235,7 +236,7 @@ function formatRelativeTime(timestamp: number | null): string {
                 {threadData.authorName.charAt(0).toUpperCase()}
               </div>
               <div class="author-details">
-                <span class="author-name">{threadData.authorName}</span>
+                <span class="author-name"><a href={`/user/${threadData.authorId}`} class="author-link">{threadData.authorName}</a></span>
                 <span class="author-role">Member</span>
               </div>
             </div>
@@ -671,6 +672,17 @@ function formatRelativeTime(timestamp: number | null): string {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--text);
+  }
+
+  .author-link {
+    color: var(--text);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .author-link:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
   }
 
   .author-role {
