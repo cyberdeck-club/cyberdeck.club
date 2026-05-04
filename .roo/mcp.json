@@ -34,7 +34,19 @@
 				"CYBERDECK_PAT": "${env:CYBERDECK_PAT_BETA}",
 				"CYBERDECK_API_URL": "${env:CYBERDECK_API_URL_BETA}"
 			},
-			"disabled": true
+			"disabled": false,
+			"alwaysAllow": [
+				"get_my_profile",
+				"list_builds",
+				"list_forum_threads",
+				"list_forum_posts",
+				"list_meetups",
+				"list_wiki_articles",
+				"get_wiki_article",
+				"list_users",
+				"list_all_tokens",
+				"list_token_logs"
+			]
 		},
 		"cyberdeck-prod": {
 			"command": "npx",
@@ -46,7 +58,19 @@
 				"CYBERDECK_PAT": "${env:CYBERDECK_PAT_PROD}",
 				"CYBERDECK_API_URL": "${env:CYBERDECK_API_URL_PROD}"
 			},
-			"disabled": true
+			"disabled": true,
+			"alwaysAllow": [
+				"get_my_profile",
+				"list_builds",
+				"list_forum_threads",
+				"list_forum_posts",
+				"list_meetups",
+				"list_wiki_articles",
+				"get_wiki_article",
+				"list_users",
+				"list_all_tokens",
+				"list_token_logs"
+			]
 		}
 	}
 }
