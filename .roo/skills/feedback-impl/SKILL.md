@@ -118,8 +118,6 @@ Draft a plan and post it to the issue using `add_issue_comment`:
 - [ ] TypeScript strict mode compatible
 - [ ] Drizzle ORM for all DB queries (no raw SQL)
 
----
-*Plan posted by Roo Code Agent — awaiting approval to proceed*
 ```
 
 **⏸️ STOP — Wait for admin confirmation before implementing.**
@@ -170,9 +168,6 @@ After implementation, post a summary using `add_issue_comment`:
 
 ### Deployment Notes
 [Migrations needed, env vars, or other deployment considerations — or "None"]
-
----
-*Implementation completed by Roo Code Agent*
 ```
 
 ### 6. Update Issue Labels

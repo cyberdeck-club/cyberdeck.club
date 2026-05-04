@@ -6,7 +6,7 @@ import Footer from "@/components/Footer.astro";
 import Nav from "@/components/Nav.astro";
 import ThemeToggle from "@/components/ThemeToggle.astro";
 import FeedbackWidget from "@/components/feedback/FeedbackWidget";
-import BetaAcknowledgementModal from "@/components/BetaAcknowledgementModal";
+import BetaGateModal from "@/components/BetaGateModal";
 
 import clsx from 'clsx';
 
@@ -32,6 +32,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? "https://cyberdec
 
 // Get authenticated user from locals
 const user = Astro.locals.user;
+const isAuthenticated = !!user;
+const isBetaSite = Astro.locals.isBetaSite;
 ---
 
 <!doctype html>
@@ -122,7 +124,7 @@ const user = Astro.locals.user;
     
     {user && <FeedbackWidget client:load />}
     
-    <BetaAcknowledgementModal client:load />
+    {isBetaSite && <BetaGateModal client:load isAuthenticated={isAuthenticated} />}
   </body>
 </html>
 

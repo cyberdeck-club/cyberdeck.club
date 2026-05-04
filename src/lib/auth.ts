@@ -19,6 +19,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Resend } from "resend";
 import * as authSchema from "../db/auth-schema";
+import { sendBetaApprovalEmail } from "./beta";
 
 // Re-export auth types for use in env.d.ts and elsewhere
 export type { Session, User };
@@ -76,15 +77,33 @@ export function getAuth(cfEnv: App.Env) {
     },
     plugins: [
       magicLink({
-        sendMagicLink: async ({ email, url }) => {
+        sendMagicLink: async ({ email, url, metadata }) => {
           const resend = new Resend(resendApiKey);
+
+          // If this magic link was triggered by a beta approval, send the
+          // custom approval email instead of the generic sign-in email.
+          if (metadata?.betaApproval) {
+            const displayName =
+              typeof metadata.displayName === "string"
+                ? metadata.displayName
+                : email;
+            await sendBetaApprovalEmail(
+              resend,
+              fromAddress,
+              displayName,
+              email,
+              url,
+            );
+            console.log("[auth] Beta approval magic link sent:", { email });
+            return;
+          }
 
           const { data, error } = await resend.emails.send({
             from: fromAddress,
             to: email,
-            subject: "Sign in to CyberDeck",
+            subject: "Sign in to CyberDeck.club",
             html: `
-              <h1>Sign in to CyberDeck</h1>
+              <h1>Sign in to CyberDeck.club</h1>
               <p>Click the link below to sign in to your account:</p>
               <p><a href="${url}">${url}</a></p>
               <p>This link will expire in 5 minutes.</p>

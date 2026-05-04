@@ -102,6 +102,23 @@ export const verification = sqliteTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+export const betaSignups = sqliteTable("beta_signups", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  email: text("email").notNull().unique(),
+  status: text("status").notNull().default("pending"), // "pending" | "approved" | "rejected" | "waitlisted"
+  displayName: text("display_name").notNull(),
+  interestReason: text("interest_reason").notNull(),
+  makingBackground: text("making_background"),
+  referralSource: text("referral_source"),
+  reviewNotes: text("review_notes"),
+  requestedAt: integer("requested_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+  reviewedAt: integer("reviewed_at", { mode: "timestamp_ms" }),
+  reviewedBy: text("reviewed_by").references(() => user.id),
+  rejectionReason: text("rejection_reason"),
+});
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
@@ -117,6 +134,13 @@ export const sessionRelations = relations(session, ({ one }) => ({
 export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, {
     fields: [account.userId],
+    references: [user.id],
+  }),
+}));
+
+export const betaSignupsRelations = relations(betaSignups, ({ one }) => ({
+  reviewer: one(user, {
+    fields: [betaSignups.reviewedBy],
     references: [user.id],
   }),
 }));

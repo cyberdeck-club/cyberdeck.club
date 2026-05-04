@@ -1,0 +1,1295 @@
+---
+/**
+ * Beta Access Management Page
+ * Lists all beta signup requests and allows admins to approve/reject/waitlist them.
+ */
+
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { betaSignups, user } from "@/db/auth-schema";
+import { eq, desc, count } from "drizzle-orm";
+
+export const prerender = false;
+
+// Get current user for auth check
+const currentUser = Astro.locals.user!;
+const currentUserRole = (currentUser as any).role;
+const isAdmin = currentUserRole === "admin";
+
+// Redirect non-admins
+if (!isAdmin) {
+  return Astro.redirect("/admin");
+}
+
+// Get query params for filtering
+const url = new URL(Astro.request.url);
+const statusFilter = url.searchParams.get("status") || "";
+const page = parseInt(url.searchParams.get("page") || "1", 10);
+const perPage = 20;
+
+// Get beta signups with pagination and reviewer info
+const db = Astro.locals.db;
+const offset = (page - 1) * perPage;
+
+// Build conditions
+const conditions = [];
+if (statusFilter && ["pending", "approved", "rejected", "waitlisted"].includes(statusFilter)) {
+  conditions.push(eq(betaSignups.status, statusFilter));
+}
+
+// Get signups with reviewer info
+const signupsResult = await db
+  .select({
+    id: betaSignups.id,
+    email: betaSignups.email,
+    displayName: betaSignups.displayName,
+    interestReason: betaSignups.interestReason,
+    makingBackground: betaSignups.makingBackground,
+    referralSource: betaSignups.referralSource,
+    reviewNotes: betaSignups.reviewNotes,
+    status: betaSignups.status,
+    requestedAt: betaSignups.requestedAt,
+    reviewedAt: betaSignups.reviewedAt,
+    reviewedBy: betaSignups.reviewedBy,
+    rejectionReason: betaSignups.rejectionReason,
+    reviewerName: user.name,
+  })
+  .from(betaSignups)
+  .leftJoin(user, eq(betaSignups.reviewedBy, user.id))
+  .where(conditions.length > 0 ? conditions[0] : undefined)
+  .orderBy(desc(betaSignups.requestedAt))
+  .limit(perPage)
+  .offset(offset);
+
+// Get total count for pagination
+const totalCountResult = await db
+  .select({ count: count() })
+  .from(betaSignups)
+  .where(conditions.length > 0 ? conditions[0] : undefined);
+
+const totalSignups = totalCountResult[0]?.count ?? 0;
+const totalPages = Math.ceil(totalSignups / perPage);
+
+// Get counts by status for filter tabs
+const pendingCount = await db
+  .select({ count: count() })
+  .from(betaSignups)
+  .where(eq(betaSignups.status, "pending"));
+
+const approvedCount = await db
+  .select({ count: count() })
+  .from(betaSignups)
+  .where(eq(betaSignups.status, "approved"));
+
+const rejectedCount = await db
+  .select({ count: count() })
+  .from(betaSignups)
+  .where(eq(betaSignups.status, "rejected"));
+
+const waitlistedCount = await db
+  .select({ count: count() })
+  .from(betaSignups)
+  .where(eq(betaSignups.status, "waitlisted"));
+
+// Helper for status badge styling
+function getStatusBadgeClass(status: string) {
+  switch (status) {
+    case "approved": return "status-approved";
+    case "rejected": return "status-rejected";
+    case "waitlisted": return "status-waitlisted";
+    default: return "status-pending";
+  }
+}
+
+function formatDate(date: Date | null | undefined) {
+  if (!date) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(date));
+}
+
+function truncate(text: string | null | undefined, maxLength: number) {
+  if (!text) return "";
+  return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+}
+---
+
+<AdminLayout title="Beta Access Requests" section="beta">
+  <div class="admin-header">
+    <div>
+      <h1 class="admin-title">Beta Access Requests</h1>
+      <p class="admin-subtitle">{totalSignups} total requests</p>
+    </div>
+  </div>
+
+  <!-- Review Checklist (Collapsible) -->
+  <details class="review-checklist">
+    <summary class="checklist-summary">
+      <span class="checklist-icon">📋</span>
+      Review Checklist
+    </summary>
+    <div class="checklist-content">
+      <ol class="checklist-items">
+        <li>Is the "drawing you to cyberdecks" answer specific and genuine?</li>
+        <li>Does anything suggest they'd make the space unsafe?</li>
+        <li>Is the email address plausible?</li>
+        <li>When in doubt, approve. False negatives hurt more than false positives.</li>
+      </ol>
+    </div>
+  </details>
+
+  <!-- Filter Tabs -->
+  <div class="filter-tabs">
+    <a 
+      href="/admin/beta" 
+      class:list={["filter-tab", { active: !statusFilter }]}
+    >
+      All
+      <span class="filter-count">{totalSignups}</span>
+    </a>
+    <a 
+      href="/admin/beta?status=pending" 
+      class:list={["filter-tab", { active: statusFilter === "pending" }]}
+    >
+      Pending
+      <span class="filter-count">{pendingCount[0]?.count ?? 0}</span>
+    </a>
+    <a 
+      href="/admin/beta?status=approved" 
+      class:list={["filter-tab", { active: statusFilter === "approved" }]}
+    >
+      Approved
+      <span class="filter-count">{approvedCount[0]?.count ?? 0}</span>
+    </a>
+    <a 
+      href="/admin/beta?status=rejected" 
+      class:list={["filter-tab", { active: statusFilter === "rejected" }]}
+    >
+      Rejected
+      <span class="filter-count">{rejectedCount[0]?.count ?? 0}</span>
+    </a>
+    <a 
+      href="/admin/beta?status=waitlisted" 
+      class:list={["filter-tab", { active: statusFilter === "waitlisted" }]}
+    >
+      Waitlisted
+      <span class="filter-count">{waitlistedCount[0]?.count ?? 0}</span>
+    </a>
+  </div>
+
+  <!-- Signups Table -->
+  <div class="table-container">
+    <table class="signups-table">
+      <thead>
+        <tr>
+          <th>Display Name</th>
+          <th>Email</th>
+          <th>Interest Reason</th>
+          <th>Status</th>
+          <th>Requested</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {signupsResult.length === 0 ? (
+          <tr>
+            <td colspan="6" class="empty-cell">
+              <div class="empty-state">
+                <span class="empty-icon">📭</span>
+                <span class="empty-text">No beta requests found</span>
+              </div>
+            </td>
+          </tr>
+        ) : (
+          signupsResult.map(signup => (
+            <tr data-signup-id={signup.id}>
+              <td class="name-cell">
+                <span class="display-name">{signup.displayName}</span>
+              </td>
+              <td class="email-cell">
+                <span class="email-text">{signup.email}</span>
+              </td>
+              <td class="reason-cell">
+                <span class="reason-preview" title={signup.interestReason || ""}>
+                  {truncate(signup.interestReason, 50)}
+                </span>
+                <button 
+                  class="expand-btn" 
+                  data-id={signup.id}
+                  title="View full details"
+                >
+                  ↗
+                </button>
+              </td>
+              <td>
+                <span class={`status-badge ${getStatusBadgeClass(signup.status)}`}>
+                  {signup.status}
+                </span>
+              </td>
+              <td class="date-cell">
+                {formatDate(signup.requestedAt)}
+              </td>
+              <td class="actions-cell">
+                {signup.status === "pending" && (
+                  <div class="action-buttons">
+                    <button
+                      class="btn-approve"
+                      data-id={signup.id}
+                      data-action="approve"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      class="btn-waitlist"
+                      data-id={signup.id}
+                      data-action="waitlist"
+                    >
+                      Waitlist
+                    </button>
+                    <button
+                      class="btn-reject"
+                      data-id={signup.id}
+                      data-action="reject"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+                {signup.status === "waitlisted" && (
+                  <div class="action-buttons">
+                    <button
+                      class="btn-approve"
+                      data-id={signup.id}
+                      data-action="approve"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      class="btn-reject"
+                      data-id={signup.id}
+                      data-action="reject"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+                {signup.status === "rejected" && (
+                  <div class="action-buttons">
+                    <button
+                      class="btn-approve"
+                      data-id={signup.id}
+                      data-action="approve"
+                    >
+                      Approve
+                    </button>
+                  </div>
+                )}
+                {signup.status === "approved" && (
+                  <span class="reviewed-badge">Approved</span>
+                )}
+              </td>
+            </tr>
+          ))
+        )}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {totalPages > 1 && (
+    <div class="pagination">
+      {page > 1 && (
+        <a href={`?page=${page - 1}&status=${statusFilter}`} class="page-btn">
+          ← Previous
+        </a>
+      )}
+      
+      <span class="page-info">
+        Page {page} of {totalPages}
+      </span>
+      
+      {page < totalPages && (
+        <a href={`?page=${page + 1}&status=${statusFilter}`} class="page-btn">
+          Next →
+        </a>
+      )}
+    </div>
+  )}
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="detail-modal" hidden>
+    <div class="detail-modal-content">
+      <div class="detail-header">
+        <h3 class="detail-title">Beta Request Details</h3>
+        <button id="close-detail" class="close-btn">×</button>
+      </div>
+      <div class="detail-body" id="detail-body">
+        <!-- Populated by JS -->
+      </div>
+      <div class="detail-actions" id="detail-actions">
+        <!-- Action buttons for pending requests -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Rejection Modal -->
+  <div id="reject-modal" class="reject-modal" hidden>
+    <div class="reject-modal-content">
+      <h3 class="reject-modal-title">Reject Request</h3>
+      <p class="reject-modal-text">Enter an optional reason for the rejection:</p>
+      <textarea 
+        id="reject-reason" 
+        class="reject-textarea"
+        placeholder="The user will see this message (optional)"
+        rows="3"
+      ></textarea>
+      <div class="reject-modal-actions">
+        <button id="cancel-reject" class="btn-cancel">Cancel</button>
+        <button id="confirm-reject" class="btn-confirm-reject">Reject</button>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .admin-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .admin-subtitle {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0.5rem 0 0;
+  }
+
+  /* Review Checklist */
+  .review-checklist {
+    background: var(--surface-alt);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+  }
+
+  .review-checklist[open] {
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .checklist-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .checklist-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .checklist-icon {
+    font-size: 1.25rem;
+  }
+
+  .checklist-content {
+    padding: 0 1rem 1rem;
+  }
+
+  .checklist-items {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.8;
+  }
+
+  .filter-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+
+  .filter-tab:hover {
+    background: var(--color-bg);
+    color: var(--text);
+  }
+
+  .filter-tab.active {
+    background: var(--color-primary-600);
+    color: var(--text-inverse);
+    border-color: var(--border);
+  }
+
+  .filter-count {
+    padding: 0.15rem 0.5rem;
+    background: var(--color-bg);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .filter-tab.active .filter-count {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .table-container {
+    background: var(--surface);
+    border: 4px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .signups-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .signups-table th {
+    text-align: left;
+    padding: 1rem 1.25rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    background: var(--color-bg);
+    border-bottom: 3px solid var(--color-primary-600);
+  }
+
+  .signups-table td {
+    padding: 1rem 1.25rem;
+    border-bottom: 2px solid var(--color-bg);
+    vertical-align: middle;
+  }
+
+  .signups-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .signups-table tr:hover td {
+    background: var(--color-bg);
+  }
+
+  .name-cell {
+    min-width: 120px;
+  }
+
+  .display-name {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .email-cell {
+    max-width: 200px;
+  }
+
+  .email-text {
+    font-weight: 500;
+    color: var(--text);
+    word-break: break-all;
+    font-size: 0.9rem;
+  }
+
+  .reason-cell {
+    max-width: 200px;
+    position: relative;
+  }
+
+  .reason-preview {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    display: inline-block;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .expand-btn {
+    background: none;
+    border: none;
+    color: var(--color-primary-700);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem;
+    margin-left: 0.25rem;
+    vertical-align: middle;
+  }
+
+  .expand-btn:hover {
+    text-decoration: underline;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .status-pending {
+    background: var(--color-warn);
+    color: var(--text-inverse);
+  }
+
+  .status-approved {
+    background: var(--color-signal);
+    color: var(--text-inverse);
+  }
+
+  .status-rejected {
+    background: var(--color-danger);
+    color: var(--text-inverse);
+  }
+
+  .status-waitlisted {
+    background: var(--color-accent-400);
+    color: var(--text);
+  }
+
+  .date-cell {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .actions-cell {
+    min-width: 240px;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-approve,
+  .btn-waitlist,
+  .btn-reject {
+    padding: 0.4rem 0.75rem;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-approve {
+    background: var(--color-signal);
+    color: var(--text-inverse);
+  }
+
+  .btn-approve:hover {
+    transform: translateY(-1px);
+    box-shadow: 2px 2px 0 var(--shadow-hard);
+  }
+
+  .btn-waitlist {
+    background: var(--color-accent-300);
+    color: var(--text);
+  }
+
+  .btn-waitlist:hover {
+    transform: translateY(-1px);
+    box-shadow: 2px 2px 0 var(--shadow-hard);
+  }
+
+  .btn-reject {
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .btn-reject:hover {
+    background: var(--color-danger);
+    color: var(--text-inverse);
+  }
+
+  .reviewed-badge {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .empty-cell {
+    text-align: center;
+    padding: 3rem 1.25rem !important;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .empty-icon {
+    font-size: 2rem;
+  }
+
+  .empty-text {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .page-btn {
+    padding: 0.5rem 1rem;
+    background: var(--color-primary-600);
+    color: var(--text-inverse);
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .page-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .page-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .page-info {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  /* Detail Modal */
+  .detail-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 1rem;
+  }
+
+  .detail-modal[hidden] {
+    display: none;
+  }
+
+  .detail-modal-content {
+    width: 100%;
+    max-width: 550px;
+    max-height: 85vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 4px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 8px 8px 0 var(--shadow-hard);
+  }
+
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 3px solid var(--border);
+    background: var(--color-bg);
+  }
+
+  .detail-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .close-btn:hover {
+    color: var(--text);
+  }
+
+  .detail-body {
+    padding: 1.5rem;
+  }
+
+  .detail-field {
+    margin-bottom: 1.25rem;
+  }
+
+  .detail-field:last-child {
+    margin-bottom: 0;
+  }
+
+  .detail-label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+
+  .detail-value {
+    color: var(--text);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .detail-value.email {
+    font-weight: 500;
+  }
+
+  .detail-value.empty {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .detail-status {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .detail-actions {
+    padding: 1rem 1.5rem;
+    border-top: 3px solid var(--border);
+    background: var(--color-bg);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+  }
+
+  .detail-actions .btn-approve,
+  .detail-actions .btn-waitlist,
+  .detail-actions .btn-reject {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  /* Review Notes */
+  .review-notes-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--color-bg);
+  }
+
+  .review-notes-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--bg);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: var(--text);
+    resize: vertical;
+    min-height: 80px;
+    box-sizing: border-box;
+    font-family: inherit;
+    margin-top: 0.5rem;
+  }
+
+  .review-notes-textarea:focus {
+    outline: none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 2px var(--focus);
+  }
+
+  .save-notes-btn {
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    background: var(--color-secondary-200);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .save-notes-btn:hover {
+    background: var(--color-secondary-300);
+  }
+
+  /* Reject Modal */
+  .reject-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 1rem;
+  }
+
+  .reject-modal[hidden] {
+    display: none;
+  }
+
+  .reject-modal-content {
+    width: 100%;
+    max-width: 450px;
+    background: var(--surface);
+    border: 4px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 8px 8px 0 var(--shadow-hard);
+    padding: 1.5rem;
+  }
+
+  .reject-modal-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .reject-modal-text {
+    margin: 0 0 1rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .reject-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--bg);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: var(--text);
+    resize: vertical;
+    box-sizing: border-box;
+    font-family: inherit;
+  }
+
+  .reject-textarea:focus {
+    outline: none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 2px var(--focus);
+  }
+
+  .reject-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .btn-cancel {
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .btn-cancel:hover {
+    background: var(--color-bg);
+  }
+
+  .btn-confirm-reject {
+    padding: 0.5rem 1rem;
+    background: var(--color-danger);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-inverse);
+    cursor: pointer;
+  }
+
+  .btn-confirm-reject:hover {
+    transform: translateY(-1px);
+    box-shadow: 2px 2px 0 var(--shadow-hard);
+  }
+
+  @media (max-width: 768px) {
+    .signups-table {
+      display: block;
+      overflow-x: auto;
+    }
+
+    .filter-tabs {
+      flex-direction: column;
+    }
+
+    .filter-tab {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+    }
+
+    .detail-modal-content {
+      max-height: 90vh;
+    }
+  }
+</style>
+
+<script>
+  // Signup data for detail view
+  interface SignupData {
+    id: string;
+    email: string;
+    displayName: string;
+    interestReason: string | null;
+    makingBackground: string | null;
+    referralSource: string | null;
+    reviewNotes: string | null;
+    status: string;
+    requestedAt: string;
+  }
+
+  let signupsData: SignupData[] = [];
+  let pendingSignupId: string | null = null;
+  let currentDetailSignup: SignupData | null = null;
+
+  // Collect signup data from the page
+  document.querySelectorAll('tr[data-signup-id]').forEach(row => {
+    const id = row.getAttribute('data-signup-id');
+    if (!id) return;
+    
+    const cells = row.querySelectorAll('td');
+    signupsData.push({
+      id,
+      displayName: cells[0]?.querySelector('.display-name')?.textContent || "",
+      email: cells[1]?.querySelector('.email-text')?.textContent || "",
+      interestReason: row.getAttribute('data-interest') || "",
+      makingBackground: row.getAttribute('data-making') || "",
+      referralSource: row.getAttribute('data-referral') || "",
+      reviewNotes: row.getAttribute('data-notes') || "",
+      status: row.querySelector('.status-badge')?.textContent?.trim() || "",
+      requestedAt: cells[4]?.textContent?.trim() || "",
+    });
+  });
+
+  // Expand button click
+  document.querySelectorAll('.expand-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const target = e.target as HTMLButtonElement;
+      const signupId = target.dataset.id;
+      const signup = signupsData.find(s => s.id === signupId);
+      
+      if (signup) {
+        currentDetailSignup = signup;
+        showDetailModal(signup);
+      }
+    });
+  });
+
+  function showDetailModal(signup: SignupData) {
+    const modal = document.getElementById('detail-modal');
+    const body = document.getElementById('detail-body');
+    const actions = document.getElementById('detail-actions');
+    
+    if (!modal || !body || !actions) return;
+
+    // Format date
+    const requestedDate = signup.requestedAt ? new Date(signup.requestedAt).toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    }) : '—';
+
+    body.innerHTML = `
+      <div class="detail-field">
+        <span class="detail-label">Display Name</span>
+        <span class="detail-value">${escapeHtml(signup.displayName)}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Email</span>
+        <span class="detail-value email">${escapeHtml(signup.email)}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Interest Reason</span>
+        <span class="detail-value">${signup.interestReason ? escapeHtml(signup.interestReason) : '<span class="empty">Not provided</span>'}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Making Background</span>
+        <span class="detail-value">${signup.makingBackground ? escapeHtml(signup.makingBackground) : '<span class="empty">Not provided</span>'}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Referral Source</span>
+        <span class="detail-value">${signup.referralSource ? escapeHtml(signup.referralSource) : '<span class="empty">Not provided</span>'}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Status</span>
+        <span class="detail-status status-${signup.status}">${signup.status}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Requested At</span>
+        <span class="detail-value">${requestedDate}</span>
+      </div>
+      <div class="detail-field review-notes-section">
+        <span class="detail-label">Review Notes</span>
+        <textarea 
+          id="review-notes" 
+          class="review-notes-textarea"
+          placeholder="Add private notes for your reference..."
+          rows="3"
+        >${signup.reviewNotes || ''}</textarea>
+        <button id="save-notes" class="save-notes-btn" data-id="${signup.id}">Save Notes</button>
+      </div>
+    `;
+
+    // Show action buttons based on current status
+    if (signup.status === 'pending') {
+      actions.innerHTML = `
+        <button class="btn-approve" data-action="approve" data-id="${signup.id}">Approve</button>
+        <button class="btn-waitlist" data-action="waitlist" data-id="${signup.id}">Waitlist</button>
+        <button class="btn-reject" data-action="reject" data-id="${signup.id}">Reject</button>
+      `;
+      actions.style.display = 'flex';
+    } else if (signup.status === 'waitlisted') {
+      actions.innerHTML = `
+        <button class="btn-approve" data-action="approve" data-id="${signup.id}">Approve</button>
+        <button class="btn-reject" data-action="reject" data-id="${signup.id}">Reject</button>
+      `;
+      actions.style.display = 'flex';
+    } else if (signup.status === 'rejected') {
+      actions.innerHTML = `
+        <button class="btn-approve" data-action="approve" data-id="${signup.id}">Approve</button>
+      `;
+      actions.style.display = 'flex';
+    } else {
+      actions.innerHTML = '';
+      actions.style.display = 'none';
+    }
+
+    modal.removeAttribute('hidden');
+
+    // Attach save notes handler
+    document.getElementById('save-notes')?.addEventListener('click', async (e) => {
+      const btn = e.target as HTMLButtonElement;
+      const signupId = btn.dataset.id;
+      const notes = (document.getElementById('review-notes') as HTMLTextAreaElement)?.value;
+      
+      await saveReviewNotes(signupId!, notes);
+    });
+
+    // Attach action button handlers
+    actions.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.target as HTMLButtonElement;
+        const action = target.dataset.action;
+        const id = target.dataset.id;
+        
+        if (action === 'reject') {
+          pendingSignupId = id!;
+          hideDetailModal();
+          showRejectModal();
+        } else if (action === 'approve' || action === 'waitlist') {
+          await handleAction(id!, action!);
+        }
+      });
+    });
+  }
+
+  async function saveReviewNotes(signupId: string, notes: string) {
+    try {
+      const response = await fetch(`/api/admin/beta/${signupId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      });
+
+      if (response.ok) {
+        const btn = document.getElementById('save-notes');
+        if (btn) {
+          btn.textContent = 'Saved!';
+          setTimeout(() => {
+            btn.textContent = 'Save Notes';
+          }, 2000);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to save notes:', err);
+    }
+  }
+
+  function hideDetailModal() {
+    const modal = document.getElementById('detail-modal');
+    if (modal) {
+      modal.setAttribute('hidden', '');
+    }
+    currentDetailSignup = null;
+  }
+
+  // Close detail modal
+  document.getElementById('close-detail')?.addEventListener('click', hideDetailModal);
+  
+  document.getElementById('detail-modal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      hideDetailModal();
+    }
+  });
+
+  // Handle approve/reject/waitlist actions
+  document.querySelectorAll('.btn-approve, .btn-waitlist, .btn-reject').forEach(button => {
+    button.addEventListener('click', async (e) => {
+      const target = e.target as HTMLButtonElement;
+      const signupId = target.dataset.id;
+      const action = target.dataset.action;
+
+      if (!signupId || !action) return;
+
+      if (action === 'approve' || action === 'waitlist') {
+        await handleAction(signupId, action);
+      } else if (action === 'reject') {
+        pendingSignupId = signupId;
+        showRejectModal();
+      }
+    });
+  });
+
+  async function handleAction(signupId: string, action: string, reason?: string) {
+    try {
+      const response = await fetch(`/api/admin/beta/${signupId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, reason })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(`Failed: ${data.error}`);
+        return;
+      }
+
+      // Reload the page to show updated status
+      window.location.reload();
+    } catch (err) {
+      alert('Failed to process request');
+    }
+  }
+
+  function showRejectModal() {
+    const modal = document.getElementById('reject-modal');
+    if (modal) {
+      modal.removeAttribute('hidden');
+      const textarea = document.getElementById('reject-reason') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.value = '';
+        textarea.focus();
+      }
+    }
+  }
+
+  function hideRejectModal() {
+    const modal = document.getElementById('reject-modal');
+    if (modal) {
+      modal.setAttribute('hidden', '');
+    }
+    pendingSignupId = null;
+  }
+
+  // Cancel button
+  document.getElementById('cancel-reject')?.addEventListener('click', hideRejectModal);
+
+  // Confirm reject button
+  document.getElementById('confirm-reject')?.addEventListener('click', async () => {
+    if (!pendingSignupId) return;
+
+    const signupId = pendingSignupId;
+    const textarea = document.getElementById('reject-reason') as HTMLTextAreaElement;
+    const reason = textarea?.value.trim() || undefined;
+
+    hideRejectModal();
+    await handleAction(signupId, 'reject', reason);
+  });
+
+  // Close modals on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      hideRejectModal();
+      hideDetailModal();
+    }
+  });
+
+  // Close reject modal on backdrop click
+  document.getElementById('reject-modal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      hideRejectModal();
+    }
+  });
+
+  // Close detail modal on backdrop click
+  document.getElementById('detail-modal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      hideDetailModal();
+    }
+  });
+
+  function escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+</script>

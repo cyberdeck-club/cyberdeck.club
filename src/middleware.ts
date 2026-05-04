@@ -26,6 +26,7 @@ import {
   logTokenUsage,
 } from "./lib/pat-auth";
 import { getRequiredScope, hasScope } from "./lib/token-scopes";
+import { isBetaSite } from "./lib/beta";
 
 // ---------------------------------------------------------------------------
 // Session-only paths — PAT auth is BLOCKED for these routes.
@@ -160,6 +161,9 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     ctx.locals.user = null;
     ctx.locals.session = null;
   }
+
+  // Beta site detection — makes isBetaSite available to all pages/layouts
+  ctx.locals.isBetaSite = isBetaSite(ctx.request);
 
   return next();
 });
