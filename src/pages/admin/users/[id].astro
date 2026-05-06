@@ -8,6 +8,17 @@
 import AdminLayout from "@/layouts/AdminLayout.astro";
 import Button from "@/components/fundations/elements/Button.astro";
 import * as schema from "@/db/schema";
+import {
+  builds,
+  forumThreads,
+  forumPosts,
+  wikiArticles,
+  wikiRevisions,
+  wikiComments,
+  buildComments,
+  meetups,
+  staticPages,
+} from "@/db/schema";
 import { eq, desc, count } from "drizzle-orm";
 import { ROLES, getRoleLevel, getRoleName } from "@/lib/roles";
 
@@ -124,6 +135,63 @@ const isBanned = !!targetUser.bannedAt;
 
 // Check if user is mod nominated
 const isModNominated = !!targetUser.isModNominated;
+
+// Fetch all content authored by this user
+const userBuilds = await db
+  .select()
+  .from(builds)
+  .where(eq(builds.authorId, id))
+  .orderBy(desc(builds.createdAt))
+  .limit(50);
+
+const userForumThreads = await db
+  .select()
+  .from(forumThreads)
+  .where(eq(forumThreads.authorId, id))
+  .orderBy(desc(forumThreads.createdAt))
+  .limit(50);
+
+const userForumPosts = await db
+  .select()
+  .from(forumPosts)
+  .where(eq(forumPosts.authorId, id))
+  .orderBy(desc(forumPosts.createdAt))
+  .limit(50);
+
+const userWikiArticles = await db
+  .select()
+  .from(wikiArticles)
+  .where(eq(wikiArticles.authorId, id))
+  .orderBy(desc(wikiArticles.createdAt))
+  .limit(50);
+
+const userMeetups = await db
+  .select()
+  .from(meetups)
+  .where(eq(meetups.organizerId, id))
+  .orderBy(desc(meetups.createdAt))
+  .limit(50);
+
+const userBuildComments = await db
+  .select()
+  .from(buildComments)
+  .where(eq(buildComments.authorId, id))
+  .orderBy(desc(buildComments.createdAt))
+  .limit(50);
+
+const userWikiComments = await db
+  .select()
+  .from(wikiComments)
+  .where(eq(wikiComments.authorId, id))
+  .orderBy(desc(wikiComments.createdAt))
+  .limit(50);
+
+const userStaticPages = await db
+  .select()
+  .from(staticPages)
+  .where(eq(staticPages.authorId, id))
+  .orderBy(desc(staticPages.createdAt))
+  .limit(50);
 ---
 
 <AdminLayout title={`User: ${targetUser.name}`} section="users">
@@ -383,8 +451,260 @@ const isModNominated = !!targetUser.isModNominated;
         <p class="no-sessions">No active sessions found for this user.</p>
       )}
     </section>
+
+    <!-- Content by this user Section -->
+    <section class="detail-section full-width">
+      <h2 class="section-title">Content by this user</h2>
+      
+      {userBuilds.length > 0 && (
+        <div class="content-subsection">
+          <h3 class="subsection-title">Builds ({userBuilds.length})</h3>
+          <div class="content-list">
+            {userBuilds.map(build => (
+              <div class="content-item">
+                <div class="content-item-info">
+                  <a href={`/builds/${build.slug}`} target="_blank" class="content-link">
+                    {build.title}
+                  </a>
+                  <span class="content-meta">
+                    <span class={`status-badge status-${build.status}`}>{build.status}</span>
+                    <span class="content-date">{formatDate(build.createdAt)}</span>
+                  </span>
+                </div>
+                <form class="reassign-form" data-table="builds" data-record-id={build.id}>
+                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <button type="submit" class="reassign-btn">Reassign</button>
+                  <span class="reassign-feedback"></span>
+                </form>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {userForumThreads.length > 0 && (
+        <div class="content-subsection">
+          <h3 class="subsection-title">Forum Threads ({userForumThreads.length})</h3>
+          <div class="content-list">
+            {userForumThreads.map(thread => (
+              <div class="content-item">
+                <div class="content-item-info">
+                  <a href={`/forum/thread/${thread.id}`} target="_blank" class="content-link">
+                    {thread.title}
+                  </a>
+                  <span class="content-meta">
+                    <span class={`status-badge status-${thread.isLocked ? 'locked' : 'open'}`}>
+                      {thread.isLocked ? "Locked" : "Open"}
+                    </span>
+                    <span class="content-date">{formatDate(thread.createdAt)}</span>
+                  </span>
+                </div>
+                <form class="reassign-form" data-table="forumThreads" data-record-id={thread.id}>
+                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <button type="submit" class="reassign-btn">Reassign</button>
+                  <span class="reassign-feedback"></span>
+                </form>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {userForumPosts.length > 0 && (
+        <div class="content-subsection">
+          <h3 class="subsection-title">Forum Posts ({userForumPosts.length})</h3>
+          <div class="content-list">
+            {userForumPosts.map(post => (
+              <div class="content-item">
+                <div class="content-item-info">
+                  <a href={`/forum/thread/${post.threadId}#post-${post.id}`} target="_blank" class="content-link">
+                    Post #{post.id}
+                  </a>
+                  <span class="content-meta">
+                    <span class="content-date">{formatDate(post.createdAt)}</span>
+                  </span>
+                </div>
+                <form class="reassign-form" data-table="forumPosts" data-record-id={post.id}>
+                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <button type="submit" class="reassign-btn">Reassign</button>
+                  <span class="reassign-feedback"></span>
+                </form>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {userWikiArticles.length > 0 && (
+        <div class="content-subsection">
+          <h3 class="subsection-title">Wiki Articles ({userWikiArticles.length})</h3>
+          <div class="content-list">
+            {userWikiArticles.map(article => (
+              <div class="content-item">
+                <div class="content-item-info">
+                  <a href={`/wiki/articles/${article.id}`} target="_blank" class="content-link">
+                    {article.title}
+                  </a>
+                  <span class="content-meta">
+                    <span class={`status-badge status-${article.status}`}>{article.status}</span>
+                    <span class="content-date">{formatDate(article.createdAt)}</span>
+                  </span>
+                </div>
+                <form class="reassign-form" data-table="wikiArticles" data-record-id={article.id}>
+                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <button type="submit" class="reassign-btn">Reassign</button>
+                  <span class="reassign-feedback"></span>
+                </form>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {userMeetups.length > 0 && (
+        <div class="content-subsection">
+          <h3 class="subsection-title">Meetups ({userMeetups.length})</h3>
+          <div class="content-list">
+            {userMeetups.map(meetup => (
+              <div class="content-item">
+                <div class="content-item-info">
+                  <a href={`/meetups/${meetup.slug}`} target="_blank" class="content-link">
+                    {meetup.title}
+                  </a>
+                  <span class="content-meta">
+                    <span class={`status-badge status-${meetup.status}`}>{meetup.status}</span>
+                    <span class="content-date">{formatDate(meetup.createdAt)}</span>
+                  </span>
+                </div>
+                <form class="reassign-form" data-table="meetups" data-record-id={meetup.id}>
+                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <button type="submit" class="reassign-btn">Reassign</button>
+                  <span class="reassign-feedback"></span>
+                </form>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {userBuildComments.length > 0 && (
+        <div class="content-subsection">
+          <h3 class="subsection-title">Build Comments ({userBuildComments.length})</h3>
+          <div class="content-list">
+            {userBuildComments.map(comment => (
+              <div class="content-item">
+                <div class="content-item-info">
+                  <a href={`/builds/${comment.buildSlug}#comment-${comment.id}`} target="_blank" class="content-link">
+                    Comment on build #{comment.buildSlug}
+                  </a>
+                  <span class="content-meta">
+                    <span class="content-date">{formatDate(comment.createdAt)}</span>
+                  </span>
+                </div>
+                <form class="reassign-form" data-table="buildComments" data-record-id={comment.id}>
+                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <button type="submit" class="reassign-btn">Reassign</button>
+                  <span class="reassign-feedback"></span>
+                </form>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {userWikiComments.length > 0 && (
+        <div class="content-subsection">
+          <h3 class="subsection-title">Wiki Comments ({userWikiComments.length})</h3>
+          <div class="content-list">
+            {userWikiComments.map(comment => (
+              <div class="content-item">
+                <div class="content-item-info">
+                  <a href={`/wiki/articles/${comment.articleId}#comment-${comment.id}`} target="_blank" class="content-link">
+                    Comment on article #{comment.articleId}
+                  </a>
+                  <span class="content-meta">
+                    <span class="content-date">{formatDate(comment.createdAt)}</span>
+                  </span>
+                </div>
+                <form class="reassign-form" data-table="wikiComments" data-record-id={comment.id}>
+                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <button type="submit" class="reassign-btn">Reassign</button>
+                  <span class="reassign-feedback"></span>
+                </form>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {userStaticPages.length > 0 && (
+        <div class="content-subsection">
+          <h3 class="subsection-title">Static Pages ({userStaticPages.length})</h3>
+          <div class="content-list">
+            {userStaticPages.map(page => (
+              <div class="content-item">
+                <div class="content-item-info">
+                  <a href={`/${page.slug}`} target="_blank" class="content-link">
+                    {page.title}
+                  </a>
+                  <span class="content-meta">
+                    <span class="content-date">{formatDate(page.createdAt)}</span>
+                  </span>
+                </div>
+                <form class="reassign-form" data-table="staticPages" data-record-id={page.id}>
+                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <button type="submit" class="reassign-btn">Reassign</button>
+                  <span class="reassign-feedback"></span>
+                </form>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {userBuilds.length === 0 && userForumThreads.length === 0 && userForumPosts.length === 0 && userWikiArticles.length === 0 && userMeetups.length === 0 && userBuildComments.length === 0 && userWikiComments.length === 0 && userStaticPages.length === 0 && (
+        <p class="no-content">No authored content found for this user.</p>
+      )}
+    </section>
   </div>
 </AdminLayout>
+
+<script>
+  document.querySelectorAll('.reassign-form').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const target = e.target as HTMLFormElement;
+      const table = target.dataset.table;
+      const recordId = target.dataset.recordId;
+      const newAuthorId = (target.querySelector('[name="newAuthorId"]') as HTMLInputElement).value;
+      const feedback = target.querySelector('.reassign-feedback') as HTMLSpanElement;
+      
+      if (!table || !recordId) return;
+      
+      feedback.textContent = 'Reassigning...';
+      feedback.style.color = 'var(--text-muted)';
+      
+      try {
+        const res = await fetch('/api/admin/reassign', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ table, recordId, newAuthorId })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          feedback.textContent = '✓ Reassigned!';
+          feedback.style.color = 'var(--color-signal)';
+        } else {
+          feedback.textContent = `✗ ${data.error || 'Error'}`;
+          feedback.style.color = 'var(--color-danger)';
+        }
+      } catch (err) {
+        feedback.textContent = '✗ Network error';
+        feedback.style.color = 'var(--color-danger)';
+      }
+    });
+  });
+</script>
 
 <style>
   .back-link {
@@ -697,6 +1017,175 @@ const isModNominated = !!targetUser.isModNominated;
 
     .detail-row dd {
       text-align: left;
+    }
+  }
+
+  /* Content section styles */
+  .content-subsection {
+    margin-bottom: 1.5rem;
+  }
+
+  .content-subsection:last-child {
+    margin-bottom: 0;
+  }
+
+  .subsection-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--color-secondary);
+  }
+
+  .content-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .content-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--color-bg);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    gap: 1rem;
+  }
+
+  .content-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .content-link {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .content-link:hover {
+    text-decoration: underline;
+  }
+
+  .content-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .content-date {
+    white-space: nowrap;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .status-badge.status-published,
+  .status-badge.status-open {
+    background: var(--color-signal);
+    color: var(--text-inverse);
+  }
+
+  .status-badge.status-draft,
+  .status-badge.status-pending {
+    background: var(--color-warning);
+    color: var(--text);
+  }
+
+  .status-badge.status-rejected,
+  .status-badge.status-locked {
+    background: var(--color-danger);
+    color: var(--text-inverse);
+  }
+
+  .status-badge.status-archived {
+    background: var(--text-muted);
+    color: var(--text-inverse);
+  }
+
+  .reassign-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .reassign-input {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text);
+    width: 180px;
+  }
+
+  .reassign-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .reassign-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--color-primary);
+    color: var(--text-inverse);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+
+  .reassign-btn:hover {
+    opacity: 0.85;
+  }
+
+  .reassign-feedback {
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 80px;
+  }
+
+  .no-content {
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .content-item {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .reassign-form {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .reassign-input {
+      width: 100%;
+      flex: 1;
     }
   }
 </style>
