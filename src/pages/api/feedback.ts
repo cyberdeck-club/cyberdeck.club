@@ -114,7 +114,6 @@ export const POST: APIRoute = async (ctx) => {
       title: sanitizedTitle,
       description: description.trim(),
       pageUrl: pageUrl.trim(),
-      submitterEmail: user.email,
       submitterName: user.name,
       submitterId: user.id,
       submitterUsername: user.name,

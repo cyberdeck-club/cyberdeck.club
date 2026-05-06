@@ -13,7 +13,7 @@ if (!user) {
 }
 
 // Fetch user's feedback issues from GitHub
-const issues = await fetchUserFeedbackIssues(user.name);
+const issues = await fetchUserFeedbackIssues(user.id);
 
 // Separate open and closed
 const openIssues = issues.filter((i) => i.state === "open");

@@ -11,7 +11,6 @@ type FeedbackIssueData = {
   title: string;
   description: string;
   pageUrl: string;
-  submitterEmail: string;
   submitterName: string;
   submitterId: string;
   submitterUsername: string;
@@ -49,9 +48,9 @@ type GitHubGraphQLResponse<T> = {
  * Ensure a user-specific label exists in the repository.
  * Creates the label if it doesn't exist, silently succeeds if it already does.
  *
- * @param username - The sanitized username for the label
+ * @param userId - The user ID (UUID) for the label
  */
-export async function ensureUserLabel(username: string): Promise<void> {
+export async function ensureUserLabel(userId: string): Promise<void> {
   const mediaEnv = env as App.Env;
   const pat = mediaEnv.GITHUB_FEEDBACK_PAT;
 
@@ -59,7 +58,7 @@ export async function ensureUserLabel(username: string): Promise<void> {
     throw new Error("GITHUB_FEEDBACK_PAT is not set in environment variables");
   }
 
-  const labelName = `user:${sanitizeUsername(username)}`;
+  const labelName = `user:${userId}`;
 
   const response = await fetch(
     "https://api.github.com/repos/cyberdeck-club/cyberdeck.club/labels",
@@ -75,7 +74,7 @@ export async function ensureUserLabel(username: string): Promise<void> {
       body: JSON.stringify({
         name: labelName,
         color: "c5def5",
-        description: `Feedback from ${username}`,
+        description: `Feedback from user ${userId}`,
       }),
     }
   );
@@ -117,7 +116,7 @@ export async function createFeedbackIssue(
   }
 
   // Ensure the user-specific label exists before creating the issue
-  await ensureUserLabel(data.submitterUsername);
+  await ensureUserLabel(data.submitterId);
 
   // Build markdown body for the issue
   const screenshotSections: string[] = [];
@@ -146,7 +145,7 @@ export async function createFeedbackIssue(
     ``,
     `**Submitted:** ${data.submittedAt}`,
     `**Page:** [${data.pageUrl}](${data.pageUrl})`,
-    `**Reporter:** ${data.submitterName} (${data.submitterEmail})`,
+    `**Reporter:** ${data.submitterName} (user ID: ${data.submitterId})`,
     `**Admin link:** [${data.baseUrl}/admin/users](${data.baseUrl}/admin/users?highlight=${data.submitterId})`,
     ``,
     `---`,
@@ -173,7 +172,7 @@ export async function createFeedbackIssue(
       body: JSON.stringify({
         title: data.title,
         body: issueBody,
-        labels: ["feedback", "from-widget", `user:${sanitizeUsername(data.submitterUsername)}`],
+        labels: ["feedback", "from-widget", `user:${data.submitterId}`],
       }),
     }
   );
@@ -344,11 +343,11 @@ export type FeedbackIssue = {
 /**
  * Fetch feedback issues for a specific user from the GitHub repository.
  *
- * @param username - The username to fetch feedback issues for
+ * @param userId - The user ID (UUID) to fetch feedback issues for
  * @returns Array of FeedbackIssue objects, or empty array on failure
  */
 export async function fetchUserFeedbackIssues(
-  username: string
+  userId: string
 ): Promise<FeedbackIssue[]> {
   try {
     const mediaEnv = env as App.Env;
@@ -359,8 +358,7 @@ export async function fetchUserFeedbackIssues(
       return [];
     }
 
-    const sanitizedUsername = sanitizeUsername(username);
-    const labelFilter = `user:${sanitizedUsername},feedback`;
+    const labelFilter = `user:${userId},feedback`;
 
     const url = new URL(
       "https://api.github.com/repos/cyberdeck-club/cyberdeck.club/issues"
