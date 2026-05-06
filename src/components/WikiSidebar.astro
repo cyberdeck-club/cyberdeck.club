@@ -6,63 +6,10 @@
 
 interface Props {
   currentCategory?: string;
+  categories: Array<{ slug: string; name: string }>;
 }
 
-const { currentCategory } = Astro.props;
-
-// Wiki categories with slugs and descriptions
-const categories = [
-  { 
-    slug: "getting-started", 
-    name: "Getting Started", 
-    description: "Begin your cyberdeck journey" 
-  },
-  { 
-    slug: "enclosures", 
-    name: "Enclosures", 
-    description: "Cases and housings" 
-  },
-  { 
-    slug: "compute", 
-    name: "Compute", 
-    description: "SBCs and processors" 
-  },
-  { 
-    slug: "displays", 
-    name: "Displays", 
-    description: "Screens and drivers" 
-  },
-  { 
-    slug: "input", 
-    name: "Input", 
-    description: "Keyboards and pointing" 
-  },
-  { 
-    slug: "power", 
-    name: "Power", 
-    description: "Batteries and charging" 
-  },
-  { 
-    slug: "networking", 
-    name: "Networking", 
-    description: "Connectivity options" 
-  },
-  { 
-    slug: "software", 
-    name: "Software", 
-    description: "OS and applications" 
-  },
-  { 
-    slug: "3d-printing-for-cyberdecks", 
-    name: "3D Printing", 
-    description: "Printing and design" 
-  },
-  { 
-    slug: "soldering-electronics", 
-    name: "Soldering & Electronics", 
-    description: "Skills and components" 
-  },
-];
+const { currentCategory, categories } = Astro.props;
 ---
 
 <nav class="wiki-sidebar" aria-label="Wiki categories">
@@ -82,12 +29,11 @@ const categories = [
     <ul class="category-list">
       {categories.map((category) => (
         <li class="category-item">
-          <a 
+          <a
             href={`/wiki/${category.slug}`}
             class:list={["category-link", { active: currentCategory === category.slug }]}
           >
             <span class="category-name">{category.name}</span>
-            <span class="category-desc">{category.description}</span>
           </a>
         </li>
       ))}

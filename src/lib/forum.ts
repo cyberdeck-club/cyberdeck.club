@@ -148,6 +148,26 @@ export function getUserPostCount(
 }
 
 /**
+ * Get recent forum threads with author name and category name
+ */
+export function getRecentForumThreads(
+  db: DrizzleD1Database<typeof schema>,
+  limit: number = 5
+) {
+  return db
+    .select({
+      thread: schema.forumThreads,
+      authorName: schema.user.name,
+      categoryName: schema.forumCategories.name,
+    })
+    .from(schema.forumThreads)
+    .leftJoin(schema.user, eq(schema.forumThreads.authorId, schema.user.id))
+    .leftJoin(schema.forumCategories, eq(schema.forumThreads.categoryId, schema.forumCategories.id))
+    .orderBy(desc(schema.forumThreads.lastReplyAt))
+    .limit(limit);
+}
+
+/**
  * Get user by ID with role and bio
  */
 export function getUserById(

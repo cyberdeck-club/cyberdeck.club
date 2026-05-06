@@ -138,6 +138,27 @@ export function getWikiRevisions(
 }
 
 /**
+ * Get recent published wiki articles with author name and category name
+ */
+export function getRecentWikiArticles(
+  db: DrizzleD1Database<typeof schema>,
+  limit: number = 5
+) {
+  return db
+    .select({
+      article: schema.wikiArticles,
+      authorName: schema.user.name,
+      categoryName: schema.wikiCategories.name,
+    })
+    .from(schema.wikiArticles)
+    .leftJoin(schema.user, eq(schema.wikiArticles.authorId, schema.user.id))
+    .leftJoin(schema.wikiCategories, eq(schema.wikiArticles.categoryId, schema.wikiCategories.id))
+    .where(eq(schema.wikiArticles.status, "published"))
+    .orderBy(desc(schema.wikiArticles.publishedAt))
+    .limit(limit);
+}
+
+/**
  * Search wiki articles by title and content using SQLite LIKE
  */
 export function searchWikiArticles(

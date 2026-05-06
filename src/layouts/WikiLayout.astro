@@ -7,6 +7,7 @@
 import BaseLayout from "./BaseLayout.astro";
 import WikiSidebar from "@/components/WikiSidebar.astro";
 import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+import { getWikiCategories } from "../lib/wiki";
 
 interface Props {
   title: string;
@@ -15,12 +16,15 @@ interface Props {
   breadcrumb?: { label: string; href: string }[];
 }
 
-const { 
-  title, 
+const {
+  title,
   description = "Wiki article for cyberdeck builders",
   currentCategory,
-  breadcrumb = [] 
+  breadcrumb = []
 } = Astro.props;
+
+const db = Astro.locals.db!;
+const categories = await getWikiCategories(db);
 ---
 
 <BaseLayout title={title} description={description}>
@@ -35,7 +39,7 @@ const {
     </button>
 
     <aside class="wiki-sidebar-wrapper" id="wiki-sidebar-wrapper">
-      <WikiSidebar currentCategory={currentCategory} />
+      <WikiSidebar currentCategory={currentCategory} categories={categories} />
     </aside>
 
     <article class="wiki-content">

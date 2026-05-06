@@ -1,4 +1,6 @@
 ---
+export const prerender = false;
+
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import SectionHeader from "@/components/SectionHeader.astro";
 import WikiArticleCard from "@/components/WikiArticleCard.astro";
@@ -6,6 +8,12 @@ import ForumThreadPreview from "@/components/ForumThreadPreview.astro";
 import MeetupCard from "@/components/MeetupCard.astro";
 import BuildCard from "@/components/BuildCard.astro";
 import { MarkdownRenderer } from '@/utils/MarkdownRenderer';
+import { getRecentBuilds } from "../lib/builds";
+import { getUpcomingMeetups } from "../lib/meetups";
+import { getRecentWikiArticles } from "../lib/wiki";
+import { getRecentForumThreads } from "../lib/forum";
+import { count, eq, gte } from "drizzle-orm";
+import * as schema from "../db/schema";
 
 // Placeholder data until Phase 5 seed data is loaded
 const homepageHeroTitle = "Build the future.\nFor you.\nBy you.";
@@ -29,16 +37,65 @@ const homepageCtaText = "Join our community of makers, builders, and cyberdeck e
 const homepageIntroduceBtn = "Introduce Yourself";
 const homepageReadWikiBtn = "Read the Wiki";
 
-// Empty arrays until Phase 5 seed data is loaded
-const wikiArticles: Array<{title: string; category: string; excerpt: string; href: string}> = [];
-const forumThreads: Array<{title: string; category: string; replyCount: number; lastActivity: string; href: string}> = [];
-const meetups: Array<{title: string; date: string; location: string; region: string; status: "upcoming"; attendeeCount: number; href: string}> = [];
-const builds: Array<{title: string; builderName: string; imageGradient: string; difficulty: "beginner" | "intermediate" | "advanced"; href: string}> = [];
+const db = Astro.locals.db!;
+
+// Fetch dynamic content
+const [buildsResult, meetupsResult, wikiResult, forumResult] = await Promise.all([
+  getRecentBuilds(db, 3),
+  getUpcomingMeetups(db, 3),
+  getRecentWikiArticles(db, 3),
+  getRecentForumThreads(db, 3),
+]);
+
+const builds = buildsResult.map(({ build, authorName }) => ({
+  slug: build.slug,
+  title: build.title,
+  builderName: authorName,
+  builderId: build.authorId,
+  difficulty: "intermediate" as const,
+  computePlatform: "Raspberry Pi",
+  estimatedCost: 0,
+  featuredImage: build.heroImageUrl ? { url: build.heroImageUrl, alt: build.title } : undefined,
+  tags: [] as string[],
+}));
+
+const meetups = meetupsResult.map(({ meetup, organizerName }) => ({
+  title: meetup.title,
+  date: meetup.startsAt ? new Date(meetup.startsAt * 1000).toISOString() : "",
+  location: meetup.location ?? "TBD",
+  region: "online" as const,
+  status: (meetup.status as "upcoming" | "in-progress" | "completed" | "cancelled") ?? "upcoming",
+  attendeeCount: 0,
+  maxAttendees: undefined,
+  href: `/meetups/${meetup.slug}`,
+}));
+
+const wikiArticles = wikiResult.map(({ article, authorName, categoryName }) => ({
+  title: article.title,
+  category: categoryName ?? "General",
+  excerpt: article.excerpt ?? "",
+  href: `/wiki/${article.slug}`,
+}));
+
+const forumThreads = forumResult.map(({ thread, authorName, categoryName }) => ({
+  title: thread.title,
+  category: categoryName ?? "General",
+  replyCount: thread.postCount,
+  lastActivity: thread.lastReplyAt ? new Date(thread.lastReplyAt * 1000).toISOString() : "",
+  href: `/forum/thread/${thread.id}`,
+}));
+
+// Community stats
+const [buildCountResult, memberCountResult, articleCountResult] = await Promise.all([
+  db.select({ count: count() }).from(schema.builds).where(eq(schema.builds.status, "published")),
+  db.select({ count: count() }).from(schema.user).where(gte(schema.user.role, 10)),
+  db.select({ count: count() }).from(schema.wikiArticles).where(eq(schema.wikiArticles.status, "published")),
+]);
 
 const communityStats = {
-  members: 0,
-  builds: 0,
-  wikiArticles: 0
+  builds: Number(buildCountResult[0]?.count ?? 0),
+  members: Number(memberCountResult[0]?.count ?? 0),
+  articles: Number(articleCountResult[0]?.count ?? 0),
 };
 ---
 
@@ -183,7 +240,7 @@ const communityStats = {
             title={build.title}
             builderName={build.builderName}
             difficulty={build.difficulty}
-            href={build.href}
+            href={`/builds/${build.slug}`}
           />
         ))}
       </div>
@@ -217,7 +274,7 @@ const communityStats = {
           <span class="stat-label">Builds Shared</span>
         </div>
         <div class="stat">
-          <span class="stat-number">{communityStats.wikiArticles}</span>
+          <span class="stat-number">{communityStats.articles}</span>
           <span class="stat-label">Wiki Articles</span>
         </div>
       </div>
