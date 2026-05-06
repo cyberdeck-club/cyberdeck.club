@@ -7,6 +7,9 @@
 import BaseLayout from "./BaseLayout.astro";
 import ForumSidebar from "@/components/ForumSidebar.astro";
 import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+import { getForumCategories } from "../lib/forum";
+import { count, gte } from "drizzle-orm";
+import * as schema from "../db/schema";
 
 export const prerender = false;
 
@@ -17,12 +20,29 @@ interface Props {
   breadcrumb?: { label: string; href: string }[];
 }
 
-const { 
-  title, 
+const {
+  title,
   description = "Forum discussion for cyberdeck builders",
   currentCategory,
-  breadcrumb = [] 
+  breadcrumb = []
 } = Astro.props;
+
+const db = Astro.locals.db;
+const categories = db ? await getForumCategories(db) : [];
+const stats = db
+  ? await (async () => {
+      const [threadCount, postCount, memberCount] = await Promise.all([
+        db.select({ count: count() }).from(schema.forumThreads),
+        db.select({ count: count() }).from(schema.forumPosts),
+        db.select({ count: count() }).from(schema.user).where(gte(schema.user.role, 10)),
+      ]);
+      return {
+        totalThreads: Number(threadCount[0]?.count ?? 0),
+        totalPosts: Number(postCount[0]?.count ?? 0),
+        totalMembers: Number(memberCount[0]?.count ?? 0),
+      };
+    })()
+  : { totalThreads: 0, totalPosts: 0, totalMembers: 0 };
 ---
 
 <BaseLayout title={`${title} | Forum`} description={description}>
@@ -37,7 +57,7 @@ const {
     </button>
 
     <aside class="forum-sidebar-wrapper">
-      <ForumSidebar currentCategory={currentCategory} />
+      <ForumSidebar currentCategory={currentCategory} categories={categories} stats={stats} />
     </aside>
 
     <main class="forum-content">

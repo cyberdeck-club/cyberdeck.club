@@ -6,55 +6,15 @@
 
 interface Props {
   currentCategory?: string;
+  categories: Array<{ slug: string; name: string; description?: string | null }>;
+  stats: {
+    totalThreads: number;
+    totalPosts: number;
+    totalMembers: number;
+  };
 }
 
-const { currentCategory } = Astro.props;
-
-// Forum categories with slugs and descriptions
-const categories = [
-  { 
-    slug: "introductions", 
-    name: "Introductions", 
-    description: "New members introduce themselves"
-  },
-  { 
-    slug: "build-help", 
-    name: "Build Help", 
-    description: "Questions and troubleshooting"
-  },
-  { 
-    slug: "build-logs", 
-    name: "Build Logs", 
-    description: "Step-by-step build documentation"
-  },
-  { 
-    slug: "showcase", 
-    name: "Showcase", 
-    description: "Completed cyberdeck show-and-tell"
-  },
-  { 
-    slug: "parts-sourcing", 
-    name: "Parts & Sourcing", 
-    description: "Where to find components"
-  },
-  { 
-    slug: "meetups-events", 
-    name: "Meetups & Events", 
-    description: "Local build meetups"
-  },
-  { 
-    slug: "off-topic", 
-    name: "Off-Topic", 
-    description: "General community chat"
-  },
-];
-
-// Placeholder stats
-const stats = {
-  totalThreads: 847,
-  totalPosts: 12453,
-  totalMembers: 3421,
-};
+const { currentCategory, categories, stats } = Astro.props;
 ---
 
 <nav class="forum-sidebar" aria-label="Forum categories">
