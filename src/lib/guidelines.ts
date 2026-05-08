@@ -13,7 +13,7 @@ import * as schema from "../db/schema";
  * Current guidelines version - bump when guidelines change.
  * All users must re-accept when this version changes.
  */
-export const CURRENT_GUIDELINES_VERSION = "1.0";
+export const CURRENT_GUIDELINES_VERSION = "1.1";
 
 /**
  * Check if a user has accepted the current version of guidelines.
