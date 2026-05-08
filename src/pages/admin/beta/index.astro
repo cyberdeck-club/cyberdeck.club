@@ -469,8 +469,10 @@ function truncate(text: string | null | undefined, maxLength: number) {
     background: var(--surface);
     border: 4px solid var(--border);
     border-radius: 4px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     box-shadow: 4px 4px 0 var(--shadow-hard);
+    -webkit-overflow-scrolling: touch;
   }
 
   .signups-table {

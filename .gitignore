@@ -35,3 +35,6 @@ pnpm-debug.log*
 .reference/ellamae/
 
 .dev.vars
+plans/
+reviews/
+.playwright/

@@ -181,7 +181,7 @@ const stats = db
   @media (max-width: 768px) {
     .forum-layout {
       flex-direction: column;
-      padding: 1.5rem 1rem;
+      padding: 1rem 0.75rem;
     }
 
     .mobile-sidebar-toggle {
@@ -197,6 +197,12 @@ const stats = db
 
     .forum-sidebar-wrapper.open {
       display: block;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .forum-layout {
+      padding: 0.75rem 0.5rem;
     }
   }
 </style>

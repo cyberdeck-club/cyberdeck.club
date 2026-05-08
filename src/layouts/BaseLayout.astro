@@ -116,7 +116,7 @@ const isBetaSite = Astro.locals.isBetaSite;
     
     {!hideNav && <div class="relative z-11"><Nav /></div>}
     
-    <main id="main-content" class={clsx("relative z-10 grow", {"pt-20": !hideNav})}>
+    <main id="main-content" class={clsx("relative z-10 grow pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]", {"pt-20": !hideNav})}>
       <slot />
     </main>
     

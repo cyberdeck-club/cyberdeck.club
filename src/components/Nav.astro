@@ -55,10 +55,10 @@ const isAdmin = requireRole(user?.role, ROLES.ADMIN);
 
       <nav
         id="navigation-menu"
-        class="nav-menu fixed inset-0 flex flex-col justify-between h-full py-12 opacity-0 pointer-events-none md:bg-none md:bg-transparent lg:p-0 md:p-0 transform transition-all duration-300 ease-in-out -translate-y-4 md:relative md:inset-auto md:opacity-100 md:pointer-events-auto md:translate-y-0"
+        class="nav-menu fixed inset-0 flex flex-col justify-between h-full max-h-screen overflow-y-auto py-12 pb-[env(safe-area-inset-bottom)] opacity-0 pointer-events-none md:bg-none md:bg-transparent lg:p-0 md:p-0 transform transition-all duration-300 ease-in-out -translate-y-4 md:relative md:inset-auto md:opacity-100 md:pointer-events-auto md:translate-y-0 md:max-h-none md:overflow-y-visible"
         aria-hidden="true"
       >
-        <div class="nav-overlay absolute inset-0 pointer-events-none md:hidden">
+        <div class="nav-overlay absolute inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto md:hidden">
         </div>
 
         <div class="relative flex md:bg-transparent flex-col items-start justify-start w-full h-full px-8 list-none md:ml-auto gap-8 md:px-0 md:flex-row md:items-center md:justify-center md:text-left md:gap-4">
