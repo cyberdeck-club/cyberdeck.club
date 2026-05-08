@@ -26,45 +26,53 @@ import { requireAuth } from "../../../lib/require-auth";
 
 // Table configuration: maps table name to Drizzle table object and column references
 const TABLE_CONFIG = {
-  builds: { table: builds, authorColumn: builds.authorId, idColumn: builds.id },
+  builds: { table: builds, authorColumn: builds.authorId, authorKey: "authorId" as const, idColumn: builds.id },
   forumThreads: {
     table: forumThreads,
     authorColumn: forumThreads.authorId,
+    authorKey: "authorId" as const,
     idColumn: forumThreads.id,
   },
   forumPosts: {
     table: forumPosts,
     authorColumn: forumPosts.authorId,
+    authorKey: "authorId" as const,
     idColumn: forumPosts.id,
   },
   wikiArticles: {
     table: wikiArticles,
     authorColumn: wikiArticles.authorId,
+    authorKey: "authorId" as const,
     idColumn: wikiArticles.id,
   },
   wikiRevisions: {
     table: wikiRevisions,
     authorColumn: wikiRevisions.authorId,
+    authorKey: "authorId" as const,
     idColumn: wikiRevisions.id,
   },
   wikiComments: {
     table: wikiComments,
     authorColumn: wikiComments.authorId,
+    authorKey: "authorId" as const,
     idColumn: wikiComments.id,
   },
   buildComments: {
     table: buildComments,
     authorColumn: buildComments.authorId,
+    authorKey: "authorId" as const,
     idColumn: buildComments.id,
   },
   meetups: {
     table: meetups,
     authorColumn: meetups.organizerId,
+    authorKey: "organizerId" as const,
     idColumn: meetups.id,
   },
   staticPages: {
     table: staticPages,
     authorColumn: staticPages.authorId,
+    authorKey: "authorId" as const,
     idColumn: staticPages.id,
   },
 } as const;
@@ -167,7 +175,7 @@ export const PUT: APIRoute = async (ctx) => {
   try {
     await db
       .update(config.table)
-      .set({ [config.authorColumn.name]: newAuthorId })
+      .set({ [config.authorKey]: newAuthorId })
       .where(eq(config.idColumn, recordId));
 
     return new Response(JSON.stringify({ success: true }), {

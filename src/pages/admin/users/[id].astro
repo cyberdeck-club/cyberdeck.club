@@ -472,7 +472,9 @@ const userStaticPages = await db
                   </span>
                 </div>
                 <form class="reassign-form" data-table="builds" data-record-id={build.id}>
-                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <select name="newAuthorId" class="user-select reassign-input" required>
+                    <option value="">Loading users...</option>
+                  </select>
                   <button type="submit" class="reassign-btn">Reassign</button>
                   <span class="reassign-feedback"></span>
                 </form>
@@ -500,7 +502,9 @@ const userStaticPages = await db
                   </span>
                 </div>
                 <form class="reassign-form" data-table="forumThreads" data-record-id={thread.id}>
-                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <select name="newAuthorId" class="user-select reassign-input" required>
+                    <option value="">Loading users...</option>
+                  </select>
                   <button type="submit" class="reassign-btn">Reassign</button>
                   <span class="reassign-feedback"></span>
                 </form>
@@ -525,7 +529,9 @@ const userStaticPages = await db
                   </span>
                 </div>
                 <form class="reassign-form" data-table="forumPosts" data-record-id={post.id}>
-                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <select name="newAuthorId" class="user-select reassign-input" required>
+                    <option value="">Loading users...</option>
+                  </select>
                   <button type="submit" class="reassign-btn">Reassign</button>
                   <span class="reassign-feedback"></span>
                 </form>
@@ -551,7 +557,9 @@ const userStaticPages = await db
                   </span>
                 </div>
                 <form class="reassign-form" data-table="wikiArticles" data-record-id={article.id}>
-                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <select name="newAuthorId" class="user-select reassign-input" required>
+                    <option value="">Loading users...</option>
+                  </select>
                   <button type="submit" class="reassign-btn">Reassign</button>
                   <span class="reassign-feedback"></span>
                 </form>
@@ -577,7 +585,9 @@ const userStaticPages = await db
                   </span>
                 </div>
                 <form class="reassign-form" data-table="meetups" data-record-id={meetup.id}>
-                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <select name="newAuthorId" class="user-select reassign-input" required>
+                    <option value="">Loading users...</option>
+                  </select>
                   <button type="submit" class="reassign-btn">Reassign</button>
                   <span class="reassign-feedback"></span>
                 </form>
@@ -602,7 +612,9 @@ const userStaticPages = await db
                   </span>
                 </div>
                 <form class="reassign-form" data-table="buildComments" data-record-id={comment.id}>
-                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <select name="newAuthorId" class="user-select reassign-input" required>
+                    <option value="">Loading users...</option>
+                  </select>
                   <button type="submit" class="reassign-btn">Reassign</button>
                   <span class="reassign-feedback"></span>
                 </form>
@@ -627,7 +639,9 @@ const userStaticPages = await db
                   </span>
                 </div>
                 <form class="reassign-form" data-table="wikiComments" data-record-id={comment.id}>
-                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <select name="newAuthorId" class="user-select reassign-input" required>
+                    <option value="">Loading users...</option>
+                  </select>
                   <button type="submit" class="reassign-btn">Reassign</button>
                   <span class="reassign-feedback"></span>
                 </form>
@@ -652,7 +666,9 @@ const userStaticPages = await db
                   </span>
                 </div>
                 <form class="reassign-form" data-table="staticPages" data-record-id={page.id}>
-                  <input type="text" name="newAuthorId" placeholder="New author user ID" required class="reassign-input" />
+                  <select name="newAuthorId" class="user-select reassign-input" required>
+                    <option value="">Loading users...</option>
+                  </select>
                   <button type="submit" class="reassign-btn">Reassign</button>
                   <span class="reassign-feedback"></span>
                 </form>
@@ -670,16 +686,58 @@ const userStaticPages = await db
 </AdminLayout>
 
 <script>
+  // Fetch all users for the reassign dropdowns
+  let allUsers: Array<{ id: string; name: string; email: string }> = [];
+
+  async function loadUsers() {
+    try {
+      const res = await fetch('/api/admin/users?limit=100');
+      const data = await res.json();
+      allUsers = data.users || [];
+      populateAllSelects();
+    } catch (err) {
+      console.error('Failed to load users for reassign:', err);
+    }
+  }
+
+  function populateAllSelects() {
+    document.querySelectorAll('.user-select').forEach(select => {
+      populateSelect(select as HTMLSelectElement);
+    });
+  }
+
+  function populateSelect(select: HTMLSelectElement) {
+    // Preserve the currently selected value
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">Select user...</option>';
+    allUsers.forEach(user => {
+      const opt = document.createElement('option');
+      opt.value = user.id;
+      opt.textContent = `${user.name || 'Unnamed'} (${user.email})`;
+      select.appendChild(opt);
+    });
+    // Restore selection if it still exists
+    if (currentValue && allUsers.some(u => u.id === currentValue)) {
+      select.value = currentValue;
+    }
+  }
+
   document.querySelectorAll('.reassign-form').forEach(form => {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const target = e.target as HTMLFormElement;
       const table = target.dataset.table;
       const recordId = target.dataset.recordId;
-      const newAuthorId = (target.querySelector('[name="newAuthorId"]') as HTMLInputElement).value;
+      const newAuthorId = (target.querySelector('.user-select') as HTMLSelectElement).value;
       const feedback = target.querySelector('.reassign-feedback') as HTMLSpanElement;
       
       if (!table || !recordId) return;
+      
+      if (!newAuthorId) {
+        feedback.textContent = '✗ Select a user';
+        feedback.style.color = 'var(--color-danger)';
+        return;
+      }
       
       feedback.textContent = 'Reassigning...';
       feedback.style.color = 'var(--text-muted)';
@@ -704,6 +762,9 @@ const userStaticPages = await db
       }
     });
   });
+
+  // Initialize user dropdowns on page load
+  loadUsers();
 </script>
 
 <style>
