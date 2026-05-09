@@ -9,6 +9,11 @@ import { getForumThread, getForumPosts } from "@/lib/forum";
 import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
 import { ReplyForm } from "@/components/forum/ReplyForm";
+import { EditPostForm } from "@/components/forum/EditPostForm";
+import { ROLES, requireRole } from "@/lib/roles";
+import { getLatestEdit } from "@/lib/edit-history";
+import * as schema from "../../../db/schema";
+import { eq } from "drizzle-orm";
 
 export const prerender = false;
 
@@ -43,6 +48,11 @@ let guidelinesAccepted = false;
 if (currentUser) {
   guidelinesAccepted = await hasAcceptedGuidelines(db, currentUser.id);
 }
+
+// Check if user can edit this thread
+const isThreadAuthor = currentUser && threadData.thread.authorId === currentUser.id;
+const isModOrAdmin = currentUser && requireRole(currentUser.role, ROLES.MODERATOR);
+const canEditThread = isThreadAuthor || isModOrAdmin;
 
 // Fetch posts including the first post (for thread body)
 let posts: Array<{
@@ -84,6 +94,51 @@ function formatRelativeTime(timestamp: number | null): string {
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString();
 }
+
+// Check if current user can edit a specific post
+// Moderators/admins can always edit, authors only within 30-minute window
+function canEditPost(post: { id: string; authorId: string; createdAt: number }): boolean {
+  if (!currentUser) return false;
+  if (requireRole(currentUser.role, ROLES.MODERATOR)) return true;
+  const isPostAuthor = post.authorId === currentUser.id;
+  if (!isPostAuthor) return false;
+  // 30-minute window for author-only edits
+  const thirtyMinutesInSeconds = 30 * 60;
+  const now = Math.floor(Date.now() / 1000);
+  return (now - post.createdAt) < thirtyMinutesInSeconds;
+}
+
+// Pre-fetch edit history for all posts (batched approach)
+const postEditCache = new Map<string, { editorName: string; editedAt: number } | null>();
+
+// Fetch edit info for all posts that have been edited
+for (const item of posts) {
+  // Only fetch if post was edited (updatedAt > createdAt)
+  if (item.post.updatedAt > item.post.createdAt) {
+    try {
+      const latestEdit = await getLatestEdit(db, "forum_post", item.post.id);
+      if (latestEdit) {
+        const [editor] = await db
+          .select({ name: schema.user.name })
+          .from(schema.user)
+          .where(eq(schema.user.id, latestEdit.editorId))
+          .limit(1);
+        if (editor) {
+          postEditCache.set(item.post.id, {
+            editorName: editor.name,
+            editedAt: latestEdit.editedAt,
+          });
+        } else {
+          postEditCache.set(item.post.id, null);
+        }
+      } else {
+        postEditCache.set(item.post.id, null);
+      }
+    } catch {
+      postEditCache.set(item.post.id, null);
+    }
+  }
+}
 ---
 {notFound ? (
   <ForumLayout
@@ -117,7 +172,17 @@ function formatRelativeTime(timestamp: number | null): string {
           {threadData.thread.isLocked === 1 && <span class="badge lock">🔒 Locked</span>}
         </div>
         
-        <h1 class="thread-title">{threadData.thread.title}</h1>
+        <h1 class="thread-title">
+          {threadData.thread.title}
+          {canEditThread && (
+            <a
+              href={`/forum/thread/${threadData.thread.id}/edit`}
+              class="text-sm text-blue-600 hover:text-blue-800 ml-2"
+            >
+              Edit Thread
+            </a>
+          )}
+        </h1>
         
         <div class="thread-meta">
           <span class="meta-item">
@@ -138,7 +203,7 @@ function formatRelativeTime(timestamp: number | null): string {
         {/* Main Content */}
         <div class="thread-main">
           {/* Original Post */}
-          <div class="post original-post">
+          <div class="post original-post" id={`post-wrapper-${threadData.thread.id}`}>
             <div class="post-sidebar">
               <div class="user-avatar">
                 {threadData.authorName.charAt(0).toUpperCase()}
@@ -150,7 +215,7 @@ function formatRelativeTime(timestamp: number | null): string {
               <div class="post-header">
                 <span class="post-time">{formatRelativeTime(threadData.thread.createdAt)}</span>
               </div>
-              <div class="post-body prose" set:html={renderMarkdownToHtml(threadBodyContent)} />
+              <div id={`post-content-${threadData.thread.id}`} class="post-body prose" set:html={renderMarkdownToHtml(threadBodyContent)} />
             </div>
           </div>
 
@@ -161,7 +226,7 @@ function formatRelativeTime(timestamp: number | null): string {
             </h2>
             
             {posts.slice(1).map((item) => (
-              <div class="post reply">
+              <div class="post reply" id={`post-wrapper-${item.post.id}`}>
                 <div class="post-sidebar">
                   <div class="user-avatar secondary">
                     {item.authorName.charAt(0).toUpperCase()}
@@ -172,8 +237,35 @@ function formatRelativeTime(timestamp: number | null): string {
                 <div class="post-content">
                   <div class="post-header">
                     <span class="post-time">{formatRelativeTime(item.post.createdAt)}</span>
+                    {canEditPost(item.post) && (
+                      <button
+                        class="edit-post-btn text-sm text-blue-600 hover:text-blue-800 ml-2"
+                        data-post-id={item.post.id}
+                        data-post-content-id={`post-content-${item.post.id}`}
+                        data-edit-form-id={`edit-form-${item.post.id}`}
+                      >
+                        Edit
+                      </button>
+                    )}
                   </div>
-                  <div class="post-body prose" set:html={renderMarkdownToHtml(item.post.content)} />
+                  <div id={`post-content-${item.post.id}`} class="post-body prose" set:html={renderMarkdownToHtml(item.post.content)} />
+                  {(() => {
+                    const postEditInfo = postEditCache.get(item.post.id);
+                    return postEditInfo && (
+                      <p class="text-xs text-[var(--text-muted)] mt-2">
+                        Last edited by {postEditInfo.editorName} on {new Date(postEditInfo.editedAt * 1000).toLocaleDateString()}
+                      </p>
+                    );
+                  })()}
+                  <div id={`edit-form-${item.post.id}`} class="hidden edit-form-container">
+                    <EditPostForm
+                      client:load
+                      postId={item.post.id}
+                      initialContent={item.post.content}
+                      threadId={threadData.thread.id}
+                      surface="forum"
+                    />
+                  </div>
                 </div>
               </div>
             ))}
@@ -240,7 +332,7 @@ function formatRelativeTime(timestamp: number | null): string {
                 <span class="author-role">Member</span>
               </div>
             </div>
-            <button class="subscribe-btn">
+            <button class="subscribe-btn opacity-55 cursor-not-allowed" disabled>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M7 2V8L10 11M2 11H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -251,13 +343,13 @@ function formatRelativeTime(timestamp: number | null): string {
           <div class="sidebar-card">
             <h3 class="sidebar-title">Actions</h3>
             <div class="action-list">
-              <button class="action-list-btn">
+              <button class="action-list-btn" disabled>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M12 5L5 12L3 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 Share Thread
               </button>
-              <button class="action-list-btn">
+              <button class="action-list-btn" disabled>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M4 8H12M4 4H12M4 12H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
@@ -707,6 +799,12 @@ function formatRelativeTime(timestamp: number | null): string {
     transition: all 0.2s ease;
   }
 
+  .subscribe-btn[disabled] {
+    pointer-events: none;
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   .subscribe-btn:hover {
     background: var(--color-primary);
   }
@@ -737,6 +835,12 @@ function formatRelativeTime(timestamp: number | null): string {
     transition: all 0.2s ease;
     width: 100%;
     text-align: left;
+  }
+
+  .action-list-btn[disabled] {
+    pointer-events: none;
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .action-list-btn:hover {
@@ -792,4 +896,60 @@ function formatRelativeTime(timestamp: number | null): string {
       font-size: 0.75rem;
     }
   }
+
+  /* Edit Post Button */
+  .edit-post-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    padding: 0;
+    text-decoration: none;
+  }
+
+  .edit-post-btn:hover {
+    text-decoration: underline;
+  }
+
+  .edit-post-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* Edit Form Container */
+  .edit-form-container {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--surface);
+    border: 2px solid var(--color-primary);
+    border-radius: 4px;
+  }
+
+  /* Hidden utility class */
+  .hidden {
+    display: none !important;
+  }
 </style>
+
+<script>
+  // Client-side script to handle edit button clicks
+  document.addEventListener('DOMContentLoaded', () => {
+    const editButtons = document.querySelectorAll('.edit-post-btn');
+    
+    editButtons.forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const btn = e.currentTarget as HTMLButtonElement;
+        const postId = btn.dataset.postId;
+        if (!postId) return;
+        
+        const contentEl = document.getElementById(`post-content-${postId}`);
+        const editFormEl = document.getElementById(`edit-form-${postId}`);
+        
+        if (contentEl && editFormEl) {
+          contentEl.classList.toggle('hidden');
+          editFormEl.classList.toggle('hidden');
+        }
+      });
+    });
+  });
+</script>

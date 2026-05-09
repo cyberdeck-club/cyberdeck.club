@@ -2,6 +2,10 @@
 import MeetupLayout from "@/layouts/MeetupLayout.astro";
 import { getMeetup, getMeetups } from "@/lib/meetups";
 import { marked } from "marked";
+import { ROLES, requireRole } from "@/lib/roles";
+import { getLatestEdit } from "@/lib/edit-history";
+import * as schema from "../../db/schema";
+import { eq } from "drizzle-orm";
 
 // Server-rendered page
 export const prerender = false;
@@ -28,6 +32,33 @@ const result = meetupResult[0];
 const meetup = result.meetup;
 const organizerName = result.organizerName;
 const organizerId = result.organizerId;
+
+// Check if current user can edit this meetup
+const user = Astro.locals.user;
+const isOrganizer = user && meetup.organizerId === user.id;
+const isModOrAdmin = user && requireRole(user.role, ROLES.MODERATOR);
+const canEditMeetup = isOrganizer || isModOrAdmin;
+
+// Fetch latest edit info for this meetup
+let latestEditInfo: { editorName: string; editedAt: number } | null = null;
+try {
+  const latestEdit = await getLatestEdit(db, "meetup", meetup.id);
+  if (latestEdit) {
+    const [editor] = await db
+      .select({ name: schema.user.name })
+      .from(schema.user)
+      .where(eq(schema.user.id, latestEdit.editorId))
+      .limit(1);
+    if (editor) {
+      latestEditInfo = {
+        editorName: editor.name,
+        editedAt: latestEdit.editedAt,
+      };
+    }
+  }
+} catch (err) {
+  console.error("Failed to fetch edit history:", err);
+}
 
 // Transform meetup data
 const startDate = new Date(meetup.startsAt! * 1000);
@@ -92,14 +123,26 @@ const formatDateShort = (dateStr: string) => {
   status={status}
   region={"Community"}
 >
+  <!-- Edit button for organizers and moderators/admins -->
+  {canEditMeetup && (
+    <a href={`/meetups/${meetup.slug}/edit`} slot="actions" class="edit-link">
+      ✏️ Edit Meetup
+    </a>
+  )}
+  
   <!-- Description from meetup data -->
   <Fragment set:html={descriptionHtml} />
+  {latestEditInfo && (
+    <p class="text-xs text-[var(--text-muted)] mt-4">
+      Last edited by {latestEditInfo.editorName} on {new Date(latestEditInfo.editedAt * 1000).toLocaleDateString()}
+    </p>
+  )}
   
   <!-- Additional context -->
   <p>
-    This event is a great opportunity to meet fellow cyberdeck builders, share knowledge, 
-    and work on your projects in a collaborative environment. Whether you're bringing a 
-    project to work on or just want to learn more about cyberdeck building, you'll find 
+    This event is a great opportunity to meet fellow cyberdeck builders, share knowledge,
+    and work on your projects in a collaborative environment. Whether you're bringing a
+    project to work on or just want to learn more about cyberdeck building, you'll find
     a welcoming community here.
   </p>
 </MeetupLayout>

@@ -453,3 +453,14 @@ export const patUsageLogsRelations = relations(patUsageLogs, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// Edit history table - tracks all edits to published content
+export const editHistory = sqliteTable("edit_history", {
+  id: text("id").primaryKey(),
+  entityType: text("entity_type").notNull(), // 'build' | 'forum_thread' | 'forum_post' | 'meetup' | 'wiki_article'
+  entityId: text("entity_id").notNull(),
+  editorId: text("editor_id").notNull().references(() => user.id),
+  editedAt: integer("edited_at").notNull(),
+  changesSummary: text("changes_summary"), // JSON string describing what changed
+  previousContent: text("previous_content"), // Optional: full previous content snapshot
+});

@@ -1,0 +1,19 @@
+[
+  {
+    "issue": 1,
+    "modelsUsed": {
+      "minimax/minimax-2.7": {
+        "modesUsed": ["code"],
+        "numberOfTasks": 4,
+        "tokens": 0,
+        "cost": 0
+      },
+      "deepseek/deepseek-2.0": {
+        "modesUsed": ["orchestrator", "architect"],
+        "numberOfTasks": 2,
+        "tokens": 0,
+        "cost": 0
+      }
+    }
+  }
+]

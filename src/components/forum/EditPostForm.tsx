@@ -9,17 +9,14 @@ import { SharedMarkdownEditor } from "@/components/editor/SharedMarkdownEditor";
 interface EditPostFormProps {
   postId: string;
   initialContent: string;
+  threadId: string;
   surface?: "forum" | "comment";
-  onCancel: () => void;
-  onSave: () => void;
 }
 
 export function EditPostForm({
   postId,
   initialContent,
   surface = "comment",
-  onCancel,
-  onSave,
 }: EditPostFormProps) {
   const [content, setContent] = useState(initialContent);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,8 +32,8 @@ export function EditPostForm({
       }
 
       if (content.trim() === initialContent.trim()) {
-        // No changes, just cancel
-        onCancel();
+        // No changes, just reload to restore original view
+        window.location.reload();
         return;
       }
 
@@ -57,10 +54,16 @@ export function EditPostForm({
         const data = await response.json();
 
         if (!response.ok) {
+          if (data.error === "guidelines_required") {
+            const redirectPath = data.redirect || "/guidelines";
+            window.location.href = redirectPath + "?redirect=" + encodeURIComponent(window.location.pathname);
+            return;
+          }
           throw new Error(data.error || "Failed to update post");
         }
 
-        onSave();
+        // Reload page to show updated content
+        window.location.reload();
       } catch (err) {
         console.error("Edit save error:", err);
         setError(err instanceof Error ? err.message : "Failed to update post. Please try again.");
@@ -68,7 +71,7 @@ export function EditPostForm({
         setIsSaving(false);
       }
     },
-    [postId, content, initialContent, onCancel, onSave]
+    [postId, content, initialContent]
   );
 
   return (
@@ -92,7 +95,7 @@ export function EditPostForm({
           <button
             type="button"
             className="edit-cancel-btn"
-            onClick={onCancel}
+            onClick={() => window.location.reload()}
             disabled={isSaving}
           >
             Cancel

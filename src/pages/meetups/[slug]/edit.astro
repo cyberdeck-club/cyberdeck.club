@@ -1,0 +1,489 @@
+---
+/**
+ * Edit Meetup Page
+ * Form for editing an existing meetup event
+ * Only accessible by the meetup organizer or moderator/admin
+ */
+
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { meetups } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { ROLES, requireRole } from "@/lib/roles";
+import { hasAcceptedGuidelines } from "@/lib/guidelines";
+
+export const prerender = false;
+
+// Check if user is logged in
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login?redirect=" + encodeURIComponent(Astro.url.pathname));
+}
+
+// Guidelines check
+const db = Astro.locals.db!;
+const guidelinesAccepted = await hasAcceptedGuidelines(db, user.id);
+if (!guidelinesAccepted) {
+  return Astro.redirect(`/guidelines?redirect=/meetups/${Astro.params.slug}/edit`);
+}
+
+const slug = Astro.params.slug;
+if (!slug) {
+  return Astro.redirect("/meetups");
+}
+
+// Fetch the meetup
+const [meetup] = await db
+  .select()
+  .from(meetups)
+  .where(eq(meetups.slug, slug))
+  .limit(1);
+
+if (!meetup) {
+  return Astro.redirect("/meetups?error=not_found");
+}
+
+// Check authorization: organizer OR moderator/admin
+const isOrganizer = meetup.organizerId === user.id;
+const isModeratorOrAdmin = requireRole(user.role, ROLES.MODERATOR);
+
+if (!isOrganizer && !isModeratorOrAdmin) {
+  return Astro.redirect("/meetups?error=not_authorized");
+}
+
+// Format dates for datetime-local input
+const formatDateForInput = (timestamp: number | null): string => {
+  if (!timestamp) return "";
+  const date = new Date(timestamp * 1000);
+  return date.toISOString().slice(0, 16);
+};
+---
+
+<BaseLayout 
+  title={`Edit: ${meetup.title}`}
+  description="Edit your meetup event."
+>
+  <div class="edit-meetup-page">
+    <header class="page-header">
+      <div class="header-sparkles">
+        <span class="sparkle">✦</span>
+        <span class="sparkle">✧</span>
+        <span class="sparkle">✦</span>
+      </div>
+      <h1 class="page-title">Edit Meetup ✏️</h1>
+      <p class="page-subtitle">Update the details for your meetup event.</p>
+    </header>
+
+    <form id="edit-meetup-form" class="meetup-form">
+      <input type="hidden" name="slug" value={meetup.slug} />
+      
+      <div class="form-group">
+        <label for="title" class="form-label">Title <span class="required">*</span></label>
+        <input
+          type="text"
+          id="title"
+          name="title"
+          class="form-input"
+          value={meetup.title}
+          placeholder="Give your meetup a name"
+          required
+          maxlength="200"
+        />
+        <span class="form-hint">Keep it clear and memorable (max 200 characters)</span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="startsAt" class="form-label">Start Date & Time <span class="required">*</span></label>
+          <input
+            type="datetime-local"
+            id="startsAt"
+            name="startsAt"
+            class="form-input"
+            value={formatDateForInput(meetup.startsAt ?? null)}
+            required
+          />
+          <span class="form-hint">When does your meetup start?</span>
+        </div>
+
+        <div class="form-group">
+          <label for="endsAt" class="form-label">End Date & Time</label>
+          <input
+            type="datetime-local"
+            id="endsAt"
+            name="endsAt"
+            class="form-input"
+            value={formatDateForInput(meetup.endsAt ?? null)}
+          />
+          <span class="form-hint">Optional — leave blank if it's an open-ended hangout</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="location" class="form-label">Location <span class="required">*</span></label>
+        <input
+          type="text"
+          id="location"
+          name="location"
+          class="form-input"
+          value={meetup.location ?? ""}
+          placeholder="Virtual (Zoom link, Discord, etc.) or physical address"
+          required
+          maxlength="500"
+        />
+        <span class="form-hint">Virtual meeting links, venue addresses, or "TBD" if planning</span>
+      </div>
+
+      <div class="form-group">
+        <label for="description" class="form-label">Description</label>
+        <textarea
+          id="description"
+          name="description"
+          class="form-textarea"
+          placeholder="Tell people what your meetup is about, what to bring, and what to expect..."
+          rows="4"
+          maxlength="2000"
+        >{meetup.description ?? ""}</textarea>
+        <span class="form-hint">Help people decide if your meetup is right for them (max 2000 characters)</span>
+      </div>
+
+      <div class="form-group">
+        <label for="content" class="form-label">Full Details</label>
+        <textarea
+          id="content"
+          name="content"
+          class="form-textarea"
+          placeholder="Share more details, a schedule, topics to cover, or anything else participants should know..."
+          rows="8"
+        >{meetup.content ?? ""}</textarea>
+        <span class="form-hint">Optional — markdown supported. This will be displayed on the meetup detail page.</span>
+      </div>
+
+      <div class="form-actions">
+        <a href={`/meetups/${meetup.slug}`} class="btn-cancel">Cancel</a>
+        <button type="submit" class="btn-submit" id="submit-btn">
+          <span class="btn-text">Save Changes ✨</span>
+          <span class="btn-loading" style="display: none;">Saving...</span>
+        </button>
+      </div>
+
+      <div id="form-error" class="form-error" style="display: none;"></div>
+    </form>
+  </div>
+</BaseLayout>
+
+<script>
+  const form = document.getElementById("edit-meetup-form") as HTMLFormElement;
+  const slugInput = form.querySelector("[name=slug]") as HTMLInputElement;
+  const titleInput = document.getElementById("title") as HTMLInputElement;
+  const startsAtInput = document.getElementById("startsAt") as HTMLInputElement;
+  const endsAtInput = document.getElementById("endsAt") as HTMLInputElement;
+  const locationInput = document.getElementById("location") as HTMLInputElement;
+  const descriptionInput = document.getElementById("description") as HTMLTextAreaElement;
+  const contentInput = document.getElementById("content") as HTMLTextAreaElement;
+  const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+  const btnText = submitBtn.querySelector(".btn-text") as HTMLSpanElement;
+  const btnLoading = submitBtn.querySelector(".btn-loading") as HTMLSpanElement;
+  const formError = document.getElementById("form-error") as HTMLDivElement;
+
+  // Convert datetime-local value to Unix timestamp
+  function dateToTimestamp(dateStr: string): number {
+    const date = new Date(dateStr);
+    return Math.floor(date.getTime() / 1000);
+  }
+
+  // Form submission
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // Validate required fields
+    if (!titleInput.value.trim()) {
+      formError.textContent = "Please enter a title for your meetup.";
+      formError.style.display = "block";
+      return;
+    }
+
+    if (!startsAtInput.value) {
+      formError.textContent = "Please select a start date and time.";
+      formError.style.display = "block";
+      return;
+    }
+
+    if (!locationInput.value.trim()) {
+      formError.textContent = "Please enter a location.";
+      formError.style.display = "block";
+      return;
+    }
+
+    // Show loading state
+    submitBtn.disabled = true;
+    btnText.style.display = "none";
+    btnLoading.style.display = "inline";
+    formError.style.display = "none";
+
+    try {
+      const body: Record<string, unknown> = {
+        title: titleInput.value.trim(),
+        location: locationInput.value.trim(),
+        startsAt: dateToTimestamp(startsAtInput.value),
+      };
+
+      // Optional fields
+      if (endsAtInput.value) {
+        body.endsAt = dateToTimestamp(endsAtInput.value);
+      }
+      if (descriptionInput.value.trim()) {
+        body.description = descriptionInput.value.trim();
+      }
+      if (contentInput.value.trim()) {
+        body.content = contentInput.value.trim();
+      }
+
+      const response = await fetch(`/api/meetups/${slugInput.value}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        // Redirect to the meetup page
+        window.location.href = `/meetups/${slugInput.value}`;
+      } else if (response.status === 403) {
+        const data = await response.json();
+        if (data.error === "guidelines_required") {
+          window.location.href = data.redirect + "?redirect=/meetups/" + slugInput.value + "/edit";
+          return;
+        }
+        throw new Error(data.error || "Failed to update meetup");
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to update meetup");
+      }
+    } catch (err) {
+      console.error("Submit error:", err);
+      formError.textContent = err instanceof Error ? err.message : "Failed to update meetup. Please try again.";
+      formError.style.display = "block";
+
+      // Reset button state
+      submitBtn.disabled = false;
+      btnText.style.display = "inline";
+      btnLoading.style.display = "none";
+    }
+  });
+</script>
+
+<style>
+  .edit-meetup-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    position: relative;
+  }
+
+  .header-sparkles {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .sparkle {
+    font-size: 1.5rem;
+    animation: sparkle 2s ease-in-out infinite;
+  }
+
+  .sparkle:nth-child(2) {
+    animation-delay: 0.5s;
+  }
+
+  .sparkle:nth-child(3) {
+    animation-delay: 1s;
+  }
+
+  @keyframes sparkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.2); }
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(2rem, 5vw, 2.5rem);
+    color: var(--text);
+    margin: 0 0 0.5rem;
+    position: relative;
+  }
+
+  .page-subtitle {
+    font-size: 1.125rem;
+    color: var(--text-muted);
+    margin: 0;
+    position: relative;
+  }
+
+  .meetup-form {
+    background: var(--color-surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    padding: 2rem;
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .required {
+    color: var(--color-danger);
+  }
+
+  .form-input,
+  .form-textarea,
+  .form-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-family: inherit;
+    background: var(--bg);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .form-input:focus,
+  .form-textarea:focus,
+  .form-select:focus {
+    outline: none;
+    border-color: var(--focus);
+  }
+
+  .form-input:focus-visible,
+  .form-textarea:focus-visible,
+  .form-select:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .form-input::placeholder,
+  .form-textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  .form-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.375rem;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--color-border);
+  }
+
+  .btn-cancel,
+  .btn-submit {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  .btn-cancel {
+    background: var(--color-surface-alt);
+    border: 3px solid var(--border);
+    color: var(--color-text);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .btn-cancel:hover {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 var(--color-shadow-hard);
+  }
+
+  .btn-submit {
+    background: var(--color-primary);
+    border: 3px solid var(--border);
+    color: var(--color-text-inverse);
+    box-shadow: 4px 4px 0 var(--color-shadow-hard);
+  }
+
+  .btn-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--color-shadow-hard);
+  }
+
+  .btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .form-error {
+    color: var(--color-danger);
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.75rem;
+    background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+    border: 2px solid var(--color-danger);
+    border-radius: 4px;
+    margin-top: 1rem;
+  }
+
+  @media (max-width: 640px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+      flex-direction: column;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>

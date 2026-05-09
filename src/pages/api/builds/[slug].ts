@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
+import { recordEdit } from "../../../lib/edit-history";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
 
@@ -191,6 +192,14 @@ export const PUT: APIRoute = async (ctx) => {
       .set(updates)
       .where(eq(schema.builds.slug, slug));
 
+    // Record edit history
+    await recordEdit(db, {
+      entityType: "build",
+      entityId: build.id,
+      editorId: userId,
+      changesSummary: "Build updated",
+    }).catch((err) => console.error("Failed to record edit history:", err));
+
     // Fetch the updated build
     const updatedBuilds = await db
       .select({
@@ -369,6 +378,14 @@ export const PATCH: APIRoute = async (ctx) => {
       .update(schema.builds)
       .set(updates)
       .where(eq(schema.builds.slug, slug));
+
+    // Record edit history
+    await recordEdit(db, {
+      entityType: "build",
+      entityId: build.id,
+      editorId: userId,
+      changesSummary: "Build updated",
+    }).catch((err) => console.error("Failed to record edit history:", err));
 
     // Fetch the updated build
     const updatedBuilds = await db

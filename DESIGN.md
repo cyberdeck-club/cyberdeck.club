@@ -598,7 +598,7 @@ components. Use viewport breakpoints for page shell only.
         hover:translate-x-[2px] hover:translate-y-[2px]
         hover:shadow-[1px_1px_0_0_var(--color-surface-100)]
         transition-[transform,box-shadow] duration-75
-      ">Subscribe</button>
+      " disabled>Subscribe</button>
     </div>
   </div>
 </footer>

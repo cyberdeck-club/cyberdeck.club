@@ -6,6 +6,7 @@ import { eq, isNull, and } from "drizzle-orm";
 import * as schema from "../../db/schema";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
 import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
+import { getLatestEdit } from "@/lib/edit-history";
 
 // Server-rendered page
 export const prerender = false;
@@ -32,6 +33,27 @@ const result = buildResult[0];
 const build = result.build;
 const authorName = result.authorName;
 const authorId = build.authorId;
+
+// Fetch latest edit info for this build
+let latestEditInfo: { editorName: string; editedAt: number } | null = null;
+try {
+  const latestEdit = await getLatestEdit(db, "build", build.id);
+  if (latestEdit) {
+    const [editor] = await db
+      .select({ name: schema.user.name })
+      .from(schema.user)
+      .where(eq(schema.user.id, latestEdit.editorId))
+      .limit(1);
+    if (editor) {
+      latestEditInfo = {
+        editorName: editor.name,
+        editedAt: latestEdit.editedAt,
+      };
+    }
+  }
+} catch (err) {
+  console.error("Failed to fetch edit history:", err);
+}
 
 // Transform build data for the template
 interface BuildData {
@@ -150,6 +172,11 @@ if (user) {
     <div class="description-content">
       <Fragment set:html={renderMarkdownToHtml(buildData.description || buildData.content || "")}/>
     </div>
+    {latestEditInfo && (
+      <p class="text-xs text-[var(--text-muted)] mt-4">
+        Last edited by {latestEditInfo.editorName} on {new Date(latestEditInfo.editedAt * 1000).toLocaleDateString()}
+      </p>
+    )}
   </section>
 
   <!-- Parts List Section - Show message if no parts list in schema -->

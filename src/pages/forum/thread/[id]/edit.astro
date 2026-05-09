@@ -1,0 +1,201 @@
+---
+/**
+ * Forum Thread Edit Page
+ * Allows editing thread title and body content
+ */
+
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import ForumLayout from "../../../../layouts/ForumLayout.astro";
+import { ForumEditor } from "@/components/editor/ForumEditor";
+import { eq, asc } from "drizzle-orm";
+import * as schema from "../../../../db/schema";
+import { requireRole } from "../../../../lib/roles";
+import { hasAcceptedGuidelines } from "../../../../lib/guidelines";
+
+export const prerender = false;
+
+const db = Astro.locals.db!;
+const user = Astro.locals.user;
+
+// Auth check
+if (!user) {
+  return Astro.redirect("/login?redirect=" + encodeURIComponent(Astro.url.pathname));
+}
+
+// Guidelines check
+const guidelinesAccepted = await hasAcceptedGuidelines(db, user.id);
+if (!guidelinesAccepted) {
+  return Astro.redirect(`/guidelines?redirect=/forum/thread/${Astro.params.id}/edit`);
+}
+
+const threadId = Astro.params.id;
+if (!threadId) {
+  return Astro.redirect("/forum");
+}
+
+// Fetch thread
+const threadResult = await db
+  .select()
+  .from(schema.forumThreads)
+  .where(eq(schema.forumThreads.id, threadId))
+  .limit(1);
+
+if (threadResult.length === 0) {
+  return Astro.redirect("/forum?error=not_found");
+}
+
+const thread = threadResult[0];
+
+// Authorization: author OR moderator/admin
+const isAuthor = thread.authorId === user.id;
+const isModOrAdmin = requireRole(user.role, 40); // MODERATOR = 40
+
+if (!isAuthor && !isModOrAdmin) {
+  return Astro.redirect("/forum?error=not_authorized");
+}
+
+// Fetch the first post (thread body content)
+const [firstPost] = await db
+  .select()
+  .from(schema.forumPosts)
+  .where(eq(schema.forumPosts.threadId, threadId))
+  .orderBy(asc(schema.forumPosts.createdAt))
+  .limit(1);
+
+const threadBodyContent = firstPost?.content ?? "";
+---
+
+<BaseLayout title={`Edit: ${thread.title}`}>
+  <ForumLayout
+    title="Edit Thread"
+    description="Update your thread"
+  >
+    <div class="edit-thread-page">
+      <header class="page-header">
+        <h1 class="page-title">Edit Thread ✏️</h1>
+        <p class="page-subtitle">Update your thread title and content</p>
+      </header>
+
+      <form id="edit-thread-form" class="thread-form">
+        <input type="hidden" name="threadId" value={thread.id} />
+
+        <div class="form-group">
+          <label for="title" class="form-label">Title</label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            value={thread.title}
+            required
+            class="form-input"
+            placeholder="Thread title"
+            maxlength="200"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Content</label>
+          <ForumEditor
+            client:only="react"
+            hiddenInputId="content-input"
+            initialContent={threadBodyContent}
+          />
+          <input type="hidden" name="content" id="content-input" value={threadBodyContent} />
+        </div>
+
+        <div class="form-actions">
+          <a href={`/forum/thread/${thread.id}`} class="btn-cancel">Cancel</a>
+          <button type="submit" class="btn-submit" id="submit-btn">
+            <span class="btn-text">Save Changes ✨</span>
+            <span class="btn-loading" style="display: none;">Saving...</span>
+          </button>
+        </div>
+
+        <div id="form-error" class="form-error" style="display: none;"></div>
+      </form>
+    </div>
+  </ForumLayout>
+  
+  <script>
+    const form = document.getElementById("edit-thread-form") as HTMLFormElement | null;
+    const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement | null;
+    const btnText = submitBtn?.querySelector(".btn-text") as HTMLSpanElement | null;
+    const btnLoading = submitBtn?.querySelector(".btn-loading") as HTMLSpanElement | null;
+    const formError = document.getElementById("form-error") as HTMLDivElement | null;
+    const contentInput = document.getElementById("content-input") as HTMLInputElement | null;
+
+    if (!form || !submitBtn || !contentInput) {
+      throw new Error("Required elements not found");
+    }
+
+    const threadIdInput = form.querySelector("[name=threadId]") as HTMLInputElement | null;
+    const threadId = threadIdInput?.value;
+    if (!threadId) {
+      throw new Error("Thread ID not found");
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const titleInput = document.getElementById("title") as HTMLInputElement | null;
+      const title = titleInput?.value.trim();
+
+      if (!title) {
+        if (formError) {
+          formError.textContent = "Title is required";
+          formError.style.display = "block";
+        }
+        return;
+      }
+
+      const content = contentInput?.value ?? "";
+
+      // Show loading state
+      submitBtn.disabled = true;
+      if (btnText) btnText.style.display = "none";
+      if (btnLoading) btnLoading.style.display = "inline";
+      if (formError) {
+        formError.style.display = "none";
+      }
+
+      try {
+        const response = await fetch(`/api/forum/threads/${threadId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, content }),
+        });
+
+        if (response.ok) {
+          window.location.href = `/forum/thread/${threadId}`;
+        } else if (response.status === 403) {
+          const data = await response.json();
+          if (data.error === "guidelines_required") {
+            window.location.href = data.redirect + "?redirect=/forum/thread/" + threadId + "/edit";
+            return;
+          }
+          if (formError) {
+            formError.textContent = data.error || "Failed to save changes";
+            formError.style.display = "block";
+          }
+        } else {
+          const data = await response.json();
+          if (formError) {
+            formError.textContent = data.error || "Failed to save changes";
+            formError.style.display = "block";
+          }
+          submitBtn.disabled = false;
+          if (btnText) btnText.style.display = "inline";
+          if (btnLoading) btnLoading.style.display = "none";
+        }
+      } catch (_err) {
+        if (formError) {
+          formError.textContent = "An error occurred. Please try again.";
+          formError.style.display = "block";
+        }
+        submitBtn.disabled = false;
+        if (btnText) btnText.style.display = "inline";
+        if (btnLoading) btnLoading.style.display = "none";
+      }
+    });
+  </script>
+</BaseLayout>

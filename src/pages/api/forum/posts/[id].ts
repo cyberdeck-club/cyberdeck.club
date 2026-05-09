@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
+import { recordEdit } from "../../../../lib/edit-history";
 import * as schema from "../../../../db/schema";
 import { checkPublishingGate } from "../../../../lib/publishing-gate";
 
@@ -157,6 +158,14 @@ export const PUT: APIRoute = async (ctx) => {
         updatedAt: now,
       })
       .where(eq(schema.forumPosts.id, id));
+
+    // Record edit history
+    await recordEdit(db, {
+      entityType: "forum_post",
+      entityId: post.id,
+      editorId: userId,
+      changesSummary: "Post content updated",
+    }).catch((err) => console.error("Failed to record edit history:", err));
 
     return new Response(
       JSON.stringify({ success: true, updatedAt: now }),

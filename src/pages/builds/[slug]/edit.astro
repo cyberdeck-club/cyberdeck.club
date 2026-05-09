@@ -9,6 +9,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 import { getBuild } from "@/lib/builds";
 import { eq } from "drizzle-orm";
 import * as schema from "../../../db/schema";
+import { hasAcceptedGuidelines } from "@/lib/guidelines";
 
 export const prerender = false;
 
@@ -18,14 +19,19 @@ if (!user) {
   return Astro.redirect("/login?redirect=" + encodeURIComponent(Astro.url.pathname));
 }
 
+// Guidelines check
+const db = Astro.locals.db!;
+const guidelinesAccepted = await hasAcceptedGuidelines(db, user.id);
+if (!guidelinesAccepted) {
+  return Astro.redirect(`/guidelines?redirect=/builds/${Astro.params.slug}/edit`);
+}
+
 // Get slug from URL params
 const { slug } = Astro.params;
 
 if (!slug) {
   return Astro.redirect("/builds");
 }
-
-const db = Astro.locals.db!;
 
 // Fetch the existing build
 const buildResult = await getBuild(db, slug);

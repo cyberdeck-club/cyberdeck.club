@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
+import { recordEdit } from "../../../../lib/edit-history";
 import * as schema from "../../../../db/schema";
 import { checkPublishingGate } from "../../../../lib/publishing-gate";
 import { ROLES, requireRole, getRoleLevel } from "../../../../lib/roles";
@@ -211,6 +212,14 @@ export const PUT: APIRoute = async (ctx) => {
         })
         .where(eq(schema.wikiArticles.id, articleId)),
     ]);
+
+    // Record edit history
+    await recordEdit(db, {
+      entityType: "wiki_article",
+      entityId: article.id,
+      editorId: userId,
+      changesSummary: "Article content updated",
+    }).catch((err) => console.error("Failed to record edit history:", err));
 
     // Return success with revision ID and review flag info
     return new Response(

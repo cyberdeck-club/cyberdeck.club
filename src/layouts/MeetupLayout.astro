@@ -75,13 +75,16 @@ const formattedEndTime = dateEnd ? formatTime(dateEnd) : null;
     </div>
     
     <div class="hero-content">
-      <span 
-        class="status-badge" 
+      <span
+        class="status-badge"
         style={`background: ${statusStyle.bgColor}; color: ${statusStyle.textColor}`}
       >
         {statusStyle.label}
       </span>
       <h1 class="hero-title">{title}</h1>
+      <div class="hero-actions">
+        <slot name="actions" />
+      </div>
       <p class="hero-region">
         <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M8 2C6 2 4 4 4 6.5C4 9.5 8 14 8 14C8 14 12 9.5 12 6.5C12 4 10 2 8 2Z" stroke="currentColor" stroke-width="1.5"/>
@@ -174,7 +177,7 @@ const formattedEndTime = dateEnd ? formatTime(dateEnd) : null;
               Attendees
             </div>
             <div class="detail-value">
-              {attendeeCount}{maxAttendees ? ` / ${maxAttendees}` : ''} 
+              {attendeeCount}{maxAttendees ? ` / ${maxAttendees}` : ''}
               <span class="attendee-label">people attending</span>
             </div>
           </div>
@@ -265,9 +268,38 @@ const formattedEndTime = dateEnd ? formatTime(dateEnd) : null;
     text-transform: uppercase;
     letter-spacing: -0.02em;
     line-height: 1.1;
-    margin: 0 0 1.5rem;
+    margin: 0 0 0.75rem;
     color: white;
     text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-actions :global(a),
+  .hero-actions :global(button) {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    border: 3px solid rgba(255, 255, 255, 0.6);
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    transition: all 0.2s;
+  }
+
+  .hero-actions :global(a:hover),
+  .hero-actions :global(button:hover) {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--color-text);
+    border-color: white;
   }
 
   .hero-region {
