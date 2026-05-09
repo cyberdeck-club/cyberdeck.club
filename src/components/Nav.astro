@@ -28,7 +28,7 @@ const isAdmin = requireRole(user?.role, ROLES.ADMIN);
       id="navigation-wrapper"
       class="relative flex flex-col w-full md:items-center md:justify-between md:flex-row max-w-6xl mx-auto"
     >
-      <div class="flex flex-row items-center justify-between">
+      <div class="flex flex-row items-center justify-between z-10">
         <a href="/" class="nav-logo flex items-center gap-2 text-xl font-bold tracking-tight no-underline">
           <span class="sr-only">Go to homepage</span>
           <svg class="logo-icon w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -55,14 +55,13 @@ const isAdmin = requireRole(user?.role, ROLES.ADMIN);
 
       <nav
         id="navigation-menu"
-        class="nav-menu fixed inset-0 flex flex-col justify-between h-full max-h-screen overflow-y-auto py-12 pb-[env(safe-area-inset-bottom)] opacity-0 pointer-events-none md:bg-none md:bg-transparent lg:p-0 md:p-0 transform transition-all duration-300 ease-in-out -translate-y-4 md:relative md:inset-auto md:opacity-100 md:pointer-events-auto md:translate-y-0 md:max-h-none md:overflow-y-visible"
+        class="nav-menu fixed inset-0 flex flex-col justify-between h-full max-h-screen overflow-y-auto pb-12 pb-[env(safe-area-inset-bottom)] opacity-0 pointer-events-none md:bg-none md:bg-transparent lg:p-0 md:p-0 transform transition-all duration-300 ease-in-out -translate-y-4 md:relative md:inset-auto md:opacity-100 md:pointer-events-auto md:translate-y-0 md:max-h-none md:overflow-y-visible"
         aria-hidden="true"
       >
-        <div class="nav-overlay absolute inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto md:hidden">
-        </div>
+        <div class="nav-overlay absolute inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto md:hidden"></div>
 
-        <div class="relative flex md:bg-transparent flex-col items-start justify-start w-full h-full px-8 list-none md:ml-auto gap-8 md:px-0 md:flex-row md:items-center md:justify-center md:text-left md:gap-4">
-          <a href="/" class="nav-home-link md:hidden flex items-center gap-2 text-2xl font-bold no-underline">
+        <div class="nav-content relative flex flex-col items-start justify-start w-full h-full px-8 list-none md:ml-auto gap-8 md:px-0 md:bg-transparent md:flex-row md:items-center md:justify-center md:text-left md:gap-4">
+          <a href="/" class="opacity-0 nav-home-link md:hidden flex items-center gap-2 text-2xl font-bold no-underline">
             <svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <rect x="10" y="10" width="80" height="80" rx="15" fill="var(--color-primary)"/>
               <rect x="25" y="25" width="50" height="50" rx="10" fill="var(--color-secondary)"/>
@@ -88,14 +87,14 @@ const isAdmin = requireRole(user?.role, ROLES.ADMIN);
 
           <div class="flex flex-col md:flex-row gap-4 items-start md:items-center">
             <!-- Search placeholder -->
-            <button
+            <!-- <button
               class="nav-search p-2 rounded-md transition-colors duration-200"
               aria-label="Search"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-            </button>
+            </button> -->
 
             <!-- Theme Toggle -->
             <ThemeToggle />
@@ -135,12 +134,8 @@ const isAdmin = requireRole(user?.role, ROLES.ADMIN);
     color: var(--color-text-light);
   }
 
-  .nav-menu {
+  .nav-content {
     background-color: var(--color-surface-light);
-  }
-
-  .nav-overlay {
-    background-color: var(--color-border-light);
   }
 
   /* Dark mode nav styles */
@@ -159,12 +154,8 @@ const isAdmin = requireRole(user?.role, ROLES.ADMIN);
     color: var(--color-text-dark);
   }
 
-  :global([data-theme="dark"]) .nav-menu {
+  :global([data-theme="dark"]) .nav-content {
     background-color: var(--color-surface-dark);
-  }
-
-  :global([data-theme="dark"]) .nav-overlay {
-    background-color: var(--color-border-dark);
   }
 
   /* Hover states */
