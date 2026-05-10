@@ -16,6 +16,8 @@
   --border:       var(--color-ink-900);
   --focus:        var(--color-secondary-600);
   --shadow-hard:  var(--color-ink-900);
+  --link:         var(--color-primary-700);
+  --link-hover:   var(--color-primary-600);
 }
 
 /* Dark mode — femme-coded, NOT terminal-coded */
@@ -29,6 +31,8 @@
   --border:       var(--color-surface-100);
   --focus:        var(--color-primary-400);
   --shadow-hard:  var(--color-surface-100);
+  --link:         var(--color-primary-400);
+  --link-hover:   var(--color-primary-300);
 }
 
 @theme inline {
@@ -42,6 +46,8 @@
   --color-border:      var(--border);
   --color-focus:       var(--focus);
   --color-shadow-hard: var(--shadow-hard);
+  --color-link:        var(--link);
+  --color-link-hover:  var(--link-hover);
 
   /* Legacy/component variables for backward compatibility */
   --color-surface-light:  var(--color-surface-100);
@@ -401,4 +407,28 @@ body {
 @keyframes float4 {
   0%, 100% { transform: rotate(-10deg) scale(1); }
   50% { transform: rotate(5deg) scale(1.1); }
+}
+
+/* ============================================
+   PROSE / TYPOGRAPHY — link styles for rendered
+   markdown content (wiki, forum, builds, etc.)
+   ============================================ */
+
+.prose a:not(.not-prose a) {
+  color: var(--color-link);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+  transition: color 150ms ease;
+}
+
+.prose a:not(.not-prose a):hover {
+  color: var(--color-link-hover);
+}
+
+.prose a:not(.not-prose a):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
