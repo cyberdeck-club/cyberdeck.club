@@ -245,7 +245,7 @@ if (!notFound) {
         />
       ) : (
         <>
-          <div class="article-content" set:html={contentHtml} />
+          <div class="article-content prose" set:html={contentHtml} />
 
           {/* Edit history indicator */}
           {hasBeenEdited && (
@@ -301,7 +301,7 @@ if (!notFound) {
                         </span>
                         <span class="comment-date">{formattedDate}</span>
                       </div>
-                      <div class="comment-content" set:html={commentHtml} />
+                      <div class="comment-content prose" set:html={commentHtml} />
                     </div>
                   );
                 })}
