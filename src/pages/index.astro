@@ -3,6 +3,7 @@ export const prerender = false;
 
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import SectionHeader from "@/components/SectionHeader.astro";
+import { isBetaSite } from "@/lib/beta";
 import WikiArticleCard from "@/components/WikiArticleCard.astro";
 import ForumThreadPreview from "@/components/ForumThreadPreview.astro";
 import MeetupCard from "@/components/MeetupCard.astro";
@@ -38,6 +39,7 @@ const homepageIntroduceBtn = "Introduce Yourself";
 const homepageReadWikiBtn = "Read the Wiki";
 
 const db = Astro.locals.db!;
+const isBeta = isBetaSite(Astro.request);
 
 // Fetch dynamic content
 const [buildsResult, meetupsResult, wikiResult, forumResult] = await Promise.all([
@@ -127,6 +129,13 @@ const communityStats = {
           {homepageJoinForumBtn}
         </a>
       </div>
+      {isBeta && (
+        <div class="beta-welcome-link">
+          <a href="/forum/thread/bf4076c6-4663-4ab3-afcd-5e2c520a0ef8" class="btn btn-beta">
+            📣 Read the Welcome to Beta Post
+          </a>
+        </div>
+      )}
     </div>
   </section>
 
@@ -595,6 +604,24 @@ const communityStats = {
   .btn-outline:hover {
     background: white;
     color: var(--color-primary);
+  }
+
+  /* Beta welcome link */
+  .beta-welcome-link {
+    margin-top: 1.5rem;
+  }
+
+  .btn-beta {
+    background: var(--color-accent);
+    color: var(--color-on-accent, #fff);
+    border-color: var(--color-accent);
+    font-size: 0.95rem;
+  }
+
+  .btn-beta:hover {
+    background: transparent;
+    color: var(--color-accent);
+    border-color: var(--color-accent);
   }
 
   @media (max-width: 640px) {
