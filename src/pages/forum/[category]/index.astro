@@ -84,7 +84,7 @@ function formatRelativeTime(timestamp: number | null): string {
         <p class="category-description">{categoryData.description}</p>
       </div>
       {canCreateThread ? (
-        <a href={`/forum/${category}/new`} class="new-thread-btn">
+        <a href={`/forum/new?category=${category}`} class="new-thread-btn">
           <svg class="btn-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>

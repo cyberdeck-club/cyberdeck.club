@@ -4,9 +4,9 @@
  */
 
 export { WikiCommentForm } from './CommentForm';
-export { CreateArticleButton } from './CreateArticleButton';
 export { DeleteConfirmationModal } from './DeleteConfirmationModal';
 export { InlineEditor } from './InlineEditor';
 export type { CategoryOption, InlineEditorProps } from './InlineEditor';
 export { MarkdownEditor } from './MarkdownEditor';
+export { WikiArticleCreator } from './WikiArticleCreator';
 export { WikiEditor } from './WikiEditor';

@@ -1,0 +1,113 @@
+---
+/**
+ * New Wiki Article Page
+ * Full-page form for creating a new wiki article.
+ * Requires authentication and MAKER role (>= 20).
+ * Accepts optional ?category=SLUG query param to pre-select a category.
+ */
+
+import WikiLayout from "@/layouts/WikiLayout.astro";
+import { WikiArticleCreator } from "@/components/wiki/WikiArticleCreator";
+import { getWikiCategories } from "@/lib/wiki";
+import { requireRole, ROLES } from "@/lib/roles";
+import { checkPublishingGate } from "@/lib/publishing-gate";
+
+export const prerender = false;
+
+// Check authentication
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login?redirect=/wiki/new");
+}
+
+// Check role — only MAKER and above can create wiki articles
+if (!requireRole(user.role, ROLES.MAKER)) {
+  return Astro.redirect("/wiki?error=only_makers_can_create");
+}
+
+// Check publishing gate (guidelines acceptance)
+const db = Astro.locals.db!;
+const gateResponse = await checkPublishingGate(db, user.id);
+if (gateResponse) {
+  // If guidelines not accepted, redirect to guidelines page
+  const body = await gateResponse.json();
+  if (body.error === "guidelines_required") {
+    return Astro.redirect("/guidelines?redirect=/wiki/new");
+  }
+}
+
+// Get optional category slug from query params
+const categoryParam = Astro.url.searchParams.get("category") ?? "";
+
+// Fetch all wiki categories
+const allCategories = await getWikiCategories(db);
+const categories = allCategories.map((c) => ({
+  id: c.id,
+  label: c.name,
+  slug: c.slug,
+}));
+
+// Determine if user can set article status (moderator+ only)
+const canSetStatus = requireRole(user.role, ROLES.MODERATOR);
+
+// Breadcrumbs
+const breadcrumbs = [{ label: "New Article", href: "/wiki/new" }];
+---
+
+<WikiLayout
+  title="Create New Article"
+  description="Create a new wiki article for the cyberdeck.club community"
+  currentCategory={categoryParam}
+  breadcrumb={breadcrumbs}
+>
+  <div class="new-article-page">
+    <header class="page-header">
+      <h1 class="page-title">Create New Article</h1>
+      <p class="page-subtitle">Share your knowledge with the cyberdeck community</p>
+    </header>
+
+    <div class="creator-form">
+      <WikiArticleCreator
+        client:load
+        categories={categories}
+        defaultCategorySlug={categoryParam}
+        canSetStatus={canSetStatus}
+      />
+    </div>
+  </div>
+</WikiLayout>
+
+<style>
+  .new-article-page {
+    max-width: 65ch;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 3px solid var(--border);
+  }
+
+  .page-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
+  }
+
+  .page-subtitle {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .creator-form {
+    background: var(--color-surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    padding: 2rem;
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+</style>

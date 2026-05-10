@@ -5,7 +5,6 @@
  */
 
 import WikiLayout from "@/layouts/WikiLayout.astro";
-import { CreateArticleButton } from "@/components/wiki/CreateArticleButton";
 import { getWikiCategories } from "@/lib/wiki";
 
 // Server-rendered page
@@ -66,14 +65,15 @@ const categories = categoriesResult.map(cat => ({
 </div>
 
 <div class="wiki-container">
-  <div class="wiki-header-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+  <div class="wiki-header-actions">
     <p class="section-label">Browse all {categories.length} categories</p>
     {canCreate && (
-      <CreateArticleButton
-        client:load
-        buttonLabel="Create New Article"
-        categories={categories.map(c => ({ id: c.slug, label: c.name }))}
-      />
+      <a href="/wiki/new" class="new-article-btn">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M9 3V15M3 9H15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        Create New Article
+      </a>
     )}
   </div>
 
@@ -154,6 +154,13 @@ const categories = categoriesResult.map(cat => ({
     padding: 3rem 1.5rem;
   }
 
+  .wiki-header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
   .section-label {
     font-size: 0.75rem;
     font-weight: 800;
@@ -163,6 +170,34 @@ const categories = categoriesResult.map(cat => ({
     margin: 0 0 1.5rem 0;
     padding-bottom: 1rem;
     border-bottom: 4px solid var(--border);
+  }
+
+  .new-article-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background-color: var(--color-primary);
+    color: var(--text-inverse);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .new-article-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .new-article-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .category-grid {
