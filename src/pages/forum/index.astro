@@ -401,6 +401,10 @@ const isLoggedIn = !!user;
 
   /* Responsive */
   @media (max-width: 640px) {
+    .forum-landing {
+      gap: 2rem;
+    }
+
     .forum-title {
       font-size: 2.25rem;
     }
@@ -411,10 +415,16 @@ const isLoggedIn = !!user;
 
     .category-card {
       padding: 1.5rem;
+      box-shadow: 4px 4px 0 var(--shadow-hard);
+    }
+
+    .category-card.highlighted {
+      box-shadow: 4px 4px 0 var(--shadow-hard);
     }
 
     .community-cta {
-      padding: 2.5rem 1.5rem;
+      padding: 2rem 1rem;
+      box-shadow: 4px 4px 0 var(--shadow-hard);
     }
   }
 </style>

@@ -10,9 +10,9 @@ const { variant = "standard", class: extraClass = "", id } = Astro.props;
 const variantClasses = {
   // Standard wrapper with accent border (uses CSS variable for dark mode)
   standard:
-    "mx-auto 2xl:max-w-7xl w-full max-w-screen border-x-8 px-8",
+    "mx-auto 2xl:max-w-7xl w-full max-w-full border-x-4 px-3 sm:border-x-8 sm:px-8 overflow-x-hidden",
   standardPaddingless:
-    "mx-auto 2xl:max-w-7xl w-full max-w-screen border-x-8",
+    "mx-auto 2xl:max-w-7xl w-full max-w-full border-x-4 sm:border-x-8 overflow-x-hidden",
   prose:
     "text-xl prose prose-xl text-accent-900 prose-a:font-normal prose-a:text-accent-800 hover:prose-a:text-accent-900 prose-h1:text-accent-900 prose-h2:text-accent-900 prose-img:shadow-lg prose-headings:font-medium prose-blockquote:border-2 prose-blockquote:bg-yellow-500 prose-img:rounded-3xl prose-img:border-2 prose-img:border-accent-900 prose-blockquote:p-12 prose-blockquote:border-accent-900 prose-blockquote:rounded-3xl prose-blockquote:shadow-lg prose-pre:font-mono max-w-none prose-pre:border",
 };

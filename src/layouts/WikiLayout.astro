@@ -78,6 +78,7 @@ const categories = await getWikiCategories(db);
     margin: 0 auto;
     padding: 2rem 1.5rem;
     align-items: flex-start;
+    overflow-x: hidden;
   }
 
   .mobile-sidebar-toggle {
@@ -155,7 +156,7 @@ const categories = await getWikiCategories(db);
   @media (max-width: 768px) {
     .wiki-layout {
       flex-direction: column;
-      padding: 1rem;
+      padding: 1rem 0;
       gap: 0;
     }
 
