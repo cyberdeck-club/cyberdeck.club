@@ -22,9 +22,11 @@ import {
   thematicBreakPlugin,
   codeBlockPlugin,
   toolbarPlugin,
-  diffSourcePlugin, 
+  diffSourcePlugin,
   DiffSourceToggleWrapper,
   UndoRedo,
+  codeMirrorPlugin,
+  tablePlugin,
 } from "@mdxeditor/editor";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -141,23 +143,22 @@ export function SharedMarkdownEditor({
   const resolvedMinHeight = minHeight ?? config.minHeight;
   const resolvedPlaceholder = placeholder ?? config.placeholder;
 
-  // Click anywhere in the editor area to focus the contentEditable
+  // Click anywhere in the editor area to focus the contentEditable.
+  // IMPORTANT: Do NOT manipulate window.getSelection() here — Lexical
+  // manages its own internal selection state and direct DOM selection
+  // manipulation causes the editor to appear focused but not accept
+  // keystrokes until the user triggers a reconciliation (e.g. spacebar).
   const handleContainerClick = useCallback((e: React.MouseEvent) => {
     // Don't steal focus from toolbar buttons or already-focused content
     const target = e.target as HTMLElement;
     if (target.closest('[class*="toolbarRoot"]') || target.closest('button')) {
       return;
     }
-    // Find the contentEditable element and focus it
+    // Find the contentEditable element and focus it — Lexical handles
+    // cursor placement internally once it receives focus.
     const editable = containerRef.current?.querySelector<HTMLElement>('[contenteditable="true"]');
     if (editable && document.activeElement !== editable) {
       editable.focus();
-      // Place cursor at the end
-      const selection = window.getSelection();
-      if (selection) {
-        selection.selectAllChildren(editable);
-        selection.collapseToEnd();
-      }
     }
   }, []);
 
@@ -168,9 +169,12 @@ export function SharedMarkdownEditor({
     [onChange]
   );
 
-  const handleError = useCallback(() => {
+  const handleError = useCallback((payload: { error: string; source: string }) => {
+    console.error('[SharedMarkdownEditor] Editor error on surface:', surface);
+    console.error('[SharedMarkdownEditor] Error source:', payload.source);
+    console.error('[SharedMarkdownEditor] Error message:', payload.error);
     setHasError(true);
-  }, []);
+  }, [surface]);
 
   // Build toolbar contents based on surface config
   const toolbarContents = () => {
@@ -193,6 +197,8 @@ export function SharedMarkdownEditor({
   const plugins = [
     toolbarPlugin({ toolbarContents: toolbarContents }),
     markdownShortcutPlugin(),
+    codeMirrorPlugin(),
+    tablePlugin(),
     diffSourcePlugin({ viewMode: 'rich-text' })
   ];
 

@@ -1,0 +1,81 @@
+# How TikTok's femme cyberdeck wave rewired a hacker subculture
+
+A London-based 22-year-old model named **Annike Tan**, posting as **@ubeboobey**, ignited a women-led cyberdeck explosion on TikTok in March 2026 with a clamshell-purse "mermaid cyberdeck" video captioned "fuck it. cunty cyberdeck." Within weeks her DIY tech videos accumulated **32 million views**, a two-part build tutorial pulled roughly **10 million views**, and her audience tilted **~75% female** — figures that prompted WIRED's April 28, 2026 cover-story treatment and a cascade of coverage from Daily Dot, Newsweek, Dazed, Polyester, RUSSH, CNN, and the official Raspberry Pi blog. The trend matters because it reframes a historically male, doomsday-prepper, gray-Pelican-case subculture as a **whimsical, anti-minimalist, anti-AI craft movement** rooted in cottagecore, kawaii, Y2K, and solarpunk aesthetics. The cyberdeck — a custom portable computer typically built around a Raspberry Pi — has, in eight weeks, become Gen Z's loudest hardware statement against "sealed shut, black box" consumer electronics.
+
+Below is an annotated, link-rich map of the trend, organized for direct use in a wiki article. **Every URL has been cross-verified through search results, press citations, or direct fetch**; where a creator's name appears in press without a verifiable handle, that is flagged.
+
+## The catalyst and the canonical articles
+
+The trend has a single ignition point and a tight cluster of foundational press. **Annike Tan's** TikTok profile is at **https://www.tiktok.com/@ubeboobey**; her YouTube mirror is **https://www.youtube.com/@UbeBoobey**. Her mermaid build uses a refurbished pearlescent clamshell purse, a Raspberry Pi, a small keyboard and screen, a custom mouse covered in gold jump rings, and matching seashell headphones; the device runs Doom and stores offline music, books, maps, Wikipedia, and photos. She has explicitly framed cyberdecks as a vehicle to **"gatekeep them from AI and megacorp"** — a quote that earned ~4 million views and became the trend's de facto motto.
+
+The **canonical journalism** establishing the femme/TikTok wave:
+
+- **WIRED** — *"The Hottest Anti-AI Gadget Is a Cyberdeck"* by Reece Rogers, April 28, 2026 — https://www.wired.com/story/cyberdecks-tiktok-ube-boobey-diy-computer-gadget/ (mirror: https://dnyuz.com/2026/04/28/the-hottest-anti-ai-gadget-is-a-cyberdeck/). Profiles Tan, Ling Lu, and Brianna/CocoasAesthetic.
+- **Daily Dot** — *"'Make more whimsical tech': What is a Cyberdeck, and how do you make one?"* by Rebecca Leib, March 16, 2026 — https://dailydot.com/what-is-a-cyberdeck-and-how-do-you-make-one
+- **Newsweek** — *"What is a 'cyberdeck': Meet Gen Z's new DIY obsession"* — https://www.newsweek.com/what-is-a-cyberdeck-gen-zs-new-custom-computing-obsession-11787017
+- **CNN Business** — *"Inside the rise of cyberdecks"* video segment, April 7, 2026 — https://edition.cnn.com/2026/04/07/business/video/cyberdeck-rise-viral-tiktok-diy-computer-vrtc
+- **Polyester Zine** — *"Will Cyberdecks Change How Women Interact With Tech?"* by Hatti Rex — https://www.polyesterzine.com/features/cyberdecks (the most femme-explicit feature; interviews Tan, Lu, and Alexine)
+- **RUSSH** — *"Why are the coolest girls you know building cyberdecks?"* — https://www.russh.com/the-return-of-the-cyberdeck/
+- **Dazed** — *"Building a cyberdeck is the most punk thing you can do right now"* — https://www.dazeddigital.com/life-culture/article/70129/1/building-a-cyberdeck-diy-tech-rebellious-billionaire-broligarchs-computers
+- **Raspberry Pi (official blog)** — *"In celebration of cyberdecks"* by Ashley Whittaker, April 16, 2026 — https://www.raspberrypi.com/news/in-celebration-of-cyberdecks/ (explicitly credits the women-led wave and links to r/cyberDeck)
+- **The Week** — https://theweek.com/culture-life/personal-technology/cyberdecks-customizable-computer-technology
+- **Adafruit** — May 5, 2026 newsletter — https://blog.adafruit.com/2026/05/05/icymi-python-on-microcontrollers-newsletter-cyberdecks-are-hot-anti-ai-gadgets-raspi-cm0s-on-aliexpress-and-more
+- **France Info** (French radio) — https://www.franceinfo.fr/replay-radio/l-il-de-constance/elles-fabriquent-leurs-propres-ordinateurs-bienvenue-dans-le-monde-tres-girly-des-cyberdecks_7942382.html
+- **ARTECHOUSE** — *"Cyberdecks: A Creative Computing Call to Action"* — https://www.artechouse.com/cyberdecks/
+- **Yahoo Tech** — https://tech.yahoo.com/articles/more-whimsical-tech-cyberdeck-one-170000267.html
+
+Standout independent analyses live on **Substack**: Mara Dettmann's *"The Great Cyberdeckening"* at https://dettmann.substack.com/p/the-great-cyberdeckening, *"067 — why the girls are building cyberdecks"* at https://thefieldtest.substack.com/p/067-why-the-girls-are-building-cyberdecks (the single richest TikTok-handle roundup), Yap Year's interview with Tan at https://yapyear.com/p/why-is-everyone-talking-about-cyberdecks, and Hybrid Rituals' community-bifurcation analysis at https://hybrid-rituals.com/what-is-cyberdeck/. Notable that **The Verge, Ars Technica, 404 Media, Make Magazine, and Vice/Motherboard have not run dedicated coverage** of the femme trend as of early May 2026.
+
+## The core roster of femme TikTok cyberdeck creators
+
+What unites this roster is a deliberate rejection of the "gray Pelican case" archetype in favor of **personal artifacts pressed into computational service** — purses, toys, makeup cases, fast-food packaging. The table below lists the verified handles, builds, and signature videos that anchor the trend. All TikTok profile URLs follow the form `https://www.tiktok.com/@handle`.
+
+| Creator | TikTok handle | Signature build | Notable video URL |
+|---|---|---|---|
+| **Annike Tan** | @ubeboobey | Mermaid clamshell-purse deck; solar-panel deck; "Neo Futurism" deck | https://www.tiktok.com/@ubeboobey/video/7614854024302562582 |
+| **Tru Narla** | @mewtru | Plant-tamagotchi, mini MP3 player, DIY Pi camera, e-reader | https://www.tiktok.com/@mewtru/video/7619030465323879710 |
+| **(unknown)** | @miskinagirl | "Girly tech" deck inspired by Tan | https://www.tiktok.com/@miskinagirl/video/7628397340239465758 |
+| **Sheyda Elise** | @sheydaelise | **Lego-cased writerdeck** built from secondhand parts (51.6K likes) | https://www.tiktok.com/@sheydaelise/video/7624727069305425183 |
+| **Sarah Belle** | @sarahbellegoesboating | Solarpunk + 2000s nostalgia, fashion-styled build | https://www.tiktok.com/@sarahbellegoesboating/video/7624903258695388429 |
+| **Amora Davis** | @amora.davis | **Pokémon ball tin** and brooch-case builds | https://www.tiktok.com/@amora.davis/video/7623984642927906061 |
+| **(Sunshine & Existential Dread)** | @rainbowsandbiscuits | **Polly Pocket "PollyPi"** and lunchbox cyberdecks | https://www.tiktok.com/@rainbowsandbiscuits/video/7617401659861339414 |
+| **Zina** | @zinacodes | Shell-purse "2026 time capsule" deck | https://www.tiktok.com/@zinacodes/video/7627331633011510559 |
+| **(unknown)** | @serialexperiments404 | CRT deck and **Jollibee fast-food box** deck (Lain-coded) | https://www.tiktok.com/@serialexperiments404/video/7623252926227664146 |
+| **byEO** | @createdbyeo | Y2K wearable tech, Sailor Moon headbands, 3D-printed eye patches | https://www.tiktok.com/@createdbyeo/video/7537363488243502366 |
+| **Ling Lu / fishlooker_** | @fishlooker_ | **"Cyberduck" audio journal**; emoji pager (per WIRED) | https://www.tiktok.com/@fishlooker_/video/7625667606153858322 |
+| **(unknown)** | @greeen.dev | E-ink art display deck | https://www.tiktok.com/@greeen.dev/video/7607371288830610702 |
+| **Goblin** | @fulltimemenace_ | Vintage plastic makeup "caboodle" cyberdeck | https://www.tiktok.com/@fulltimemenace_/video/7626421821218311438 |
+| **(unknown)** | @arkitechnology | Beginner build-along (69.6K likes) | (profile: https://www.tiktok.com/@arkitechnology) |
+| **(unknown)** | @red_finch | Writerdeck content (202K likes) | (profile: https://www.tiktok.com/@red_finch) |
+| **(unknown)** | @computer___angel | Femme wearable tech: hair-clip recorder | (profile: https://www.tiktok.com/@computer___angel) |
+| **Brianna / CocoasAesthetic** | @cocoasaesthetic | **Dunkin' "Wedding Cake Munchkin"** pink-box deck running a barista mini-game (per WIRED) | (profile: https://www.tiktok.com/@cocoasaesthetic) |
+| **Valery** | @vvaleryluib | Cyberdeck explainer videos | https://www.tiktok.com/@vvaleryluib/video/7627921391416904978 |
+| **Julip** | @julip.mp3 | Adjacent: creative-coding, custom hardware vocoders | https://www.tiktok.com/@julip.mp3/video/7451433459530190123 |
+
+A few names from the press circuit could **not** be tied to verified handles: **Ling Lu** (the "cyberduck" designer profiled by WIRED — @fishlooker_ posts adjacent content but is not confirmed to be Lu), **valeruteart** (named in RUSSH, may be Instagram-only), and **@just.ohl** (cited in Daily Dot, gender unconfirmed). For wiki citation purposes, treat these as needing additional verification.
+
+## The aesthetic vocabulary that distinguishes femme builds
+
+The femme cyberdeck wave is not just demographically distinct — it has invented a new visual grammar that the original maker community had largely ignored. Where Hackaday's 2022–2023 contest winners favored **military Pelican cases, Vault-Tec/Fallout cosplay, and matte 3D-printed industrial enclosures**, the TikTok wave foregrounds **found-object femininity**. The recurring enclosures are clamshell purses and seashell clutches (Tan, Zina), **Polly Pocket compacts and "PollyPi" iterations** with sparkles and 3D-printed surrounds (rainbowsandbiscuits), Hello Kitty makeup cases (cited in RUSSH), Pokémon ball tins and brooch cases (Amora Davis), Lego-brick housings (Sheyda Elise), Dunkin' donut promotional boxes (CocoasAesthetic), Jollibee fast-food cartons (serialexperiments404), vintage Polaroid cases, cigarette boxes, plastic 90s "caboodle" makeup cases (fulltimemenace_), and Nintendo-themed lunchboxes.
+
+The **stylistic frames** clustered around these builds — barbiecore, cottagecore, solarpunk, Y2K, Lain-coded cyberpunk, kawaii, **"junk journaling for computers"** (RUSSH's phrase), and what Tan calls hyper-femme anti-minimalism. A widely-shared TikTok comment, **"Not doomsday, solarpunk"** (4,000+ likes per Hybrid Rituals), captures the ideological pivot: the original cyberdeck mythos — Neuromancer-era survivalist console — is being rewritten as **whimsical reclamation of inner-child objects**. As Tan told Polyester: *"It's the design philosophy of smack shit together, make it work, make it yours, and make it messy."* Ling Lu told WIRED: *"I didn't know you could make a computer like this. I thought it had to be a gray box, like every other Mac or Dell or whatever."*
+
+The trend connects to a **broader femme-maker ecosystem** on TikTok — creative coders like @julip.mp3, wearable-tech builders like @computer___angel, e-reader/Pi handheld makers like @mewtru, and the wider "girl maker" content cluster spanning DIY electronics, 3D printing, and crochet-tech crossovers. Hashtags binding the wave together: **#cyberdeck #cyberdecktok #womeninSTEM #girlytech #techgirlie #writerdeck #solarpunk #justgirlythings #pollypocket #whimsy #diycyberdeck**.
+
+## Reddit, Discord, and the community-tension undercurrent
+
+The Reddit hub is **r/cyberDeck** at https://www.reddit.com/r/cyberDeck/, with roughly **183,000 members** as of 2026. But the subreddit has a reputation problem that's directly relevant to femme participation: the inclusive **Cyberdeck Cafe** community (https://cyberdeck.cafe, build guide at https://cyberdeck.cafe/build) explicitly distances itself in writing — *"the Reddit, r/cyberdeck has no affiliation with us and if you've ever visited you already know it's not a real friendly place and you'll find no help from anyone there."* The Cafe runs a Discord server with thousands of members and bills itself as "all inclusive… no gatekeeping." Tan's TikTok comment sections and the femme creator network function as a **third, parallel community** — one whose newcomers often skip Reddit entirely and route through Discord, TikTok, and Instagram instead.
+
+Specific Reddit thread URLs were difficult to enumerate via search (Reddit blocks much programmatic crawling), but Daily Dot explicitly reports: *"On Reddit and TikTok, users like @ubeboobey would share their cyberdeck journeys."* For wiki-deep research, querying `https://www.reddit.com/r/cyberDeck/search.json?q=tiktok&restrict_sr=1` directly will surface specific threads. A separate inclusive resource is **Alexine's beginner guide** at https://jalexine.github.io/lab/build-your-first-cyberdeck.html, plus her **Lexichat Discord** (~600 members, documented in Polyester as having shifted from 11% to 40% female audience after Tan's videos broke).
+
+## YouTube, Hackaday, and the legacy outlets' partial silence
+
+YouTube is a **secondary** platform for this trend — most femme creators are TikTok- or Instagram-primary — but two channels are confirmed and worth wiki-linking. **Ube Boobey** at https://www.youtube.com/@UbeBoobey mirrors Tan's TikTok presence. **Unicole Unicron** at https://www.youtube.com/channel/UCDquCGCBdzwshSwmXiD983g is an LA-based Instagram tech educator whom the official Raspberry Pi blog credits with explaining "the new wave of female makers." A Portuguese-language analytical YouTube video on the trend, *"O ESPECTRO DOS CYBERDECKS DE MENINA"*, sits at https://www.youtube.com/watch?v=YSJjL3iizDE. **Evette's Niche** posts the **"P-Sea SeaShell" cyberdeck** on Instagram at https://www.instagram.com/reel/DWz8eACEe1y/.
+
+Notably, the **traditional maker press has largely missed or sidestepped the femme angle**. Hackaday has not run a Cyberdeck Contest in 2024 or 2025 (the last was 2023, with winners at https://hackaday.com/2023/09/07/2023-cyberdeck-challenge-the-best-decks-on-the-net/), and its 2024–2025 build coverage at https://hackaday.com/category/cyberdecks/ — including the Vecdec, the dual-screen build, the KeyMo, and the Cyberdore 2064 — features exclusively male or pseudonymous builders. Tom's Hardware's cyberdeck beat is, ironically, written almost entirely by **Ash Hill** (a woman tech journalist), but every builder she has covered in 2024–2025 (Raspduino Uno, John3dc, Jeff Merrick, Jake Simek, Sector 07, James Reeves, _Kniives) is male or pseudonymous; she has not profiled the TikTok wave. Adafruit's blog has run dozens of cyberdeck project showcases through 2024–2025 but only one explicit nod to the femme/TikTok trend — the May 5, 2026 newsletter cited above. **The Verge, Ars Technica, 404 Media, and Make Magazine have not covered the trend at all** as of this report.
+
+This silence is itself a story: the femme cyberdeck movement broke through **lifestyle and culture press** (WIRED, Dazed, Polyester, RUSSH, CNN, France Info) before it reached the **hardware press**, suggesting the legacy maker-media pipeline has structural blind spots that TikTok routed around entirely.
+
+## Conclusion: what changed when the deck went girly
+
+The femme cyberdeck wave is the rare hardware subculture flip where the **community changed faster than the technology**. The Raspberry Pi, the screens, the keyboards, and the soldering techniques are the same as in 2022's Hackaday contest. What's new is **who is building, why, and inside what**: a mermaid clutch instead of a Pelican case, a Polly Pocket instead of a 3D-printed brick, an offline Wikipedia-loaded purse used as a "2026 time capsule" instead of a doomsday console. The ideological reframe — anti-AI, anti-megacorp, anti-minimalist, **"make more whimsical tech"** — has given the cyberdeck a coherent cultural argument it never quite had before, and it has given thousands of women a permission structure to enter a space whose Reddit hub is openly described as unfriendly. The most useful insight for a wiki article is probably this: the cyberdeck is no longer primarily a hardware project. It is a **craft object for the AI era**, and the people who realized that first were watching TikTok.
