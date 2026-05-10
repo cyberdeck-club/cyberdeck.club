@@ -29,7 +29,7 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type EditorSurface = "wiki" | "forum" | "build" | "comment";
+export type EditorSurface = "wiki" | "forum" | "build" | "comment" | "static";
 
 export interface SharedMarkdownEditorProps {
   /** Which publishing surface this editor is used on */
@@ -108,6 +108,17 @@ const SURFACE_CONFIGS: Record<EditorSurface, SurfaceConfig> = {
     quotes: false,
     codeBlock: false,
     thematicBreak: false,
+  },
+  static: {
+    minHeight: "300px",
+    placeholder: "Write your page content...",
+    boldItalic: true,
+    headings: true,
+    lists: true,
+    links: true,
+    quotes: true,
+    codeBlock: true,
+    thematicBreak: true,
   },
 };
 

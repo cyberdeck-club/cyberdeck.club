@@ -6,6 +6,7 @@
 
 import AdminLayout from "@/layouts/AdminLayout.astro";
 import Button from "@/components/fundations/elements/Button.astro";
+import { StaticPageEditor } from "@/components/editor/StaticPageEditor";
 import * as schema from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 
@@ -36,6 +37,23 @@ const pages = await db
 const url = new URL(Astro.request.url);
 const editSlug = url.searchParams.get("edit");
 const isCreating = url.searchParams.get("create") === "true";
+
+// Fetch full page data server-side when editing so we can pass content to the React editor
+let editPageContent = "";
+if (editSlug) {
+  try {
+    const editPages = await db
+      .select()
+      .from(schema.staticPages)
+      .where(eq(schema.staticPages.slug, editSlug))
+      .limit(1);
+    if (editPages.length > 0) {
+      editPageContent = editPages[0].content || "";
+    }
+  } catch (err) {
+    console.warn("Could not fetch page for editing:", err);
+  }
+}
 ---
 
 <AdminLayout title="Static Pages" section="static">
@@ -92,13 +110,13 @@ const isCreating = url.searchParams.get("create") === "true";
         </div>
 
         <div class="form-group">
-          <label for="page-content">Content (HTML)</label>
-          <textarea 
-            id="page-content" 
-            name="content" 
-            rows="12"
-            placeholder="<p>Your content here...</p>"
-          ></textarea>
+          <label>Content (Markdown)</label>
+          <input type="hidden" id="page-content" name="content" value="" />
+          <StaticPageEditor
+            client:only="react"
+            hiddenInputId="page-content"
+            initialContent={editPageContent}
+          />
         </div>
 
         <div class="form-row">
@@ -530,7 +548,7 @@ const isCreating = url.searchParams.get("create") === "true";
         (document.getElementById('page-slug') as HTMLInputElement).value = page.slug;
         (document.getElementById('page-slug') as HTMLInputElement).readOnly = true;
         (document.getElementById('page-title') as HTMLInputElement).value = page.title;
-        (document.getElementById('page-content') as HTMLTextAreaElement).value = page.content || '';
+        (document.getElementById('page-content') as HTMLInputElement).value = page.content || '';
         (document.getElementById('page-meta-description') as HTMLInputElement).value = page.metaDescription || '';
         (document.getElementById('page-status') as HTMLSelectElement).value = page.status;
         (document.getElementById('page-featured-image') as HTMLInputElement).value = page.featuredImage || '';

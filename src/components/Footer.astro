@@ -5,12 +5,11 @@ const footerLinks = [
   { label: "Builds", url: "/builds/", ariaLabel: "Go to Builds" },
   { label: "Meetups", url: "/meetups/", ariaLabel: "Go to Meetups" },
   { label: "About", url: "/about/", ariaLabel: "Go to About" },
+  { label: "Guidelines", url: "/guidelines/", ariaLabel: "Read our community guidelines" },
 ];
 
 const socialLinks = [
-  { label: "GitHub", url: "https://github.com", icon: "github" },
-  { label: "Discord", url: "https://discord.gg", icon: "discord" },
-  { label: "Twitter", url: "https://twitter.com", icon: "twitter" },
+  { label: "GitHub", url: "https://github.com/cyberdeck-club/cyberdeck.club", icon: "github" },
 ];
 ---
 
@@ -44,6 +43,15 @@ const socialLinks = [
                 {link.label}
               </a>
             ))}
+            <a
+              href="https://www.buymeacoffee.com/divine_circuitry"
+              class="social-link px-5 py-2 rounded-full font-medium transition-all duration-200 hover:scale-105"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Support us on Buy Me a Coffee"
+            >
+              ☕ Buy Me a Coffee
+            </a>
           </div>
         </div>
 
