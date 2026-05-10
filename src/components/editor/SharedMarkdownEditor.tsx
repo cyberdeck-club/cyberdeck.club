@@ -199,32 +199,14 @@ export function SharedMarkdownEditor({
     markdownShortcutPlugin(),
     codeMirrorPlugin(),
     tablePlugin(),
+    headingsPlugin(),
+    linkPlugin(),
+    listsPlugin(),
+    quotePlugin(),
+    codeBlockPlugin(),
+    thematicBreakPlugin(),
     diffSourcePlugin({ viewMode: 'rich-text' })
   ];
-
-  if (config.headings) {
-    plugins.push(headingsPlugin());
-  }
-
-  if (config.lists) {
-    plugins.push(listsPlugin());
-  }
-
-  if (config.links) {
-    plugins.push(linkPlugin());
-  }
-
-  if (config.quotes) {
-    plugins.push(quotePlugin());
-  }
-
-  if (config.codeBlock) {
-    plugins.push(codeBlockPlugin());
-  }
-
-  if (config.thematicBreak) {
-    plugins.push(thematicBreakPlugin());
-  }
 
   if (hasError) {
     return (

@@ -6,10 +6,12 @@
  */
 
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { BuildEditor } from "@/components/editor/BuildEditor";
 import { getBuild } from "@/lib/builds";
 import { eq } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
+import { requireRole, ROLES, getRoleLevel } from "@/lib/roles";
 
 export const prerender = false;
 
@@ -42,16 +44,16 @@ if (!buildResult || buildResult.length === 0) {
 
 const existingBuild = buildResult[0].build;
 
-// Check if user is author or moderator/admin
+// Check if user is author or moderator/admin using requireRole()
 const isAuthor = existingBuild.authorId === user.id;
-const isModeratorOrAdmin = user.role === "moderator" || user.role === "admin";
+const isModeratorOrAdmin = requireRole(user.role, ROLES.MODERATOR);
 
 if (!isAuthor && !isModeratorOrAdmin) {
   return Astro.redirect("/builds?error=not_authorized");
 }
 
-// Get the redirect URL if any
-const redirectParam = Astro.url.searchParams.get("redirect");
+// Get initial content for the editor
+const initialContent = existingBuild.description || existingBuild.content || "";
 ---
 
 <BaseLayout title={`Edit: ${existingBuild.title}`} description="Edit your cyberdeck build">
@@ -111,11 +113,12 @@ const redirectParam = Astro.url.searchParams.get("redirect");
 
       <div class="form-group">
         <label for="description" class="form-label">Description <span class="required">*</span></label>
-        <div id="editor-container"></div>
-        <input type="hidden" name="description" id="description-input" />
-        <div id="editor-error" class="editor-error" style="display: none;">
-          Editor failed to load. Please refresh the page.
-        </div>
+        <BuildEditor
+          client:only="react"
+          initialContent={initialContent}
+          hiddenInputId="description-input"
+        />
+        <input type="hidden" name="description" id="description-input" value={initialContent} />
         <span class="form-hint">Describe your build, what makes it special, and your plans</span>
       </div>
 
@@ -146,9 +149,6 @@ const redirectParam = Astro.url.searchParams.get("redirect");
 </BaseLayout>
 
 <script>
-  import { createElement as h, createRoot } from "react-dom/client";
-  import { SharedMarkdownEditor } from "@/components/editor/SharedMarkdownEditor";
-
   const form = document.getElementById("edit-build-form") as HTMLFormElement;
   const titleInput = document.getElementById("title") as HTMLInputElement;
   const slugInput = document.getElementById("slug") as HTMLInputElement;
@@ -159,34 +159,8 @@ const redirectParam = Astro.url.searchParams.get("redirect");
   const btnText = submitBtn.querySelector(".btn-text") as HTMLSpanElement;
   const btnLoading = submitBtn.querySelector(".btn-loading") as HTMLSpanElement;
   const formError = document.getElementById("form-error") as HTMLDivElement;
-  const editorError = document.getElementById("editor-error") as HTMLDivElement;
-  const editorContainer = document.getElementById("editor-container")!;
 
   const buildSlug = form.dataset.buildSlug ?? "";
-
-  // Get initial content from the server-rendered build data
-  // The server embeds the initial content in a data attribute or we fetch it
-  const initialDescription = descriptionInput.dataset.initialContent ?? "";
-
-  let editorContent = initialDescription;
-
-  // Mount the editor with initial content
-  try {
-    const root = createRoot(editorContainer);
-    root.render(
-      h(SharedMarkdownEditor, {
-        surface: "build",
-        initialContent: initialDescription,
-        onChange: (content: string) => {
-          editorContent = content;
-          descriptionInput.value = content;
-        },
-      })
-    );
-  } catch (e) {
-    console.error("Editor failed to mount:", e);
-    editorError.style.display = "block";
-  }
 
   // Track if slug was manually edited
   let slugManuallyEdited = true; // Start as true since we're editing existing build
@@ -206,7 +180,7 @@ const redirectParam = Astro.url.searchParams.get("redirect");
       return;
     }
 
-    if (!editorContent.trim()) {
+    if (!descriptionInput.value.trim()) {
       formError.textContent = "Please write a description for your build.";
       formError.style.display = "block";
       return;
@@ -228,7 +202,7 @@ const redirectParam = Astro.url.searchParams.get("redirect");
           title: titleInput.value.trim(),
           slug: slugManuallyEdited ? slugInput.value.trim() : undefined,
           status: statusSelect.value,
-          description: editorContent,
+          description: descriptionInput.value,
           imageUrl: imageUrlInput.value.trim() || undefined,
         }),
       });
