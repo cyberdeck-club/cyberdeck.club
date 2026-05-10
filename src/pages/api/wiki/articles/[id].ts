@@ -271,4 +271,85 @@ export const PUT: APIRoute = async (ctx) => {
   }
 };
 
+/**
+ * DELETE /api/wiki/articles/[id]
+ *
+ * Deletes a wiki article.
+ * Requires MODERATOR role minimum (role >= 40).
+ *
+ * TODO: Implement soft-delete (add a `deletedAt` column to wikiArticles schema)
+ * instead of hard-deleting. For now, this performs a hard delete — revisions and
+ * comments cascade-delete via foreign key constraints.
+ */
+export const DELETE: APIRoute = async (ctx) => {
+  // Require authentication
+  if (!ctx.locals.user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Get article ID from URL params
+  const articleId = ctx.params.id;
+  if (!articleId || typeof articleId !== "string") {
+    return new Response(JSON.stringify({ error: "Article ID is required" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const db = ctx.locals.db;
+  const userRole = ctx.locals.user.role;
+
+  // Require MODERATOR role minimum
+  if (!requireRole(userRole, ROLES.MODERATOR)) {
+    return new Response(
+      JSON.stringify({
+        error: "insufficient_permissions",
+        message: "Only moderators and admins can delete wiki articles",
+      }),
+      {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  try {
+    // Verify the article exists
+    const articles = await db
+      .select({ id: schema.wikiArticles.id })
+      .from(schema.wikiArticles)
+      .where(eq(schema.wikiArticles.id, articleId))
+      .limit(1);
+
+    if (articles.length === 0) {
+      return new Response(JSON.stringify({ error: "Article not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Hard delete the article (revisions and comments cascade-delete)
+    await db
+      .delete(schema.wikiArticles)
+      .where(eq(schema.wikiArticles.id, articleId));
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Failed to delete wiki article:", err);
+    return new Response(
+      JSON.stringify({ error: "Failed to delete wiki article" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+};
+
 export const prerender = false;

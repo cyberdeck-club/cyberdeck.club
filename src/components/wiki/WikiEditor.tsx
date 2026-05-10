@@ -41,14 +41,8 @@ export function WikiEditor({
     setIsDeleting(true);
     setError(null);
     try {
-      const response = await fetch("/api/wiki/articles", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contentId: articleId,
-        }),
+      const response = await fetch(`/api/wiki/articles/${articleId}`, {
+        method: "DELETE",
       });
 
       if (!response.ok) {
@@ -58,8 +52,8 @@ export function WikiEditor({
 
       setShowDeleteModal(false);
       onArticleDeleted?.();
-      // Redirect to category page
-      window.location.href = `/wiki/${category}`;
+      // Redirect to wiki index page
+      window.location.href = "/wiki/";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete article");
       throw err;
