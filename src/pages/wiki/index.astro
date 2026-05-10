@@ -6,6 +6,8 @@
 
 import WikiLayout from "@/layouts/WikiLayout.astro";
 import { getWikiCategories } from "@/lib/wiki";
+import { sql, eq } from "drizzle-orm";
+import * as schema from "../../db/schema";
 
 // Server-rendered page
 export const prerender = false;
@@ -48,11 +50,24 @@ const canCreate = hasMinRole(user, "maker");
 // Fetch categories from database
 const db = Astro.locals.db!;
 const categoriesResult = await getWikiCategories(db);
+
+// Query actual article counts per category
+const articleCounts = await db
+  .select({
+    categoryId: schema.wikiArticles.categoryId,
+    count: sql<number>`count(*)`,
+  })
+  .from(schema.wikiArticles)
+  .where(eq(schema.wikiArticles.status, "published"))
+  .groupBy(schema.wikiArticles.categoryId);
+
+const countMap = new Map(articleCounts.map(r => [r.categoryId, r.count]));
+
 const categories = categoriesResult.map(cat => ({
   slug: cat.slug,
   name: cat.name,
   description: cat.description ?? "",
-  articleCount: 0, // Will be populated if we add article counts
+  articleCount: countMap.get(cat.id) ?? 0,
   badge: cat.slug === "getting-started" ? "Start here" : undefined,
   accent: "var(--color-primary)"
 }));

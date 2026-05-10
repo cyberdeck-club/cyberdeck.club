@@ -7,18 +7,49 @@
 import ForumLayout from "@/layouts/ForumLayout.astro";
 import { getForumCategories } from "@/lib/forum";
 import { requireRole, ROLES } from "@/lib/roles";
+import { sql, desc } from "drizzle-orm";
+import * as schema from "../../db/schema";
 
 export const prerender = false;
 
 const db = Astro.locals.db!;
 const user = Astro.locals.user;
 const categoriesResult = await getForumCategories(db);
+
+// Query actual thread counts per category
+const threadCounts = await db
+  .select({
+    categoryId: schema.forumThreads.categoryId,
+    count: sql<number>`count(*)`,
+  })
+  .from(schema.forumThreads)
+  .groupBy(schema.forumThreads.categoryId);
+
+const threadCountMap = new Map(threadCounts.map(r => [r.categoryId, r.count]));
+
+// Query latest thread per category (ordered by lastReplyAt descending)
+const latestThreads = await db
+  .select({
+    categoryId: schema.forumThreads.categoryId,
+    title: schema.forumThreads.title,
+  })
+  .from(schema.forumThreads)
+  .orderBy(desc(schema.forumThreads.lastReplyAt));
+
+// Build a map of categoryId -> latest thread title (first occurrence per category)
+const latestMap = new Map<string, string>();
+for (const t of latestThreads) {
+  if (!latestMap.has(t.categoryId)) {
+    latestMap.set(t.categoryId, t.title);
+  }
+}
+
 const categories = categoriesResult.map((cat) => ({
   slug: cat.slug,
   name: cat.name,
   description: cat.description ?? "",
-  threadCount: 0,
-  latestThread: "No threads yet",
+  threadCount: threadCountMap.get(cat.id) ?? 0,
+  latestThread: latestMap.get(cat.id) ?? "No threads yet",
   isHighlighted: cat.slug === "introductions",
 }));
 
