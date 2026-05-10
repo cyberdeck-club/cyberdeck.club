@@ -109,7 +109,7 @@ export const PUT: APIRoute = async (ctx) => {
   }
 
   // Parse and validate request body
-  let body: { content?: string; editSummary?: string };
+  let body: { content?: string; editSummary?: string; categoryId?: string };
   try {
     body = await ctx.request.json();
   } catch {
@@ -119,7 +119,7 @@ export const PUT: APIRoute = async (ctx) => {
     });
   }
 
-  const { content, editSummary } = body;
+  const { content, editSummary, categoryId } = body;
 
   // Validate required fields
   if (!content || typeof content !== "string" || content.trim().length === 0) {
@@ -137,6 +137,7 @@ export const PUT: APIRoute = async (ctx) => {
       id: schema.wikiArticles.id,
       authorId: schema.wikiArticles.authorId,
       title: schema.wikiArticles.title,
+      categoryId: schema.wikiArticles.categoryId,
     })
     .from(schema.wikiArticles)
     .where(eq(schema.wikiArticles.id, articleId))
@@ -188,9 +189,37 @@ export const PUT: APIRoute = async (ctx) => {
     }
   }
 
+  // If categoryId is provided, validate it exists
+  let resolvedCategoryId = article.categoryId;
+  if (categoryId && typeof categoryId === "string" && categoryId !== article.categoryId) {
+    const categories = await db
+      .select({ id: schema.wikiCategories.id })
+      .from(schema.wikiCategories)
+      .where(eq(schema.wikiCategories.id, categoryId))
+      .limit(1);
+
+    if (categories.length === 0) {
+      return new Response(JSON.stringify({ error: "Category not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    resolvedCategoryId = categoryId;
+  }
+
   const revisionId = crypto.randomUUID();
 
   try {
+    // Build the update set — always update content and timestamp,
+    // only update categoryId if it changed
+    const updateSet: Record<string, unknown> = {
+      content: content.trim(),
+      updatedAt: now,
+    };
+    if (resolvedCategoryId !== article.categoryId) {
+      updateSet.categoryId = resolvedCategoryId;
+    }
+
     // Use batch to create revision and update article in one operation
     await db.batch([
       // Insert new revision with diff summary
@@ -203,13 +232,10 @@ export const PUT: APIRoute = async (ctx) => {
         diffSummary: editSummary || null,
         createdAt: now,
       }),
-      // Update article with new content and timestamp
+      // Update article with new content and timestamp (and optionally categoryId)
       db
         .update(schema.wikiArticles)
-        .set({
-          content: content.trim(),
-          updatedAt: now,
-        })
+        .set(updateSet)
         .where(eq(schema.wikiArticles.id, articleId)),
     ]);
 

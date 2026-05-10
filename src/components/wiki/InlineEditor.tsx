@@ -15,6 +15,12 @@ import React, { useCallback, useState } from "react";
 import type { MarkdownEditorProps } from "./MarkdownEditor";
 import { MarkdownEditor } from "./MarkdownEditor";
 
+export interface CategoryOption {
+  id: string;
+  label: string;
+  slug: string;
+}
+
 export interface InlineEditorProps {
   /** The initial markdown content to edit */
   value: string;
@@ -24,8 +30,10 @@ export interface InlineEditorProps {
   category: string;
   /** URL path segment for the article */
   slug: string;
-  /** Optional save endpoint override (defaults to /api/wiki/articles/:id) */
-  saveEndpoint?: string;
+  /** Current category ID of the article */
+  currentCategoryId?: string;
+  /** Available categories for the category selector */
+  categories?: CategoryOption[];
   onChange?: (content: string) => void;
   placeholder?: string;
   disabled?: boolean;
@@ -39,7 +47,8 @@ export function InlineEditor({
   articleId,
   category,
   slug,
-  saveEndpoint = "/api/wiki/articles",
+  currentCategoryId = "",
+  categories = [],
   onChange,
   placeholder,
   disabled = false,
@@ -48,69 +57,88 @@ export function InlineEditor({
   editPermission = true,
 }: InlineEditorProps) {
   const [editValue, setEditValue] = useState(value);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(currentCategoryId);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const viewUrl = `/wiki/${category}/${slug}`;
+  // Determine the redirect URL — if category changed, redirect to new category
+  const getViewUrl = useCallback(() => {
+    if (selectedCategoryId && selectedCategoryId !== currentCategoryId) {
+      const newCat = categories.find((c) => c.id === selectedCategoryId);
+      if (newCat) return `/wiki/${newCat.slug}/${slug}`;
+    }
+    return `/wiki/${category}/${slug}`;
+  }, [selectedCategoryId, currentCategoryId, categories, category, slug]);
 
   const handleChange = useCallback(
     (newValue: string) => {
       setEditValue(newValue);
-      setHasChanges(newValue !== value);
+      setHasChanges(newValue !== value || selectedCategoryId !== currentCategoryId);
       setError(null);
       onChange?.(newValue);
     },
-    [value, onChange]
+    [value, currentCategoryId, selectedCategoryId, onChange]
+  );
+
+  const handleCategoryChange = useCallback(
+    (newCategoryId: string) => {
+      setSelectedCategoryId(newCategoryId);
+      setHasChanges(editValue !== value || newCategoryId !== currentCategoryId);
+      setError(null);
+    },
+    [value, editValue, currentCategoryId]
   );
 
   const handleSave = useCallback(async () => {
     if (isSaving || !hasChanges) return;
     setIsSaving(true);
     setError(null);
-    console.log("[DEBUG InlineEditor] Posting to:", saveEndpoint);
-    console.log("[DEBUG InlineEditor] Payload:", { contentId: articleId, content: editValue });
     try {
-      // Use relative URL with same-origin mode to ensure cookies are sent
-      const url = new URL(saveEndpoint, window.location.origin);
+      // PUT to the article-specific update endpoint
+      const url = new URL(`/api/wiki/articles/${articleId}`, window.location.origin);
+      const payload: Record<string, string> = { content: editValue };
+      // Only include categoryId if it changed
+      if (selectedCategoryId && selectedCategoryId !== currentCategoryId) {
+        payload.categoryId = selectedCategoryId;
+      }
       const response = await fetch(url, {
-        method: "POST",
+        method: "PUT",
         credentials: "same-origin",
         headers: {
           "Content-Type": "application/json",
           "X-CyberDeck-Request": "1",
         },
-        body: JSON.stringify({ contentId: articleId, content: editValue }),
+        body: JSON.stringify(payload),
       });
-      console.log("[DEBUG InlineEditor] Response status:", response.status);
       if (!response.ok) {
         const text = await response.text();
-        console.log("[DEBUG InlineEditor] Error response:", text);
         const data = JSON.parse(text || "{}");
         throw new Error(data.error || `Failed to save (${response.status})`);
       }
       setHasChanges(false);
       setLastSaved(new Date());
       // Navigate back to the view page after successful save
-      window.location.href = viewUrl;
+      window.location.href = getViewUrl();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setIsSaving(false);
     }
-  }, [editValue, hasChanges, isSaving, articleId, saveEndpoint, viewUrl]);
+  }, [editValue, hasChanges, isSaving, articleId, selectedCategoryId, currentCategoryId, getViewUrl]);
 
   const handleCancel = useCallback(() => {
-    // Navigate back to the view page without saving
-    window.location.href = viewUrl;
-  }, [viewUrl]);
+    // Navigate back to the view page without saving (use original category)
+    window.location.href = `/wiki/${category}/${slug}`;
+  }, [category, slug]);
 
   const handleReset = useCallback(() => {
     setEditValue(value);
+    setSelectedCategoryId(currentCategoryId);
     setHasChanges(false);
     setError(null);
-  }, [value]);
+  }, [value, currentCategoryId]);
 
   if (!editPermission) {
     return (
@@ -257,6 +285,57 @@ export function InlineEditor({
           </span>
         )}
       </div>
+      {categories.length > 1 && (
+        <div
+          className="inline-editor-category"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.5rem 1rem",
+            backgroundColor: "var(--surface)",
+            borderBottom: "2px solid var(--border)",
+          }}
+        >
+          <label
+            htmlFor="inline-editor-category-select"
+            style={{
+              fontSize: "0.8rem",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              color: "var(--text)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Category
+          </label>
+          <select
+            id="inline-editor-category-select"
+            value={selectedCategoryId}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            disabled={isSaving || disabled}
+            style={{
+              padding: "0.375rem 0.75rem",
+              fontSize: "0.875rem",
+              fontFamily: "inherit",
+              fontWeight: 600,
+              background: "var(--bg)",
+              border: "2px solid var(--border)",
+              borderRadius: "6px",
+              color: "var(--text)",
+              outline: "none",
+              cursor: isSaving || disabled ? "not-allowed" : "pointer",
+            }}
+          >
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div style={{ flex: 1 }}>
         <MarkdownEditor
           value={editValue}
