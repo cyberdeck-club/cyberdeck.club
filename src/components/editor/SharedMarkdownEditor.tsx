@@ -22,6 +22,9 @@ import {
   thematicBreakPlugin,
   codeBlockPlugin,
   toolbarPlugin,
+  diffSourcePlugin, 
+  DiffSourceToggleWrapper,
+  UndoRedo,
 } from "@mdxeditor/editor";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -162,6 +165,8 @@ export function SharedMarkdownEditor({
   const toolbarContents = () => {
     const buttons: React.ReactNode[] = [];
 
+    buttons.push(<UndoRedo key="undoRedo" />);
+
     if (config.boldItalic) {
       buttons.push(<BoldItalicUnderlineToggles key="boldItalic" />);
     }
@@ -170,13 +175,14 @@ export function SharedMarkdownEditor({
       buttons.push(<CreateLink key="createLink" />);
     }
 
-    return <>{buttons}</>;
+    return <DiffSourceToggleWrapper>{buttons}</DiffSourceToggleWrapper>;
   };
 
   // Build plugin list based on surface config
   const plugins = [
     toolbarPlugin({ toolbarContents: toolbarContents }),
     markdownShortcutPlugin(),
+    diffSourcePlugin({ viewMode: 'rich-text' })
   ];
 
   if (config.headings) {
@@ -240,6 +246,11 @@ export function SharedMarkdownEditor({
         cursor: "text",
       }}
     >
+      <style>{`
+        .mdxeditor-toolbar button[aria-label="Diff mode"] { 
+          display: none !important; 
+        }
+      `}</style>
       <MDXEditor
         markdown={initialContent}
         onChange={handleChange}
