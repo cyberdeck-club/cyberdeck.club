@@ -63,6 +63,29 @@ export function getAuth(cfEnv: App.Env) {
     databaseHooks: {
       user: {
         create: {
+          before: async (user) => {
+            // If the user has no name, try to pull it from beta signups
+            if (!user.name) {
+              try {
+                const betaSignup = await db
+                  .select({ displayName: authSchema.betaSignups.displayName })
+                  .from(authSchema.betaSignups)
+                  .where(eq(authSchema.betaSignups.email, user.email.toLowerCase()))
+                  .get();
+
+                if (betaSignup?.displayName) {
+                  console.log("[auth] Setting user name from beta signup:", {
+                    email: user.email,
+                    name: betaSignup.displayName,
+                  });
+                  return { data: { ...user, name: betaSignup.displayName } };
+                }
+              } catch (err) {
+                console.error("[auth] Failed to look up beta signup for name:", err);
+              }
+            }
+            return { data: user };
+          },
           after: async (user) => {
             if (adminEmail && user.email.toLowerCase() === adminEmail) {
               console.log("[auth] Auto-promoting admin user:", user.email);

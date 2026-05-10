@@ -179,7 +179,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const auth = getAuth(env as App.Env);
         try {
           await auth.api.signInMagicLink({
-            body: { email: normalizedEmail },
+            body: { email: normalizedEmail, name: existingSignup.displayName },
             request,
           });
         } catch (err) {
