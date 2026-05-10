@@ -6,6 +6,7 @@
  */
 
 import type { APIRoute } from "astro";
+import { env } from "cloudflare:workers";
 import { acceptGuidelines } from "../../../lib/guidelines";
 import { verifyTurnstile } from "../../../lib/turnstile";
 
@@ -38,8 +39,9 @@ export const POST: APIRoute = async ({ locals, request }) => {
     // Get client IP for Turnstile verification
     const ip = request.headers.get("CF-Connecting-IP") ?? undefined;
 
-    // Verify Turnstile token
-    const isValid = await verifyTurnstile(turnstileToken, ip);
+    // Verify Turnstile token — secret key from Workers env bindings
+    const secretKey = (env as App.Env).TURNSTILE_SECRET_KEY ?? "";
+    const isValid = await verifyTurnstile(turnstileToken, secretKey, ip);
     if (!isValid) {
       return new Response(
         JSON.stringify({ error: "turnstile_verification_failed" }),

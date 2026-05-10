@@ -29,6 +29,8 @@ declare global {
       MEDIA: R2Bucket;
       GITHUB_FEEDBACK_PAT: string;
       PUBLIC_MEDIA_BASE_URL?: string;
+      TURNSTILE_SECRET_KEY?: string;
+      PUBLIC_TURNSTILE_SITE_KEY?: string;
     }
 
     interface Locals {

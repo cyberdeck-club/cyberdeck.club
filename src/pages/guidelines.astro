@@ -7,6 +7,7 @@
  */
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { hasAcceptedGuidelines, CURRENT_GUIDELINES_VERSION } from "@/lib/guidelines";
+import { env } from "cloudflare:workers";
 
 export const prerender = false;
 
@@ -23,8 +24,8 @@ if (user && db) {
 // Get redirect param for where to send user after acceptance
 const redirectTo = Astro.url.searchParams.get("redirect") ?? "/";
 
-// Get public Turnstile site key from environment
-const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "1x00000000000000000000AA";
+// Get public Turnstile site key from Workers env bindings
+const turnstileSiteKey = (env as App.Env).PUBLIC_TURNSTILE_SITE_KEY ?? "";
 ---
 
 <BaseLayout title="Community Guidelines - CyberDeck">
@@ -196,6 +197,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "1x0000000
               I've read and accept these guidelines
             </button>
 
+            <p id="error-msg" class="error-message" style="display: none;" role="alert"></p>
+
             <p class="acceptance-note">
               This helps us keep the community safe from spam and ensures everyone
               has a positive experience.
@@ -225,8 +228,23 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "1x0000000
   // Scroll detection via Intersection Observer
   const sentinel = document.getElementById("scroll-sentinel");
   const acceptBtn = document.getElementById("accept-btn");
+  const errorMsg = document.getElementById("error-msg");
   let scrolledToBottom = false;
   let turnstileToken = null;
+
+  function showError(message) {
+    if (errorMsg) {
+      errorMsg.textContent = message;
+      errorMsg.style.display = "block";
+    }
+  }
+
+  function hideError() {
+    if (errorMsg) {
+      errorMsg.textContent = "";
+      errorMsg.style.display = "none";
+    }
+  }
 
   if (sentinel && acceptBtn) {
     const observer = new IntersectionObserver(
@@ -246,6 +264,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "1x0000000
   // Turnstile callback
   window.onTurnstileSuccess = (token) => {
     turnstileToken = token;
+    hideError();
     updateButtonState();
   };
 
@@ -263,10 +282,11 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "1x0000000
   if (acceptBtn) {
     acceptBtn.addEventListener("click", async () => {
       if (!turnstileToken) {
-        alert("Please complete the verification first.");
+        showError("Please complete the verification first.");
         return;
       }
 
+      hideError();
       acceptBtn.setAttribute("disabled", "true");
       acceptBtn.textContent = "Accepting...";
 
@@ -282,12 +302,16 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "1x0000000
           window.location.href = redirectTo;
         } else {
           const data = await res.json();
-          alert(data.error || "Something went wrong. Please try again.");
+          if (data.error === "turnstile_verification_failed") {
+            showError("Verification failed. Please try again.");
+          } else {
+            showError(data.error || "Something went wrong. Please try again.");
+          }
           acceptBtn.removeAttribute("disabled");
           acceptBtn.textContent = "I've read and accept these guidelines";
         }
       } catch (err) {
-        alert("Something went wrong. Please try again.");
+        showError("Something went wrong. Please try again.");
         acceptBtn.removeAttribute("disabled");
         acceptBtn.textContent = "I've read and accept these guidelines";
       }
@@ -488,6 +512,17 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "1x0000000
   .accept-btn {
     margin-top: 1.5rem;
     font-size: 1rem;
+  }
+
+  .error-message {
+    color: var(--color-danger, #dc2626);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border: 2px solid var(--color-danger, #dc2626);
+    border-radius: 4px;
   }
 
   .turnstile-container {
