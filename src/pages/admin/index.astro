@@ -9,6 +9,7 @@ import Button from "@/components/fundations/elements/Button.astro";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { desc, count, sql } from "drizzle-orm";
+import { epochToDate } from "@/lib/timestamp";
 
 export const prerender = false;
 
@@ -256,7 +257,7 @@ const isAdmin = userRole === "admin";
                   {thread.title}
                 </a>
                 <span class="activity-meta">
-                  by <a href={`/admin/users/${thread.authorId}`} class="author-link">{thread.authorName}</a> • {new Date(thread.createdAt).toLocaleDateString()}
+                  by <a href={`/admin/users/${thread.authorId}`} class="author-link">{thread.authorName}</a> • {epochToDate(thread.createdAt).toLocaleDateString()}
                 </span>
               </div>
             </div>
@@ -286,7 +287,7 @@ const isAdmin = userRole === "admin";
                   {article.title}
                 </a>
                 <span class="activity-meta">
-                  by <a href={`/admin/users/${article.authorId}`} class="author-link">{article.authorName || "Unknown"}</a> • {new Date(article.updatedAt).toLocaleDateString()}
+                  by <a href={`/admin/users/${article.authorId}`} class="author-link">{article.authorName || "Unknown"}</a> • {epochToDate(article.updatedAt).toLocaleDateString()}
                 </span>
               </div>
             </div>

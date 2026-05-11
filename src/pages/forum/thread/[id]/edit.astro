@@ -7,7 +7,7 @@
 import BaseLayout from "../../../../layouts/BaseLayout.astro";
 import ForumLayout from "../../../../layouts/ForumLayout.astro";
 import { ForumEditor } from "@/components/editor/ForumEditor";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, sql } from "drizzle-orm";
 import * as schema from "../../../../db/schema";
 import { requireRole } from "../../../../lib/roles";
 import { hasAcceptedGuidelines } from "../../../../lib/guidelines";
@@ -55,11 +55,13 @@ if (!isAuthor && !isModOrAdmin) {
 }
 
 // Fetch the first post (thread body content)
+// Normalise timestamps: seed data may use milliseconds while API uses seconds
+const normalisedCreatedAt = sql`CASE WHEN ${schema.forumPosts.createdAt} > 10000000000 THEN ${schema.forumPosts.createdAt} / 1000 ELSE ${schema.forumPosts.createdAt} END`;
 const [firstPost] = await db
   .select()
   .from(schema.forumPosts)
   .where(eq(schema.forumPosts.threadId, threadId))
-  .orderBy(asc(schema.forumPosts.createdAt))
+  .orderBy(asc(normalisedCreatedAt), asc(schema.forumPosts.id))
   .limit(1);
 
 const threadBodyContent = firstPost?.content ?? "";

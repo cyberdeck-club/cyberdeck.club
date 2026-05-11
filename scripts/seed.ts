@@ -5,7 +5,8 @@
  * Run with: npx tsx scripts/seed.ts
  *
  * Uses wrangler d1 execute for bulk inserts (D1 interactive transactions not supported).
- * All timestamps are Unix epoch integers (milliseconds) for app tables.
+ * All timestamps are Unix epoch integers (seconds) for app tables, matching
+ * the convention used by the API (Math.floor(Date.now() / 1000)).
  * Auth tables (user, session, account, verification) use timestamp_ms mode.
  */
 
@@ -220,8 +221,9 @@ function portableTextToString(blocks: PortableTextBlock[]): string {
     .join("\n\n");
 }
 
+/** Parse ISO string to seconds-precision epoch, matching API convention */
 function parseIsoToEpoch(iso: string): number {
-  return new Date(iso).getTime();
+  return Math.floor(new Date(iso).getTime() / 1000);
 }
 
 function sqlStr(val: unknown): string {
@@ -379,7 +381,7 @@ function seedWikiCategories(): void {
   const wikiTax = taxonomies.find((t) => t.name === "wiki-category");
   if (!wikiTax) return;
 
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const sqls: string[] = [];
 
   for (let i = 0; i < wikiTax.terms.length; i++) {
@@ -399,7 +401,7 @@ function seedWikiCategories(): void {
 function seedWikiArticles(): void {
   console.log("Seeding wiki articles...");
 
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const sqls: string[] = [];
 
   for (const article of wikiArticles) {
@@ -431,7 +433,7 @@ function seedForumCategories(): void {
   const forumTax = taxonomies.find((t) => t.name === "forum-category");
   if (!forumTax) return;
 
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const sqls: string[] = [];
 
   for (let i = 0; i < forumTax.terms.length; i++) {
@@ -451,7 +453,7 @@ function seedForumCategories(): void {
 function seedForumThreads(): void {
   console.log("Seeding forum threads...");
 
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const sqls: string[] = [];
 
   for (const thread of forumThreads) {
@@ -473,7 +475,7 @@ function seedForumThreads(): void {
 function seedForumPosts(): void {
   console.log("Seeding forum posts...");
 
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const sqls: string[] = [];
 
   for (const post of forumPosts) {
@@ -494,7 +496,7 @@ function seedForumPosts(): void {
 function seedMeetups(): void {
   console.log("Seeding meetups...");
 
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const sqls: string[] = [];
 
   for (const meetup of meetupEvents) {
@@ -516,7 +518,7 @@ function seedMeetups(): void {
 function seedBuilds(): void {
   console.log("Seeding builds...");
 
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const sqls: string[] = [];
 
   for (const build of builds) {
@@ -538,7 +540,7 @@ function seedBuilds(): void {
 function seedCommunityGuidelinesAcceptances(): void {
   console.log("Seeding community guidelines acceptances...");
 
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const sqls: string[] = [];
 
   for (const acceptance of communityGuidelinesAcceptances) {
@@ -558,7 +560,7 @@ function seedCommunityGuidelinesAcceptances(): void {
 function seedBuildComments(): void {
   console.log("Seeding build comments...");
 
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const sqls: string[] = [];
 
   for (const comment of buildComments) {
@@ -582,7 +584,7 @@ function seedBuildComments(): void {
 function seedWikiComments(): void {
   console.log("Seeding wiki comments...");
 
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const sqls: string[] = [];
 
   for (const comment of wikiComments) {
@@ -606,7 +608,7 @@ function seedWikiComments(): void {
 function seedPersonalAccessTokens(): void {
   console.log("Seeding personal access tokens...");
 
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
   const sqls: string[] = [];
 
   for (const pat of personalAccessTokens) {

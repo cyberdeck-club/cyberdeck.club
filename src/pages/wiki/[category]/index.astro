@@ -8,6 +8,7 @@
 import WikiLayout from "@/layouts/WikiLayout.astro";
 import WikiArticleCard from "@/components/WikiArticleCard.astro";
 import { getWikiArticles, getWikiCategories } from "@/lib/wiki";
+import { epochToDate } from "@/lib/timestamp";
 
 // Server-rendered page
 export const prerender = false;
@@ -74,7 +75,7 @@ const articles = articlesResult.map(({ article, authorName }) => ({
   slug: article.slug,
   title: article.title,
   excerpt: article.excerpt ?? "",
-  lastUpdated: article.updatedAt ? new Date(article.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+  lastUpdated: article.updatedAt ? epochToDate(article.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
   author: authorName ?? "Unknown"
 }));
 ---

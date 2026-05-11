@@ -118,7 +118,7 @@ function truncateContent(content: string, maxLength: number = 150) {
             <span class="meta-separator">•</span>
             <a href={`/admin/users/${post.authorId}`} class="author-link">{post.authorName || "Unknown"}</a>
             <span class="meta-separator">•</span>
-            <span class="date">{new Date(post.createdAt).toLocaleDateString()}</span>
+            <span class="date">{(post.createdAt > 10_000_000_000 ? new Date(post.createdAt) : new Date(post.createdAt * 1000)).toLocaleDateString()}</span>
           </div>
           <button 
             class="delete-btn"

@@ -7,6 +7,7 @@
 import ForumLayout from "@/layouts/ForumLayout.astro";
 import { getForumThread, getForumPosts } from "@/lib/forum";
 import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
+import { epochToDate } from "@/lib/timestamp";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
 import { ReplyForm } from "@/components/forum/ReplyForm";
 import { EditPostForm } from "@/components/forum/EditPostForm";
@@ -69,7 +70,7 @@ if (!notFound && threadData) {
 const threadBodyContent = posts.length > 0 ? posts[0].post.content : "";
 
 function formatDate(timestamp: number): string {
-  const date = new Date(timestamp);
+  const date = epochToDate(timestamp);
   return date.toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -81,7 +82,7 @@ function formatDate(timestamp: number): string {
 
 function formatRelativeTime(timestamp: number | null): string {
   if (!timestamp) return "Unknown";
-  const date = new Date(timestamp);
+  const date = epochToDate(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);

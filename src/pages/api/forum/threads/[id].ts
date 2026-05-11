@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, sql } from "drizzle-orm";
 import * as schema from "../../../../db/schema";
 import { recordEdit } from "../../../../lib/edit-history";
 import { checkPublishingGate } from "../../../../lib/publishing-gate";
@@ -117,11 +117,13 @@ export const PUT: APIRoute = async (ctx) => {
     // Also update the first post's content if provided
     if (content !== undefined) {
       // Find the first post in this thread (the thread body)
+      // Normalise timestamps: seed data may use milliseconds while API uses seconds
+      const normalisedCreatedAt = sql`CASE WHEN ${schema.forumPosts.createdAt} > 10000000000 THEN ${schema.forumPosts.createdAt} / 1000 ELSE ${schema.forumPosts.createdAt} END`;
       const [firstPost] = await db
         .select()
         .from(schema.forumPosts)
         .where(eq(schema.forumPosts.threadId, threadId))
-        .orderBy(asc(schema.forumPosts.createdAt))
+        .orderBy(asc(normalisedCreatedAt), asc(schema.forumPosts.id))
         .limit(1);
 
       if (firstPost) {

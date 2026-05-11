@@ -1,4 +1,4 @@
-import { eq, desc, and, notLike, sql } from "drizzle-orm";
+import { eq, desc, asc, and, notLike, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../db/schema";
 
@@ -83,7 +83,12 @@ export function getForumThread(
 }
 
 /**
- * Get posts for a thread ordered by created_at ASC with author_name
+ * Get posts for a thread ordered by created_at ASC with author_name.
+ *
+ * Sort uses a normalised timestamp expression so that rows seeded with
+ * millisecond epochs (>10 billion) sort correctly alongside rows written
+ * by the API with second-precision epochs.  A secondary sort on `id`
+ * guarantees deterministic order when timestamps collide.
  */
 export function getForumPosts(
   db: DrizzleD1Database<typeof schema>,
@@ -91,6 +96,11 @@ export function getForumPosts(
   options?: { limit?: number; offset?: number }
 ) {
   const { limit = 50, offset = 0 } = options ?? {};
+
+  // Normalise: if a timestamp is > 10 000 000 000 it was stored in
+  // milliseconds — divide by 1000 so it compares correctly with
+  // second-precision values.
+  const normalisedCreatedAt = sql`CASE WHEN ${schema.forumPosts.createdAt} > 10000000000 THEN ${schema.forumPosts.createdAt} / 1000 ELSE ${schema.forumPosts.createdAt} END`;
 
   return db
     .select({
@@ -101,7 +111,7 @@ export function getForumPosts(
     .from(schema.forumPosts)
     .innerJoin(schema.user, eq(schema.forumPosts.authorId, schema.user.id))
     .where(eq(schema.forumPosts.threadId, threadId))
-    .orderBy(schema.forumPosts.createdAt)
+    .orderBy(asc(normalisedCreatedAt), asc(schema.forumPosts.id))
     .limit(limit)
     .offset(offset);
 }

@@ -8,6 +8,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
 import Button from "@/components/fundations/elements/Button.astro";
 import * as schema from "@/db/schema";
 import { eq, desc, like, or, and } from "drizzle-orm";
+import { epochToDate } from "@/lib/timestamp";
 
 export const prerender = false;
 
@@ -143,7 +144,7 @@ const totalPages = Math.ceil(totalThreads / perPage);
               </div>
             </td>
             <td class="date-cell">
-              {new Date(thread.createdAt).toLocaleDateString()}
+              {epochToDate(thread.createdAt).toLocaleDateString()}
             </td>
             <td class="actions-cell">
               <div class="action-buttons">

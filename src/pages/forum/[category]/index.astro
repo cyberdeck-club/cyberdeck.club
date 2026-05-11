@@ -8,6 +8,7 @@ import ForumLayout from "@/layouts/ForumLayout.astro";
 import ForumThreadPreview from "@/components/ForumThreadPreview.astro";
 import { getForumCategories, getForumThreads } from "@/lib/forum";
 import { requireRole, ROLES } from "@/lib/roles";
+import { epochToDate } from "@/lib/timestamp";
 
 export const prerender = false;
 
@@ -53,7 +54,7 @@ const sortOptions = [
 
 function formatRelativeTime(timestamp: number | null): string {
   if (!timestamp) return "Unknown";
-  const date = new Date(timestamp);
+  const date = epochToDate(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);

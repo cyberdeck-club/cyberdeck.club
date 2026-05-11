@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, sql } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
 
@@ -170,6 +170,9 @@ export const GET: APIRoute = async (ctx) => {
     });
   }
 
+  // Normalise timestamps: seed data may use milliseconds while API uses seconds
+  const normalisedCreatedAt = sql`CASE WHEN ${schema.forumPosts.createdAt} > 10000000000 THEN ${schema.forumPosts.createdAt} / 1000 ELSE ${schema.forumPosts.createdAt} END`;
+
   // Fetch posts for the thread
   const results = await db
     .select({
@@ -180,7 +183,7 @@ export const GET: APIRoute = async (ctx) => {
     .from(schema.forumPosts)
     .innerJoin(schema.user, eq(schema.forumPosts.authorId, schema.user.id))
     .where(eq(schema.forumPosts.threadId, threadId))
-    .orderBy(asc(schema.forumPosts.createdAt))
+    .orderBy(asc(normalisedCreatedAt), asc(schema.forumPosts.id))
     .limit(limit)
     .offset(offset);
 

@@ -8,6 +8,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
 import Button from "@/components/fundations/elements/Button.astro";
 import * as schema from "@/db/schema";
 import { eq, desc, like, or, and } from "drizzle-orm";
+import { epochToDate } from "@/lib/timestamp";
 
 export const prerender = false;
 
@@ -174,7 +175,7 @@ function getStatusBadgeClass(status: string) {
             </td>
             <td class="views-cell">{article.viewCount || 0}</td>
             <td class="date-cell">
-              {new Date(article.updatedAt).toLocaleDateString()}
+              {epochToDate(article.updatedAt).toLocaleDateString()}
             </td>
             <td class="actions-cell">
               <a 

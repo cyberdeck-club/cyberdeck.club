@@ -13,6 +13,7 @@ import WikiArticleCard from "@/components/WikiArticleCard.astro";
 import SectionHeader from "@/components/SectionHeader.astro";
 import { eq, desc, and } from "drizzle-orm";
 import { user, builds, forumThreads, wikiArticles, forumCategories, wikiCategories } from "@/db/schema";
+import { epochToDate } from "@/lib/timestamp";
 import { getRoleLevel, ROLES } from "@/lib/roles";
 
 // Server-rendered page
@@ -101,8 +102,8 @@ const threadPreviews = userThreads.map(({ thread, categoryName }) => ({
   category: categoryName,
   replyCount: thread.postCount,
   lastActivity: thread.lastReplyAt
-    ? new Date(thread.lastReplyAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-    : new Date(thread.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    ? epochToDate(thread.lastReplyAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : epochToDate(thread.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
   href: `/forum/thread/${thread.id}`,
 }));
 
