@@ -288,16 +288,18 @@ export const DELETE: APIRoute = async (ctx) => {
     const adminEmail = (cfEnv.ADMIN_EMAIL ?? import.meta.env.ADMIN_EMAIL ?? "").toLowerCase().trim();
 
     if (resendApiKey) {
-      void sendAccountDeletionEmails({
-        resendApiKey,
-        fromAddress,
-        deletedUserEmail: userEmail,
-        deletedUserName: userName,
-        adminEmail,
-        deletedBy: "self",
-      }).catch((err) => {
+      try {
+        await sendAccountDeletionEmails({
+          resendApiKey,
+          fromAddress,
+          deletedUserEmail: userEmail,
+          deletedUserName: userName,
+          adminEmail,
+          deletedBy: "self",
+        });
+      } catch (err) {
         console.error("[account-deletion] Email notification failed:", err);
-      });
+      }
     }
 
     // Session cleanup happens via cascade when user row is deleted

@@ -125,18 +125,20 @@ export const POST: APIRoute = async (ctx) => {
     const adminEmail = (cfEnv.ADMIN_EMAIL ?? import.meta.env.ADMIN_EMAIL ?? "").toLowerCase().trim();
 
     if (resendApiKey) {
-      void sendAccountDeletionEmails({
-        resendApiKey,
-        fromAddress,
-        deletedUserEmail: targetUser.email,
-        deletedUserName: targetUser.name,
-        adminEmail,
-        deletedBy: "admin",
-        adminName: ctx.locals.user?.name ?? undefined,
-        adminNote: typeof adminNote === "string" ? adminNote.trim() || undefined : undefined,
-      }).catch((err) => {
+      try {
+        await sendAccountDeletionEmails({
+          resendApiKey,
+          fromAddress,
+          deletedUserEmail: targetUser.email,
+          deletedUserName: targetUser.name,
+          adminEmail,
+          deletedBy: "admin",
+          adminName: ctx.locals.user?.name ?? undefined,
+          adminNote: typeof adminNote === "string" ? adminNote.trim() || undefined : undefined,
+        });
+      } catch (err) {
         console.error("[account-deletion] Email notification failed:", err);
-      });
+      }
     }
 
     return new Response(
