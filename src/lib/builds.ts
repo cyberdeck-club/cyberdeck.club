@@ -1,4 +1,4 @@
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, notLike } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../db/schema";
 
@@ -21,7 +21,13 @@ export function getBuilds(
     })
     .from(schema.builds)
     .innerJoin(schema.user, eq(schema.builds.authorId, schema.user.id))
-    .where(eq(schema.builds.status, "published"))
+    .where(
+      and(
+        eq(schema.builds.status, "published"),
+        notLike(schema.user.name, "%[Test Account]%"),
+        notLike(schema.user.name, "%[deleted]%")
+      )
+    )
     .orderBy(desc(schema.builds.createdAt))
     .limit(limit)
     .offset(offset);
@@ -59,7 +65,13 @@ export function getRecentBuilds(
     })
     .from(schema.builds)
     .innerJoin(schema.user, eq(schema.builds.authorId, schema.user.id))
-    .where(eq(schema.builds.status, "published"))
+    .where(
+      and(
+        eq(schema.builds.status, "published"),
+        notLike(schema.user.name, "%[Test Account]%"),
+        notLike(schema.user.name, "%[deleted]%")
+      )
+    )
     .orderBy(desc(schema.builds.createdAt))
     .limit(limit);
 }

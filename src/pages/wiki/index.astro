@@ -6,7 +6,7 @@
 
 import WikiLayout from "@/layouts/WikiLayout.astro";
 import { getWikiCategories } from "@/lib/wiki";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, and, notLike } from "drizzle-orm";
 import * as schema from "../../db/schema";
 
 // Server-rendered page
@@ -51,14 +51,21 @@ const canCreate = hasMinRole(user, "maker");
 const db = Astro.locals.db!;
 const categoriesResult = await getWikiCategories(db);
 
-// Query actual article counts per category
+// Query actual article counts per category (excluding test/deleted users)
 const articleCounts = await db
   .select({
     categoryId: schema.wikiArticles.categoryId,
     count: sql<number>`count(*)`,
   })
   .from(schema.wikiArticles)
-  .where(eq(schema.wikiArticles.status, "published"))
+  .innerJoin(schema.user, sql`${schema.wikiArticles.authorId} = ${schema.user.id}`)
+  .where(
+    and(
+      eq(schema.wikiArticles.status, "published"),
+      notLike(schema.user.name, "%[Test Account]%"),
+      notLike(schema.user.name, "%[deleted]%")
+    )
+  )
   .groupBy(schema.wikiArticles.categoryId);
 
 const countMap = new Map(articleCounts.map(r => [r.categoryId, r.count]));

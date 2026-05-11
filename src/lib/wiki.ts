@@ -1,4 +1,4 @@
-import { eq, desc, and, or, like, sql } from "drizzle-orm";
+import { eq, desc, and, or, like, notLike, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../db/schema";
 
@@ -43,7 +43,9 @@ export function getWikiArticles(
     .where(
       and(
         eq(schema.wikiCategories.slug, categorySlug),
-        eq(schema.wikiArticles.status, "published")
+        eq(schema.wikiArticles.status, "published"),
+        notLike(schema.user.name, "%[Test Account]%"),
+        notLike(schema.user.name, "%[deleted]%")
       )
     )
     .orderBy(desc(schema.wikiArticles.publishedAt))
@@ -151,9 +153,15 @@ export function getRecentWikiArticles(
       categoryName: schema.wikiCategories.name,
     })
     .from(schema.wikiArticles)
-    .leftJoin(schema.user, eq(schema.wikiArticles.authorId, schema.user.id))
+    .innerJoin(schema.user, eq(schema.wikiArticles.authorId, schema.user.id))
     .leftJoin(schema.wikiCategories, eq(schema.wikiArticles.categoryId, schema.wikiCategories.id))
-    .where(eq(schema.wikiArticles.status, "published"))
+    .where(
+      and(
+        eq(schema.wikiArticles.status, "published"),
+        notLike(schema.user.name, "%[Test Account]%"),
+        notLike(schema.user.name, "%[deleted]%")
+      )
+    )
     .orderBy(desc(schema.wikiArticles.publishedAt))
     .limit(limit);
 }

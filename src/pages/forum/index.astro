@@ -7,7 +7,7 @@
 import ForumLayout from "@/layouts/ForumLayout.astro";
 import { getForumCategories } from "@/lib/forum";
 import { requireRole, ROLES } from "@/lib/roles";
-import { sql, desc } from "drizzle-orm";
+import { sql, desc, notLike, and } from "drizzle-orm";
 import * as schema from "../../db/schema";
 
 export const prerender = false;
@@ -16,24 +16,38 @@ const db = Astro.locals.db!;
 const user = Astro.locals.user;
 const categoriesResult = await getForumCategories(db);
 
-// Query actual thread counts per category
+// Query actual thread counts per category (excluding test/deleted users)
 const threadCounts = await db
   .select({
     categoryId: schema.forumThreads.categoryId,
     count: sql<number>`count(*)`,
   })
   .from(schema.forumThreads)
+  .innerJoin(schema.user, sql`${schema.forumThreads.authorId} = ${schema.user.id}`)
+  .where(
+    and(
+      notLike(schema.user.name, "%[Test Account]%"),
+      notLike(schema.user.name, "%[deleted]%")
+    )
+  )
   .groupBy(schema.forumThreads.categoryId);
 
 const threadCountMap = new Map(threadCounts.map(r => [r.categoryId, r.count]));
 
-// Query latest thread per category (ordered by lastReplyAt descending)
+// Query latest thread per category (ordered by lastReplyAt descending, excluding test/deleted users)
 const latestThreads = await db
   .select({
     categoryId: schema.forumThreads.categoryId,
     title: schema.forumThreads.title,
   })
   .from(schema.forumThreads)
+  .innerJoin(schema.user, sql`${schema.forumThreads.authorId} = ${schema.user.id}`)
+  .where(
+    and(
+      notLike(schema.user.name, "%[Test Account]%"),
+      notLike(schema.user.name, "%[deleted]%")
+    )
+  )
   .orderBy(desc(schema.forumThreads.lastReplyAt));
 
 // Build a map of categoryId -> latest thread title (first occurrence per category)

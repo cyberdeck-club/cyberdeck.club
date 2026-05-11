@@ -1,4 +1,4 @@
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, notLike, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../db/schema";
 
@@ -43,7 +43,13 @@ export function getForumThreads(
       eq(schema.forumThreads.categoryId, schema.forumCategories.id)
     )
     .innerJoin(schema.user, eq(schema.forumThreads.authorId, schema.user.id))
-    .where(eq(schema.forumCategories.slug, categorySlug))
+    .where(
+      and(
+        eq(schema.forumCategories.slug, categorySlug),
+        notLike(schema.user.name, "%[Test Account]%"),
+        notLike(schema.user.name, "%[deleted]%")
+      )
+    )
     .orderBy(desc(schema.forumThreads.isPinned), desc(schema.forumThreads.lastReplyAt))
     .limit(limit)
     .offset(offset);
@@ -161,8 +167,14 @@ export function getRecentForumThreads(
       categoryName: schema.forumCategories.name,
     })
     .from(schema.forumThreads)
-    .leftJoin(schema.user, eq(schema.forumThreads.authorId, schema.user.id))
+    .innerJoin(schema.user, eq(schema.forumThreads.authorId, schema.user.id))
     .leftJoin(schema.forumCategories, eq(schema.forumThreads.categoryId, schema.forumCategories.id))
+    .where(
+      and(
+        notLike(schema.user.name, "%[Test Account]%"),
+        notLike(schema.user.name, "%[deleted]%")
+      )
+    )
     .orderBy(desc(schema.forumThreads.lastReplyAt))
     .limit(limit);
 }
