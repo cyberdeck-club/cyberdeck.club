@@ -7,6 +7,7 @@
  */
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { hasAcceptedGuidelines, CURRENT_GUIDELINES_VERSION } from "@/lib/guidelines";
+import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
 import { env } from "cloudflare:workers";
 
 export const prerender = false;
@@ -104,34 +105,12 @@ const turnstileSiteKey = (env as App.Env).PUBLIC_TURNSTILE_SITE_KEY ?? "";
               inspire-ers, attribute properly, and keep it original (or clearly mark
               derivatives).
             </li>
-          </ul>
-        </section>
-
-        <section class="guideline-section">
-          <h2>🤖 AI Tools & Creative Process</h2>
-          <p>
-            Using AI tools — for drafting wiki articles, generating wiring diagrams,
-            brainstorming build ideas, or anything else — is an individual decision.
-            It can be done thoughtfully and ethically when you're intentional about it.
-          </p>
-          <ul>
             <li>
-              <strong>We don't shame folks for using AI tools</strong> — that's their call.
-            </li>
-            <li>
-              <strong>We don't shame folks for choosing <em>not</em> to use AI tools</strong> —
-              that's equally valid.
-            </li>
-            <li>
-              <strong>Harassing someone about their choice to use or not use AI is a
-              bannable offense.</strong> This includes mocking someone for "cheating" with AI,
-              or pressuring someone to "get with the times."
+              <strong>Harassing someone over their tools or creative process.</strong>
+              Whether someone uses AI tools or doesn't is their call — bullying
+              people about <em>how</em> they make things is not okay.
             </li>
           </ul>
-          <p>
-            The goal: a space where builders can make things and share them without being
-            policed on <em>how</em> they made them.
-          </p>
         </section>
 
         <section class="guideline-section">
@@ -220,6 +199,25 @@ const turnstileSiteKey = (env as App.Env).PUBLIC_TURNSTILE_SITE_KEY ?? "";
           </div>
         )}
       </div>
+
+      {/* "Not for me" exit ramp — only show for logged-in users */}
+      {user && (
+        <div class="not-for-me-section">
+          <details class="not-for-me-details">
+            <summary class="not-for-me-summary">
+              This community isn't for me — I'd like to delete my account
+            </summary>
+            <div class="not-for-me-content">
+              <p>
+                No hard feelings. If our guidelines don't align with what you're looking for,
+                you can delete your account here. Your profile and login will be permanently
+                removed and any content will be anonymized.
+              </p>
+              <DeleteAccountModal client:load />
+            </div>
+          </details>
+        </div>
+      )}
     </div>
   </div>
 </BaseLayout>
@@ -585,6 +583,58 @@ const turnstileSiteKey = (env as App.Env).PUBLIC_TURNSTILE_SITE_KEY ?? "";
     box-shadow: 3px 3px 0 var(--color-primary-700);
   }
 
+  /* "Not for me" exit ramp */
+  .not-for-me-section {
+    margin-top: 1.5rem;
+  }
+
+  .not-for-me-details {
+    border: 2px solid var(--color-danger);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .not-for-me-summary {
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 6%, transparent);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .not-for-me-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .not-for-me-summary::before {
+    content: "▸";
+    display: inline-block;
+    transition: transform 0.15s ease;
+    font-size: 0.75rem;
+  }
+
+  .not-for-me-details[open] .not-for-me-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .not-for-me-content {
+    padding: 1.25rem 1.5rem;
+    background: var(--surface);
+    border-top: 2px solid var(--color-danger);
+  }
+
+  .not-for-me-content p {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin: 0 0 1rem 0;
+  }
+
   @media (max-width: 640px) {
     .guidelines-page {
       padding: 2rem 0.75rem;
@@ -593,6 +643,14 @@ const turnstileSiteKey = (env as App.Env).PUBLIC_TURNSTILE_SITE_KEY ?? "";
     .guidelines-content,
     .guidelines-action {
       padding: 1.5rem;
+    }
+
+    .not-for-me-summary {
+      padding: 0.75rem 1rem;
+    }
+
+    .not-for-me-content {
+      padding: 1rem;
     }
   }
 </style>

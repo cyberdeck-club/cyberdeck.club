@@ -6,6 +6,7 @@
 
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import TokenManager from "@/components/tokens/TokenManager";
+import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
 
 export const prerender = false;
 
@@ -129,6 +130,18 @@ const currentUser = user;
         Personal Access Tokens let you use the cyberdeck.club API from scripts, tools, and AI assistants.
       </p>
       <TokenManager client:load userRole={currentUser.role} />
+    </div>
+
+    <!-- Danger Zone Section -->
+    <div class="danger-zone" style="margin-top: var(--space-8);">
+      <h2 class="danger-zone-title">Danger Zone ⚠️</h2>
+      <div class="danger-zone-container">
+        <p class="danger-zone-description">
+          Deleting your account is permanent. Your profile and login will be removed,
+          and all your content will be anonymized. This cannot be undone.
+        </p>
+        <DeleteAccountModal client:load />
+      </div>
     </div>
   </div>
 </BaseLayout>
@@ -391,9 +404,68 @@ const currentUser = user;
     background: var(--color-surface-alt);
   }
 
+  /* ============================================
+     Danger Zone
+     ============================================ */
+  
+  .danger-zone {
+    border: 3px solid var(--color-danger);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .danger-zone-title {
+    font-family: var(--font-display);
+    font-size: var(--fs-h4);
+    font-weight: 700;
+    color: var(--color-danger);
+    margin: 0;
+    padding: var(--space-4) var(--space-8);
+    background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+    border-bottom: 3px solid var(--color-danger);
+  }
+
+  .danger-zone-container {
+    padding: var(--space-6) var(--space-8);
+    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .danger-zone-description {
+    margin: 0;
+    font-size: var(--fs-body);
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: var(--fs-h4);
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0 0 var(--space-2);
+  }
+
+  .section-description {
+    font-size: var(--fs-body);
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-6);
+    line-height: 1.6;
+  }
+
   @media (max-width: 640px) {
     .settings-page {
       padding: var(--space-6) var(--space-3);
+    }
+
+    .danger-zone-title {
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .danger-zone-container {
+      padding: var(--space-4);
     }
   }
 </style>

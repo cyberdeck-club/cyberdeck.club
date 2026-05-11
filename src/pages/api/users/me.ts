@@ -1,8 +1,14 @@
 import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
+import { env } from "cloudflare:workers";
 import { requireAuth } from "../../../lib/require-auth";
 import { ROLES } from "../../../lib/roles";
 import { user } from "../../../db/auth-schema";
+import {
+  deleteUserAccount,
+  getOrCreateDeletedUser,
+  sendAccountDeletionEmails,
+} from "../../../lib/account-deletion";
 
 /**
  * GET /api/users/me
@@ -212,6 +218,100 @@ export const PATCH: APIRoute = async (ctx) => {
     console.error("Failed to update user profile:", err);
     return new Response(
       JSON.stringify({ error: "Failed to update profile" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+};
+
+/**
+ * DELETE /api/users/me
+ *
+ * Permanently deletes the authenticated user's own account.
+ * All authored content is reassigned to the system [deleted] user
+ * and scrubbed to '[deleted]'.
+ *
+ * Requires MEMBER role minimum.
+ * Body: { "confirm": "DELETE MY ACCOUNT" }
+ */
+export const DELETE: APIRoute = async (ctx) => {
+  // Require authentication — any member can delete their own account
+  const authResult = requireAuth(ctx.locals.user, ROLES.MEMBER);
+  if (authResult instanceof Response) return authResult;
+
+  const currentUser = authResult.user;
+  const db = ctx.locals.db;
+
+  // Parse and validate confirmation body
+  let body: Record<string, unknown>;
+  try {
+    body = await ctx.request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (body.confirm !== "DELETE MY ACCOUNT") {
+    return new Response(
+      JSON.stringify({
+        error: 'Confirmation required: body must include { "confirm": "DELETE MY ACCOUNT" }',
+      }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  try {
+    // Capture user details BEFORE deletion (record is removed during deletion)
+    const userEmail = currentUser.email as string;
+    const userName = currentUser.name as string;
+
+    // Get or create the system [deleted] user
+    const deletedUserId = await getOrCreateDeletedUser(db);
+
+    // Perform the account deletion (reassign + scrub + delete)
+    const result = await deleteUserAccount(db, currentUser.id, deletedUserId);
+
+    // Fire-and-forget: send deletion notification emails
+    const cfEnv = env as App.Env;
+    const resendApiKey = cfEnv.RESEND_API_KEY ?? import.meta.env.RESEND_API_KEY ?? "";
+    const fromAddress = cfEnv.EMAIL_FROM
+      ?? cfEnv.RESEND_FROM_ADDRESS
+      ?? import.meta.env.RESEND_FROM_ADDRESS
+      ?? "cyberdeck.club <noreply@cyberdeck.club>";
+    const adminEmail = (cfEnv.ADMIN_EMAIL ?? import.meta.env.ADMIN_EMAIL ?? "").toLowerCase().trim();
+
+    if (resendApiKey) {
+      void sendAccountDeletionEmails({
+        resendApiKey,
+        fromAddress,
+        deletedUserEmail: userEmail,
+        deletedUserName: userName,
+        adminEmail,
+        deletedBy: "self",
+      }).catch((err) => {
+        console.error("[account-deletion] Email notification failed:", err);
+      });
+    }
+
+    // Session cleanup happens via cascade when user row is deleted
+    return new Response(
+      JSON.stringify({ success: true, reassigned: result.reassigned }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    console.error("Failed to delete user account:", err);
+    return new Response(
+      JSON.stringify({ error: "Failed to delete account" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
