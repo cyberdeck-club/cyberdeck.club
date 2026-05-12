@@ -3,19 +3,7 @@ import { eq } from "drizzle-orm";
 import { recordEdit } from "../../../../lib/edit-history";
 import * as schema from "../../../../db/schema";
 import { checkPublishingGate } from "../../../../lib/publishing-gate";
-
-// Extend better-auth User type to include role (configured as additionalFields in auth.ts)
-type UserWithRole = {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  image?: string | null;
-  role: string;
-  bio?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+import { requireRole, ROLES } from "../../../../lib/roles";
 
 /**
  * GET /api/forum/posts/[id]
@@ -121,8 +109,8 @@ export const PUT: APIRoute = async (ctx) => {
   const post = postResult[0];
   const now = Math.floor(Date.now() / 1000);
 
-  // Check access: Moderators and Admins can edit any post
-  const isModerator = userRole === "moderator" || userRole === "admin";
+  // Check access: Moderators and Admins can edit any post (uses >= comparison)
+  const isModerator = requireRole(userRole, ROLES.MODERATOR);
   const isAuthor = post.authorId === userId;
 
   if (!isModerator && !isAuthor) {
@@ -226,8 +214,8 @@ export const DELETE: APIRoute = async (ctx) => {
 
   const post = postResult[0];
 
-  // Check access: Moderators and Admins can delete any post
-  const isModerator = userRole === "moderator" || userRole === "admin";
+  // Check access: Moderators and Admins can delete any post (uses >= comparison)
+  const isModerator = requireRole(userRole, ROLES.MODERATOR);
   const isAuthor = post.authorId === userId;
 
   if (!isModerator && !isAuthor) {

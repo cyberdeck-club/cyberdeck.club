@@ -3,18 +3,7 @@ import { eq, asc, sql } from "drizzle-orm";
 import * as schema from "../../../../db/schema";
 import { recordEdit } from "../../../../lib/edit-history";
 import { checkPublishingGate } from "../../../../lib/publishing-gate";
-
-type UserWithRole = {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  image?: string | null;
-  role: string;
-  bio?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+import { requireRole, ROLES } from "../../../../lib/roles";
 
 /**
  * PUT /api/forum/threads/[id]
@@ -40,7 +29,7 @@ export const PUT: APIRoute = async (ctx) => {
 
   const db = ctx.locals.db;
   const userId = ctx.locals.user.id;
-  const userRole = (ctx.locals.user as UserWithRole).role;
+  const userRole = (ctx.locals.user as { role: string }).role;
 
   // Check publishing gate (guidelines acceptance)
   const gateResult = await checkPublishingGate(db, userId);
@@ -83,13 +72,24 @@ export const PUT: APIRoute = async (ctx) => {
 
   const thread = threadResult[0];
 
-  // Check access: Moderators and Admins can edit any thread
-  const isModerator = userRole === "moderator" || userRole === "admin";
+  // Check access: Moderators and Admins can edit any thread (uses >= comparison)
+  const isModerator = requireRole(userRole, ROLES.MODERATOR);
   const isAuthor = thread.authorId === userId;
 
   if (!isModerator && !isAuthor) {
     return new Response(
       JSON.stringify({ error: "You can only edit your own threads" }),
+      {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  // Non-moderators cannot edit locked threads
+  if (!isModerator && thread.isLocked === 1) {
+    return new Response(
+      JSON.stringify({ error: "Thread is locked" }),
       {
         status: 403,
         headers: { "Content-Type": "application/json" },

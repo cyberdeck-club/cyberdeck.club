@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
 import * as schema from "../../../../../../db/schema";
+import { requireRole, ROLES } from "../../../../../../lib/roles";
 
 /**
  * PUT /api/admin/forum/threads/[id]/pin
@@ -19,9 +20,9 @@ export const PUT: APIRoute = async (ctx) => {
     });
   }
 
-  // Require moderator or admin role
-  const userRole = (ctx.locals.user as any).role;
-  if (userRole !== "moderator" && userRole !== "admin") {
+  // Require moderator or admin role (uses >= comparison via requireRole)
+  const userRole = (ctx.locals.user as { role: string }).role;
+  if (!requireRole(userRole, ROLES.MODERATOR)) {
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403,
       headers: { "Content-Type": "application/json" },
