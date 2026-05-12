@@ -18,6 +18,27 @@
   --shadow-hard:  var(--color-ink-900);
   --link:         var(--color-primary-700);
   --link-hover:   var(--color-primary-600);
+
+  /* Tailwind Typography prose overrides for light mode
+     Uses our plum-based ink palette instead of Tailwind's default gray */
+  --tw-prose-body:            var(--color-ink-800);
+  --tw-prose-headings:        var(--color-ink-900);
+  --tw-prose-lead:            var(--color-ink-600);
+  --tw-prose-links:           var(--color-primary-700);
+  --tw-prose-bold:            var(--color-ink-900);
+  --tw-prose-counters:        var(--color-ink-600);
+  --tw-prose-bullets:         var(--color-ink-600);
+  --tw-prose-hr:              var(--color-ink-200);
+  --tw-prose-quotes:          var(--color-ink-800);
+  --tw-prose-quote-borders:   var(--color-secondary-400);
+  --tw-prose-captions:        var(--color-ink-600);
+  --tw-prose-kbd:             var(--color-ink-800);
+  --tw-prose-kbd-shadows:     0 0 0;
+  --tw-prose-code:            var(--color-ink-800);
+  --tw-prose-pre-code:        var(--color-ink-200);
+  --tw-prose-pre-bg:          var(--color-ink-900);
+  --tw-prose-th-borders:      var(--color-ink-300);
+  --tw-prose-td-borders:      var(--color-ink-200);
 }
 
 /* Dark mode — femme-coded, NOT terminal-coded */
@@ -33,6 +54,29 @@
   --shadow-hard:  var(--color-surface-100);
   --link:         var(--color-primary-400);
   --link-hover:   var(--color-primary-300);
+
+  /* Tailwind Typography prose overrides for dark mode
+     Maps @tailwindcss/typography internal variables to our semantic tokens
+     so .prose content (forum posts, wiki articles, build descriptions)
+     automatically adapts without needing dark: class prefixes */
+  --tw-prose-body:            var(--color-surface-100);
+  --tw-prose-headings:        var(--color-surface-100);
+  --tw-prose-lead:            var(--color-surface-300);
+  --tw-prose-links:           var(--color-primary-400);
+  --tw-prose-bold:            var(--color-surface-100);
+  --tw-prose-counters:        var(--color-surface-400);
+  --tw-prose-bullets:         var(--color-surface-400);
+  --tw-prose-hr:              var(--color-surface-400);
+  --tw-prose-quotes:          var(--color-surface-200);
+  --tw-prose-quote-borders:   var(--color-secondary-600);
+  --tw-prose-captions:        var(--color-surface-400);
+  --tw-prose-kbd:             var(--color-surface-100);
+  --tw-prose-kbd-shadows:     0 0 0;
+  --tw-prose-code:            var(--color-surface-100);
+  --tw-prose-pre-code:        var(--color-surface-200);
+  --tw-prose-pre-bg:          var(--color-ink-800);
+  --tw-prose-th-borders:      var(--color-surface-400);
+  --tw-prose-td-borders:      var(--color-surface-600);
 }
 
 @theme inline {

@@ -107,7 +107,7 @@ const contentHtml = renderMarkdownToHtml(customContent ?? defaultContent);
       subtitle={pageSubtitle}
     />
     
-    <div class="prose prose-pink dark:prose-invert max-w-none">
+    <div class="prose max-w-none">
       <Fragment set:html={contentHtml} />
     </div>
   </div>
