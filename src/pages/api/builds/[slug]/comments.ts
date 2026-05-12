@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { eq, isNull, and } from "drizzle-orm";
+import { eq, isNull, and, notLike } from "drizzle-orm";
 import * as schema from "../../../../db/schema";
 import { checkPublishingGate } from "../../../../lib/publishing-gate";
 
@@ -53,7 +53,9 @@ export const GET: APIRoute = async (ctx) => {
     .where(
       and(
         eq(schema.buildComments.buildId, buildId),
-        isNull(schema.buildComments.deletedAt)
+        isNull(schema.buildComments.deletedAt),
+        notLike(schema.user.name, "%[Test Account]%"),
+        notLike(schema.user.name, "%[deleted]%")
       )
     )
     .orderBy(schema.buildComments.createdAt);

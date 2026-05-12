@@ -110,7 +110,13 @@ export function getForumPosts(
     })
     .from(schema.forumPosts)
     .innerJoin(schema.user, eq(schema.forumPosts.authorId, schema.user.id))
-    .where(eq(schema.forumPosts.threadId, threadId))
+    .where(
+      and(
+        eq(schema.forumPosts.threadId, threadId),
+        notLike(schema.user.name, "%[Test Account]%"),
+        notLike(schema.user.name, "%[deleted]%")
+      )
+    )
     .orderBy(asc(normalisedCreatedAt), asc(schema.forumPosts.id))
     .limit(limit)
     .offset(offset);

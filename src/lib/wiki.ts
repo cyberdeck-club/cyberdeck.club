@@ -195,7 +195,9 @@ export function searchWikiArticles(
         or(
           like(schema.wikiArticles.title, searchPattern),
           like(schema.wikiArticles.content, searchPattern)
-        )
+        ),
+        notLike(schema.user.name, "%[Test Account]%"),
+        notLike(schema.user.name, "%[deleted]%")
       )
     )
     .orderBy(desc(schema.wikiArticles.publishedAt))
