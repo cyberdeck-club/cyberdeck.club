@@ -18,9 +18,31 @@
   --shadow-hard:  var(--color-ink-900);
   --link:         var(--color-primary-700);
   --link-hover:   var(--color-primary-600);
+}
 
-  /* Tailwind Typography prose overrides for light mode
-     Uses our plum-based ink palette instead of Tailwind's default gray */
+/* Dark mode — femme-coded, NOT terminal-coded */
+[data-theme="dark"] {
+  --bg:           var(--color-surface-950);
+  --surface:      var(--color-secondary-950);
+  --surface-alt:  var(--color-ink-800);
+  --text:         var(--color-surface-100);
+  --text-muted:   var(--color-surface-400);
+  --text-inverse: var(--color-ink-900);
+  --border:       var(--color-surface-100);
+  --focus:        var(--color-primary-400);
+  --shadow-hard:  var(--color-surface-100);
+  --link:         var(--color-primary-400);
+  --link-hover:   var(--color-primary-300);
+}
+
+/* Tailwind Typography prose overrides
+   These MUST target .prose directly (not an ancestor) so they override
+   the hardcoded oklch values that @tailwindcss/typography sets on .prose.
+   CSS custom properties set on an element beat values inherited from ancestors. */
+
+/* Light mode prose — plum-based ink palette instead of Tailwind's default gray */
+:root .prose,
+[data-theme="light"] .prose {
   --tw-prose-body:            var(--color-ink-800);
   --tw-prose-headings:        var(--color-ink-900);
   --tw-prose-lead:            var(--color-ink-600);
@@ -41,24 +63,8 @@
   --tw-prose-td-borders:      var(--color-ink-200);
 }
 
-/* Dark mode — femme-coded, NOT terminal-coded */
-[data-theme="dark"] {
-  --bg:           var(--color-surface-950);
-  --surface:      var(--color-secondary-950);
-  --surface-alt:  var(--color-ink-800);
-  --text:         var(--color-surface-100);
-  --text-muted:   var(--color-surface-400);
-  --text-inverse: var(--color-ink-900);
-  --border:       var(--color-surface-100);
-  --focus:        var(--color-primary-400);
-  --shadow-hard:  var(--color-surface-100);
-  --link:         var(--color-primary-400);
-  --link-hover:   var(--color-primary-300);
-
-  /* Tailwind Typography prose overrides for dark mode
-     Maps @tailwindcss/typography internal variables to our semantic tokens
-     so .prose content (forum posts, wiki articles, build descriptions)
-     automatically adapts without needing dark: class prefixes */
+/* Dark mode prose — light text on dark surfaces */
+[data-theme="dark"] .prose {
   --tw-prose-body:            var(--color-surface-100);
   --tw-prose-headings:        var(--color-surface-100);
   --tw-prose-lead:            var(--color-surface-300);
