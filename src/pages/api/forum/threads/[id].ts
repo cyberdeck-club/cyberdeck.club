@@ -6,6 +6,99 @@ import { checkPublishingGate } from "../../../../lib/publishing-gate";
 import { requireRole, ROLES } from "../../../../lib/roles";
 
 /**
+ * DELETE /api/forum/threads/[id]
+ * Soft-deletes a forum thread by setting deletedAt timestamp.
+ * Also soft-deletes all posts in the thread.
+ * Access: Thread author OR Moderator/Admin
+ */
+export const DELETE: APIRoute = async (ctx) => {
+  // Require authentication
+  if (!ctx.locals.user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const threadId = ctx.params.id;
+  if (!threadId) {
+    return new Response(JSON.stringify({ error: "Thread ID required" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const db = ctx.locals.db;
+  const userId = ctx.locals.user.id;
+  const userRole = (ctx.locals.user as { role: string }).role;
+
+  // Fetch the thread to check ownership
+  const threadResult = await db
+    .select()
+    .from(schema.forumThreads)
+    .where(eq(schema.forumThreads.id, threadId))
+    .limit(1);
+
+  if (threadResult.length === 0) {
+    return new Response(JSON.stringify({ error: "Thread not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const thread = threadResult[0];
+
+  // Already soft-deleted
+  if (thread.deletedAt) {
+    return new Response(JSON.stringify({ error: "Thread already deleted" }), {
+      status: 410,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Check access: Moderators and Admins can delete any thread (uses >= comparison)
+  const isModerator = requireRole(userRole, ROLES.MODERATOR);
+  const isAuthor = thread.authorId === userId;
+
+  if (!isModerator && !isAuthor) {
+    return new Response(JSON.stringify({ error: "You can only delete your own threads" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+
+  try {
+    // Soft-delete the thread and all its posts in a batch
+    await db.batch([
+      db
+        .update(schema.forumThreads)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(eq(schema.forumThreads.id, threadId)),
+      db
+        .update(schema.forumPosts)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(eq(schema.forumPosts.threadId, threadId)),
+    ]);
+
+    return new Response(
+      JSON.stringify({ success: true, deletedAt: now }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    console.error("Failed to delete thread:", err);
+    return new Response(JSON.stringify({ error: "Failed to delete thread" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+};
+
+/**
  * PUT /api/forum/threads/[id]
  * Updates a forum thread's title.
  * Access: Thread author OR Moderator/Admin

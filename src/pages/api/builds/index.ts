@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import * as schema from "../../../db/schema";
-import { eq, and, sql, count } from "drizzle-orm";
+import { eq, and, sql, count, isNull } from "drizzle-orm";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
 import { autoReviewBuild } from "../../../lib/moderation";
 import { requireAuth } from "../../../lib/require-auth";
@@ -28,8 +28,8 @@ export const GET: APIRoute = async (ctx) => {
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10) || 20));
   const offset = (page - 1) * limit;
 
-  // Build where conditions
-  const conditions = [];
+  // Build where conditions — always exclude soft-deleted builds
+  const conditions = [isNull(schema.builds.deletedAt)];
   if (status) {
     conditions.push(eq(schema.builds.status, status));
   }

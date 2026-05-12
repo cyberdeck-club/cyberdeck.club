@@ -57,6 +57,13 @@
       "when": 1778338367563,
       "tag": "0007_smart_ultron",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1778597890533,
+      "tag": "0008_breezy_boom_boom",
+      "breakpoints": true
     }
   ]
 }

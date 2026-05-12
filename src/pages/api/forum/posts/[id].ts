@@ -173,9 +173,8 @@ export const PUT: APIRoute = async (ctx) => {
 
 /**
  * DELETE /api/forum/posts/[id]
- * Soft-deletes a post.
+ * Soft-deletes a post by setting deletedAt timestamp.
  * Access: Post author OR Moderator/Admin
- * Note: Requires deletedAt column in schema - returns 501 if not available
  */
 export const DELETE: APIRoute = async (ctx) => {
   // Require authentication
@@ -214,6 +213,14 @@ export const DELETE: APIRoute = async (ctx) => {
 
   const post = postResult[0];
 
+  // Already soft-deleted
+  if (post.deletedAt) {
+    return new Response(JSON.stringify({ error: "Post already deleted" }), {
+      status: 410,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   // Check access: Moderators and Admins can delete any post (uses >= comparison)
   const isModerator = requireRole(userRole, ROLES.MODERATOR);
   const isAuthor = post.authorId === userId;
@@ -225,32 +232,15 @@ export const DELETE: APIRoute = async (ctx) => {
     });
   }
 
-  // Check if schema supports soft delete (has deletedAt column)
-  // The forumPosts table in schema.ts doesn't have deletedAt,
-  // so we return 501 Not Implemented
-  const hasDeletedAt = "deletedAt" in schema.forumPosts.fields;
-
-  if (!hasDeletedAt) {
-    return new Response(
-      JSON.stringify({
-        error: "soft_delete_not_available",
-        message: "Soft delete is not available for forum posts at this time",
-      }),
-      {
-        status: 501,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-  }
-
   // Perform soft delete
   const now = Math.floor(Date.now() / 1000);
   try {
     await db
       .update(schema.forumPosts)
       .set({
+        deletedAt: now,
         updatedAt: now,
-      } as any) // Cast since TypeScript doesn't know about deletedAt
+      })
       .where(eq(schema.forumPosts.id, id));
 
     return new Response(

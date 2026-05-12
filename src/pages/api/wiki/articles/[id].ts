@@ -274,12 +274,8 @@ export const PUT: APIRoute = async (ctx) => {
 /**
  * DELETE /api/wiki/articles/[id]
  *
- * Deletes a wiki article.
- * Requires MODERATOR role minimum (role >= 40).
- *
- * TODO: Implement soft-delete (add a `deletedAt` column to wikiArticles schema)
- * instead of hard-deleting. For now, this performs a hard delete — revisions and
- * comments cascade-delete via foreign key constraints.
+ * Soft-deletes a wiki article by setting deletedAt timestamp.
+ * Access: Article author OR Moderator/Admin
  */
 export const DELETE: APIRoute = async (ctx) => {
   // Require authentication
@@ -300,14 +296,15 @@ export const DELETE: APIRoute = async (ctx) => {
   }
 
   const db = ctx.locals.db;
+  const userId = ctx.locals.user.id;
   const userRole = ctx.locals.user.role;
 
-  // Require MODERATOR role minimum
-  if (!requireRole(userRole, ROLES.MODERATOR)) {
+  // Require MAKER role minimum (authors can delete their own)
+  if (!requireRole(userRole, ROLES.MAKER)) {
     return new Response(
       JSON.stringify({
         error: "insufficient_permissions",
-        message: "Only moderators and admins can delete wiki articles",
+        message: "Only makers, moderators, and admins can delete wiki articles",
       }),
       {
         status: 403,
@@ -317,9 +314,13 @@ export const DELETE: APIRoute = async (ctx) => {
   }
 
   try {
-    // Verify the article exists
+    // Verify the article exists and get author info
     const articles = await db
-      .select({ id: schema.wikiArticles.id })
+      .select({
+        id: schema.wikiArticles.id,
+        authorId: schema.wikiArticles.authorId,
+        deletedAt: schema.wikiArticles.deletedAt,
+      })
       .from(schema.wikiArticles)
       .where(eq(schema.wikiArticles.id, articleId))
       .limit(1);
@@ -331,12 +332,42 @@ export const DELETE: APIRoute = async (ctx) => {
       });
     }
 
-    // Hard delete the article (revisions and comments cascade-delete)
+    const article = articles[0];
+
+    // Already soft-deleted
+    if (article.deletedAt) {
+      return new Response(JSON.stringify({ error: "Article already deleted" }), {
+        status: 410,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Check access: author or moderator/admin
+    const isAuthor = article.authorId === userId;
+    const isModerator = requireRole(userRole, ROLES.MODERATOR);
+
+    if (!isAuthor && !isModerator) {
+      return new Response(
+        JSON.stringify({ error: "You can only delete your own articles" }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+
+    // Soft-delete the article
     await db
-      .delete(schema.wikiArticles)
+      .update(schema.wikiArticles)
+      .set({
+        deletedAt: now,
+        updatedAt: now,
+      })
       .where(eq(schema.wikiArticles.id, articleId));
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, deletedAt: now }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

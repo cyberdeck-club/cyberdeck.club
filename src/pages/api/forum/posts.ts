@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { eq, asc, sql } from "drizzle-orm";
+import { eq, asc, and, isNull, sql } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
 
@@ -182,7 +182,7 @@ export const GET: APIRoute = async (ctx) => {
     })
     .from(schema.forumPosts)
     .innerJoin(schema.user, eq(schema.forumPosts.authorId, schema.user.id))
-    .where(eq(schema.forumPosts.threadId, threadId))
+    .where(and(eq(schema.forumPosts.threadId, threadId), isNull(schema.forumPosts.deletedAt)))
     .orderBy(asc(normalisedCreatedAt), asc(schema.forumPosts.id))
     .limit(limit)
     .offset(offset);

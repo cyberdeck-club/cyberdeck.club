@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, isNull } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
 
@@ -194,10 +194,10 @@ export const GET: APIRoute = async (ctx) => {
   const offset = (page - 1) * limit;
   const categorySlug = url.searchParams.get("category");
 
-  // Build conditions array
+  // Build conditions array — always exclude soft-deleted threads
   const conditions = categorySlug
-    ? eq(schema.forumCategories.slug, categorySlug)
-    : undefined;
+    ? and(eq(schema.forumCategories.slug, categorySlug), isNull(schema.forumThreads.deletedAt))
+    : isNull(schema.forumThreads.deletedAt);
 
   const results = await db
     .select({

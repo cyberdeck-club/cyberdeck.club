@@ -1,4 +1,4 @@
-import { eq, desc, and, or, like, notLike, sql } from "drizzle-orm";
+import { eq, desc, and, or, like, notLike, isNull, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../db/schema";
 
@@ -44,6 +44,7 @@ export function getWikiArticles(
       and(
         eq(schema.wikiCategories.slug, categorySlug),
         eq(schema.wikiArticles.status, "published"),
+        isNull(schema.wikiArticles.deletedAt),
         notLike(schema.user.name, "%[Test Account]%"),
         notLike(schema.user.name, "%[deleted]%")
       )
@@ -78,7 +79,8 @@ export function getWikiArticle(
       and(
         eq(schema.wikiCategories.slug, categorySlug),
         eq(schema.wikiArticles.slug, articleSlug),
-        eq(schema.wikiArticles.status, "published")
+        eq(schema.wikiArticles.status, "published"),
+        isNull(schema.wikiArticles.deletedAt)
       )
     )
     .limit(1);
@@ -158,6 +160,7 @@ export function getRecentWikiArticles(
     .where(
       and(
         eq(schema.wikiArticles.status, "published"),
+        isNull(schema.wikiArticles.deletedAt),
         notLike(schema.user.name, "%[Test Account]%"),
         notLike(schema.user.name, "%[deleted]%")
       )
@@ -192,6 +195,7 @@ export function searchWikiArticles(
     .where(
       and(
         eq(schema.wikiArticles.status, "published"),
+        isNull(schema.wikiArticles.deletedAt),
         or(
           like(schema.wikiArticles.title, searchPattern),
           like(schema.wikiArticles.content, searchPattern)

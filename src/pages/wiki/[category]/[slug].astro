@@ -144,7 +144,7 @@ if (!notFound) {
   const isAuthor = isArticleOwner(user, article.authorId ?? "");
   const isModeratorOrAdmin = hasMinRole(user, "moderator");
   articleCanEdit = isAuthor || isModeratorOrAdmin;
-  articleCanDelete = isAuthor || hasMinRole(user, "admin");
+  articleCanDelete = isAuthor || isModeratorOrAdmin;
 
   // Article ID for API calls (using article.id)
   articleId = article.id;

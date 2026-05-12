@@ -109,6 +109,17 @@ function canEditPost(post: { id: string; authorId: string; createdAt: number }):
   return (now - post.createdAt) < thirtyMinutesInSeconds;
 }
 
+// Check if current user can delete a specific post
+// Authors, moderators, and admins can delete (no time limit)
+function canDeletePost(post: { id: string; authorId: string }): boolean {
+  if (!currentUser) return false;
+  if (requireRole(currentUser.role, ROLES.MODERATOR)) return true;
+  return post.authorId === currentUser.id;
+}
+
+// Check if current user can delete this thread
+const canDeleteThread = isThreadAuthor || isModOrAdmin;
+
 // Pre-fetch edit history for all posts (batched approach)
 const postEditCache = new Map<string, { editorName: string; editedAt: number } | null>();
 
@@ -175,14 +186,25 @@ for (const item of posts) {
         
         <h1 class="thread-title">
           {threadData.thread.title}
-          {canEditThread && (
-            <a
-              href={`/forum/thread/${threadData.thread.id}/edit`}
-              class="text-sm text-blue-600 hover:text-blue-800 ml-2"
-            >
-              Edit Thread
-            </a>
-          )}
+          <span class="thread-actions">
+            {canEditThread && (
+              <a
+                href={`/forum/thread/${threadData.thread.id}/edit`}
+                class="text-sm text-blue-600 hover:text-blue-800 ml-2"
+              >
+                Edit Thread
+              </a>
+            )}
+            {canDeleteThread && (
+              <button
+                class="delete-thread-btn text-sm ml-2"
+                data-thread-id={threadData.thread.id}
+                style="color: var(--color-danger, #e53e3e); cursor: pointer; background: none; border: none; font-size: inherit;"
+              >
+                Delete Thread
+              </button>
+            )}
+          </span>
         </h1>
         
         <div class="thread-meta">
@@ -246,6 +268,15 @@ for (const item of posts) {
                         data-edit-form-id={`edit-form-${item.post.id}`}
                       >
                         Edit
+                      </button>
+                    )}
+                    {canDeletePost(item.post) && (
+                      <button
+                        class="delete-post-btn text-sm ml-2"
+                        data-post-id={item.post.id}
+                        style="color: var(--color-danger, #e53e3e); cursor: pointer; background: none; border: none;"
+                      >
+                        Delete
                       </button>
                     )}
                   </div>
@@ -934,8 +965,9 @@ for (const item of posts) {
 </style>
 
 <script>
-  // Client-side script to handle edit button clicks
+  // Client-side script to handle edit and delete button clicks
   document.addEventListener('DOMContentLoaded', () => {
+    // Edit button handlers
     const editButtons = document.querySelectorAll('.edit-post-btn');
     
     editButtons.forEach((button) => {
@@ -950,6 +982,71 @@ for (const item of posts) {
         if (contentEl && editFormEl) {
           contentEl.classList.toggle('hidden');
           editFormEl.classList.toggle('hidden');
+        }
+      });
+    });
+
+    // Delete thread handler
+    const deleteThreadBtn = document.querySelector('.delete-thread-btn') as HTMLButtonElement | null;
+    if (deleteThreadBtn) {
+      deleteThreadBtn.addEventListener('click', async () => {
+        const threadId = deleteThreadBtn.dataset.threadId;
+        if (!threadId) return;
+
+        if (!confirm('Are you sure you want to delete this thread? This will remove the thread and all its replies.')) {
+          return;
+        }
+
+        deleteThreadBtn.disabled = true;
+        deleteThreadBtn.textContent = 'Deleting...';
+
+        try {
+          const res = await fetch(`/api/forum/threads/${threadId}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Failed to delete thread');
+          }
+          window.location.href = '/forum';
+        } catch (err) {
+          alert(err instanceof Error ? err.message : 'Failed to delete thread');
+          deleteThreadBtn.disabled = false;
+          deleteThreadBtn.textContent = 'Delete Thread';
+        }
+      });
+    }
+
+    // Delete post handlers
+    const deletePostButtons = document.querySelectorAll('.delete-post-btn');
+    deletePostButtons.forEach((button) => {
+      button.addEventListener('click', async (e) => {
+        const btn = e.currentTarget as HTMLButtonElement;
+        const postId = btn.dataset.postId;
+        if (!postId) return;
+
+        if (!confirm('Are you sure you want to delete this reply?')) {
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+
+        try {
+          const res = await fetch(`/api/forum/posts/${postId}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Failed to delete post');
+          }
+          // Remove the post element from the page
+          const postWrapper = document.getElementById(`post-wrapper-${postId}`);
+          if (postWrapper) {
+            postWrapper.style.opacity = '0.5';
+            postWrapper.style.pointerEvents = 'none';
+            postWrapper.innerHTML = '<div style="padding: 1rem; color: var(--text-muted, #888); font-style: italic;">This reply has been deleted.</div>';
+          }
+        } catch (err) {
+          alert(err instanceof Error ? err.message : 'Failed to delete post');
+          btn.disabled = false;
+          btn.textContent = 'Delete';
         }
       });
     });

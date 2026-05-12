@@ -340,7 +340,7 @@ if (user) {
     )}
   </section>
 
-  <!-- Edit Button (visible to author or moderator/admin) -->
+  <!-- Edit / Delete Buttons (visible to author or moderator/admin) -->
   {isAuthorOrModerator && (
     <div class="edit-build-action">
       <a href={`/builds/${slug}/edit`} class="edit-build-btn">
@@ -350,6 +350,18 @@ if (user) {
         </svg>
         Edit Build
       </a>
+      <button
+        class="delete-build-btn"
+        data-build-slug={slug}
+      >
+        <svg class="delete-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+          <line x1="10" y1="11" x2="10" y2="17"/>
+          <line x1="14" y1="11" x2="14" y2="17"/>
+        </svg>
+        Delete Build
+      </button>
     </div>
   )}
 </BuildLayout>
@@ -889,6 +901,10 @@ if (user) {
   .edit-build-action {
     margin-top: 2rem;
     text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    align-items: center;
   }
 
   .edit-build-btn {
@@ -919,6 +935,44 @@ if (user) {
   }
 
   .edit-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .delete-build-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    font-family: inherit;
+    background: var(--color-danger, #e53e3e);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  .delete-build-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .delete-build-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .delete-build-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .delete-icon {
     width: 1rem;
     height: 1rem;
   }
@@ -965,6 +1019,39 @@ if (user) {
 
       // Scroll to form
       container.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
+</script>
+
+<script>
+  // Delete build handler
+  document.addEventListener('DOMContentLoaded', () => {
+    const deleteBtn = document.querySelector('.delete-build-btn') as HTMLButtonElement | null;
+    if (!deleteBtn) return;
+
+    deleteBtn.addEventListener('click', async () => {
+      const buildSlug = deleteBtn.dataset.buildSlug;
+      if (!buildSlug) return;
+
+      if (!confirm('Are you sure you want to delete this build? This action cannot be easily undone.')) {
+        return;
+      }
+
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = 'Deleting...';
+
+      try {
+        const res = await fetch(`/api/builds/${buildSlug}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to delete build');
+        }
+        window.location.href = '/builds';
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'Failed to delete build');
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = 'Delete Build';
+      }
     });
   });
 </script>

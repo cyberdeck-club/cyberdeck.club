@@ -1,4 +1,4 @@
-import { eq, desc, asc, and, notLike, sql } from "drizzle-orm";
+import { eq, desc, asc, and, notLike, isNull, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../db/schema";
 
@@ -46,6 +46,7 @@ export function getForumThreads(
     .where(
       and(
         eq(schema.forumCategories.slug, categorySlug),
+        isNull(schema.forumThreads.deletedAt),
         notLike(schema.user.name, "%[Test Account]%"),
         notLike(schema.user.name, "%[deleted]%")
       )
@@ -113,6 +114,7 @@ export function getForumPosts(
     .where(
       and(
         eq(schema.forumPosts.threadId, threadId),
+        isNull(schema.forumPosts.deletedAt),
         notLike(schema.user.name, "%[Test Account]%"),
         notLike(schema.user.name, "%[deleted]%")
       )
@@ -187,6 +189,7 @@ export function getRecentForumThreads(
     .leftJoin(schema.forumCategories, eq(schema.forumThreads.categoryId, schema.forumCategories.id))
     .where(
       and(
+        isNull(schema.forumThreads.deletedAt),
         notLike(schema.user.name, "%[Test Account]%"),
         notLike(schema.user.name, "%[deleted]%")
       )

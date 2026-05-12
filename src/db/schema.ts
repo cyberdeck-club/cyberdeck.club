@@ -40,6 +40,7 @@ export const wikiArticles = sqliteTable(
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
     publishedAt: integer("published_at"),
+    deletedAt: integer("deleted_at"),
   },
   (table) => [
     uniqueIndex("wiki_articles_category_slug_idx").on(
@@ -99,6 +100,7 @@ export const forumThreads = sqliteTable(
     lastReplyUserId: text("last_reply_user_id").references(() => user.id),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
+    deletedAt: integer("deleted_at"),
   },
   (table) => [
     index("forum_threads_category_last_reply_idx").on(
@@ -121,6 +123,7 @@ export const forumPosts = sqliteTable(
     content: text("content").notNull(),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
+    deletedAt: integer("deleted_at"),
   },
   (table) => [
     index("forum_posts_thread_created_idx").on(
@@ -149,6 +152,7 @@ export const builds = sqliteTable("builds", {
   reviewedBy: text("reviewed_by").references(() => user.id),
   reviewedAt: text("reviewed_at"), // ISO 8601
   publishedAt: text("published_at"), // ISO 8601
+  deletedAt: integer("deleted_at"),
 });
 
 // Meetups table

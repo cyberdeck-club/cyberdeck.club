@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { recordEdit } from "../../../lib/edit-history";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
+import { requireRole, ROLES } from "../../../lib/roles";
 
 /**
  * GET /api/builds/[slug]
@@ -236,6 +237,95 @@ export const PUT: APIRoute = async (ctx) => {
  * Update a build (partial update).
  * Alias for PUT - uses the same logic.
  */
+/**
+ * DELETE /api/builds/[slug]
+ * Soft-deletes a build by setting deletedAt timestamp.
+ * Access: Build author OR Moderator/Admin
+ */
+export const DELETE: APIRoute = async (ctx) => {
+  const slug = ctx.params.slug;
+
+  if (!slug || typeof slug !== "string") {
+    return new Response(JSON.stringify({ error: "slug is required" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Require authentication
+  if (!ctx.locals.user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const db = ctx.locals.db;
+  const userId = ctx.locals.user.id;
+  const userRole = ctx.locals.user.role;
+
+  // Fetch the existing build
+  const builds = await db
+    .select()
+    .from(schema.builds)
+    .where(eq(schema.builds.slug, slug))
+    .limit(1);
+
+  if (builds.length === 0) {
+    return new Response(JSON.stringify({ error: "Build not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const build = builds[0];
+
+  // Already soft-deleted
+  if (build.deletedAt) {
+    return new Response(JSON.stringify({ error: "Build already deleted" }), {
+      status: 410,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Check if user is author or moderator/admin (uses >= comparison)
+  const isAuthor = build.authorId === userId;
+  const isModerator = requireRole(userRole, ROLES.MODERATOR);
+
+  if (!isAuthor && !isModerator) {
+    return new Response(JSON.stringify({ error: "You can only delete your own builds" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+
+  try {
+    await db
+      .update(schema.builds)
+      .set({
+        deletedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(schema.builds.slug, slug));
+
+    return new Response(
+      JSON.stringify({ success: true, deletedAt: now }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    console.error("Failed to delete build:", err);
+    return new Response(JSON.stringify({ error: "Failed to delete build" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+};
+
 export const PATCH: APIRoute = async (ctx) => {
   const slug = ctx.params.slug;
 
