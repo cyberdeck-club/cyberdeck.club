@@ -7,7 +7,8 @@
 
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { BuildEditor } from "@/components/editor/BuildEditor";
-import { getBuild } from "@/lib/builds";
+import { BuildFormFields } from "@/components/builds/BuildFormFields";
+import { getBuild, parseBuildJsonFields } from "@/lib/builds";
 import { eq } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
@@ -54,6 +55,52 @@ if (!isAuthor && !isModeratorOrAdmin) {
 
 // Get initial content for the editor
 const initialContent = existingBuild.description || existingBuild.content || "";
+
+// Parse structured JSON fields from the existing build
+const parsedBuild = parseBuildJsonFields(existingBuild);
+
+// Helper to safely parse JSON fields
+const safeJson = <T,>(val: T | string | null | undefined): T | undefined => {
+  if (!val) return undefined;
+  if (typeof val === 'object') return val;
+  try {
+    return JSON.parse(val as string) as T;
+  } catch {
+    return undefined;
+  }
+};
+
+const initialStructuredData = {
+  difficulty: existingBuild.difficulty || undefined,
+  computePlatform: existingBuild.computePlatform || undefined,
+  estimatedCost: existingBuild.estimatedCost ? existingBuild.estimatedCost / 100 : undefined,
+  buildTime: existingBuild.buildTime || undefined,
+  tags: parsedBuild.tags || undefined,
+  wiring: parsedBuild.wiring ?? undefined,
+  codebase: parsedBuild.codebase ?? undefined,
+  models3d: parsedBuild.models3d ?? undefined,
+  photos: parsedBuild.photos ?? undefined,
+  videos: parsedBuild.videos ?? undefined,
+  // TikTok links: check new field first, then fall back to extracting from old inspirations location
+  tiktokLinks: parsedBuild.tiktokLinks ??
+    parsedBuild.inspirations?.externalLinks?.filter((l: { url: string }) => l.url.includes("tiktok.com")).map((l: { url: string }) => l.url) ??
+    undefined,
+  billOfMaterials: parsedBuild.billOfMaterials ?? undefined,
+  circuitBoards: parsedBuild.circuitBoards ?? undefined,
+  // For inspirations, filter out TikTok links (now stored separately)
+  inspirations: parsedBuild.inspirations ? {
+    ...parsedBuild.inspirations,
+    externalLinks: parsedBuild.inspirations.externalLinks?.filter((l: { url: string }) => !l.url.includes("tiktok.com")) ?? []
+  } : undefined,
+  powerDetails: parsedBuild.powerDetails ?? undefined,
+  connectivity: parsedBuild.connectivity ?? undefined,
+  displayInfo: parsedBuild.displayInfo ?? undefined,
+  enclosure: parsedBuild.enclosureDetails ?? undefined,
+};
+
+// Serialize to JSON for passing to React component
+const initialStructuredDataJson = JSON.stringify(initialStructuredData);
+
 ---
 
 <BaseLayout title={`Edit: ${existingBuild.title}`} description="Edit your cyberdeck build">
@@ -135,6 +182,15 @@ const initialContent = existingBuild.description || existingBuild.content || "";
         <span class="form-hint">Optional: Add a hero image for your build showcase</span>
       </div>
 
+
+      <!-- Structured Build Fields (React Island) -->
+      <div id="build-form-fields-container" data-build-form-fields>
+        <BuildFormFields
+          client:load
+          initialData={initialStructuredData}
+        />
+      </div>
+
       <div class="form-actions">
         <a href={`/builds/${existingBuild.slug}`} class="btn-cancel">Cancel</a>
         <button type="submit" class="btn-submit" id="submit-btn">
@@ -204,6 +260,8 @@ const initialContent = existingBuild.description || existingBuild.content || "";
           status: statusSelect.value,
           description: descriptionInput.value,
           imageUrl: imageUrlInput.value.trim() || undefined,
+          // Include structured fields from BuildFormFields component
+          ...(window as any).__buildStructuredFields,
         }),
       });
 

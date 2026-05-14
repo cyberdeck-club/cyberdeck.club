@@ -1,13 +1,25 @@
 ---
 import BuildLayout from "@/layouts/BuildLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
-import { getBuild, getBuilds } from "@/lib/builds";
+import { getBuild, getBuilds, parseBuildJsonFields } from "@/lib/builds";
 import { eq, isNull, and } from "drizzle-orm";
 import * as schema from "../../db/schema";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
 import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
 import { getLatestEdit } from "@/lib/edit-history";
 import { requireRole, ROLES } from "@/lib/roles";
+
+// Import new section components
+import BuildMetaBar from "@/components/builds/BuildMetaBar.astro";
+import WiringSection from "@/components/builds/WiringSection.astro";
+import CodebaseSection from "@/components/builds/CodebaseSection.astro";
+import Models3DSection from "@/components/builds/Models3DSection.astro";
+import PhotoGallery from "@/components/builds/PhotoGallery.astro";
+import VideoSection from "@/components/builds/VideoSection.astro";
+import TikTokEmbed from "@/components/builds/TikTokEmbed.astro";
+import BOMTable from "@/components/builds/BOMTable.astro";
+import CircuitBoardSection from "@/components/builds/CircuitBoardSection.astro";
+import InspirationsSection from "@/components/builds/InspirationsSection.astro";
 
 // Server-rendered page
 export const prerender = false;
@@ -34,6 +46,9 @@ const result = buildResult[0];
 const build = result.build;
 const authorName = result.authorName;
 const authorId = build.authorId;
+
+// Parse JSON fields to get typed data
+const parsedBuild = parseBuildJsonFields(build);
 
 // Fetch latest edit info for this build
 let latestEditInfo: { editorName: string; editedAt: number } | null = null;
@@ -79,16 +94,21 @@ const buildData: BuildData = {
   title: build.title,
   builderName: authorName,
   builderId: authorId,
-  difficulty: "intermediate" as const, // Default - schema doesn't have difficulty yet
-  computePlatform: "Raspberry Pi", // Default - schema doesn't have computePlatform yet
-  estimatedCost: 0, // Default - schema doesn't have estimatedCost yet
-  buildTime: "Varies", // Default - schema doesn't have buildTime yet
+  difficulty: (parsedBuild.difficulty as "beginner" | "intermediate" | "advanced") || "intermediate",
+  computePlatform: parsedBuild.computePlatform || "Raspberry Pi",
+  estimatedCost: parsedBuild.estimatedCost ?? 0,
+  buildTime: parsedBuild.buildTime || "Varies",
   featuredImage: build.heroImageUrl ? { url: build.heroImageUrl, alt: build.title } : undefined,
-  gallery: [] as { url: string; alt: string }[], // Default - schema doesn't have gallery yet
+  gallery: parsedBuild.photos?.buildStepImages?.map((url, i) => ({ url, alt: `Build step ${i + 1}` })) || [],
   description: build.description || "",
   content: build.content || "",
-  partsList: [] as { name: string; link?: string; price?: number; notes?: string }[], // Default - schema doesn't have partsList yet
-  tags: [] as string[], // Default - schema doesn't have tags yet
+  partsList: parsedBuild.billOfMaterials?.items?.map(item => ({
+    name: item.item,
+    link: item.link,
+    price: item.estimatedCost,
+    notes: item.notes
+  })) || [],
+  tags: parsedBuild.tags || [],
   linkedBuildLog: undefined as string | undefined,
   linkedWikiArticles: undefined as string[] | undefined
 };
@@ -167,6 +187,37 @@ if (user) {
   buildTime={buildData.buildTime}
   tags={buildData.tags}
 >
+  <!-- Build Meta Bar -->
+  <BuildMetaBar
+    difficulty={parsedBuild.difficulty}
+    computePlatform={parsedBuild.computePlatform}
+    estimatedCost={parsedBuild.estimatedCost}
+    buildTime={parsedBuild.buildTime}
+  />
+
+  <!-- New Section Components - conditionally rendered -->
+  <WiringSection wiring={parsedBuild.wiring} />
+  <CodebaseSection codebase={parsedBuild.codebase} />
+  <Models3DSection models3d={parsedBuild.models3d} />
+  <PhotoGallery photos={parsedBuild.photos} />
+  <VideoSection videos={parsedBuild.videos} />
+  <TikTokEmbed tiktokLinks={parsedBuild.tiktokLinks} />
+  <BOMTable billOfMaterials={parsedBuild.billOfMaterials?.items} />
+  <CircuitBoardSection circuitBoards={parsedBuild.circuitBoards} />
+  <InspirationsSection inspirations={parsedBuild.inspirations} />
+
+  <!-- Description Section -->
+  <section class="build-section">
+    <h2 class="section-title">About This Build</h2>
+    <div class="description-content">
+      <Fragment set:html={renderMarkdownToHtml(buildData.description || buildData.content || "")}/>
+    </div>
+    {latestEditInfo && (
+      <p class="text-xs text-[var(--text-muted)] mt-4">
+        Last edited by {latestEditInfo.editorName} on {new Date(latestEditInfo.editedAt * 1000).toLocaleDateString()}
+      </p>
+    )}
+  </section>
   <!-- Description Section -->
   <section class="build-section">
     <h2 class="section-title">About This Build</h2>

@@ -1,0 +1,266 @@
+---
+/**
+ * InspirationsSection Component
+ * Displays links to related builds (by slug) and external inspiration links.
+ */
+
+import type { InspirationsData, ExternalLink } from "@/db/schema";
+
+interface Props {
+  inspirations: InspirationsData | null | undefined;
+}
+
+const { inspirations } = Astro.props;
+
+// We need to fetch related builds by slug to get their titles
+// For now, we'll just render the links - the page can populate titles
+// from the parsed build data or leave them as fallback
+---
+
+{inspirations && (
+  <section class="inspirations-section">
+    <h2 class="section-heading">
+      <span class="heading-icon">✨</span>
+      Inspirations
+    </h2>
+    
+    {/* Internal Build Links */}
+    {inspirations.buildSlugs && inspirations.buildSlugs.length > 0 && (
+      <div class="build-links">
+        <h3 class="subsection-heading">Related Builds</h3>
+        <div class="build-links-list">
+          {inspirations.buildSlugs.map((slug) => (
+            <a href={`/builds/${slug}`} class="build-link">
+              <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                <path d="M9 22V12h6v10"/>
+              </svg>
+              <span class="build-slug">{slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</span>
+              <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+    
+    {/* External Inspiration Links */}
+    {inspirations.externalLinks && inspirations.externalLinks.length > 0 && (
+      <div class="external-links">
+        <h3 class="subsection-heading">External Inspiration</h3>
+        <div class="external-links-list">
+          {inspirations.externalLinks.map((link: ExternalLink) => (
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="external-link"
+            >
+              <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
+              </svg>
+              <span class="external-title">{link.title}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+    
+    {/* Empty state hint */}
+    {!inspirations.buildSlugs?.length && !inspirations.externalLinks?.length && (
+      <p class="empty-hint">No inspirations linked to this build yet.</p>
+    )}
+  </section>
+)}
+
+<style>
+  .inspirations-section {
+    margin-bottom: 2.5rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 0 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid var(--border);
+  }
+
+  .heading-icon {
+    font-size: 1.25rem;
+  }
+
+  .build-links,
+  .external-links {
+    margin-bottom: 1.25rem;
+  }
+
+  .build-links:last-child,
+  .external-links:last-child {
+    margin-bottom: 0;
+  }
+
+  .subsection-heading {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin: 0 0 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .build-links-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .build-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-secondary-100);
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+
+  .build-link:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+    background: var(--color-secondary-200);
+    border-color: var(--color-secondary-400);
+  }
+
+  .build-link:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .link-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--color-secondary-700);
+    flex-shrink: 0;
+  }
+
+  .build-slug {
+    flex: 1;
+  }
+
+  .arrow-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .external-links-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .external-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: var(--color-accent-100);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+
+  .external-link:hover {
+    background: var(--color-accent-200);
+    transform: translateY(-1px);
+  }
+
+  .external-link:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .external-link .link-icon {
+    color: var(--color-accent-700);
+  }
+
+  .external-title {
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .empty-hint {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 0;
+  }
+
+  /* Dark mode */
+  :global([data-theme="dark"]) .inspirations-section {
+    background: var(--surface);
+  }
+
+  :global([data-theme="dark"]) .build-link {
+    background: var(--color-secondary-900);
+    color: var(--text-inverse);
+  }
+
+  :global([data-theme="dark"]) .build-link:hover {
+    background: var(--color-secondary-800);
+  }
+
+  :global([data-theme="dark"]) .build-link .link-icon {
+    color: var(--color-secondary-300);
+  }
+
+  :global([data-theme="dark"]) .external-link {
+    background: var(--color-accent-900);
+    color: var(--text-inverse);
+  }
+
+  :global([data-theme="dark"]) .external-link:hover {
+    background: var(--color-accent-800);
+  }
+
+  :global([data-theme="dark"]) .external-link .link-icon {
+    color: var(--color-accent-300);
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .inspirations-section {
+      padding: 1rem;
+    }
+
+    .external-links-list {
+      flex-direction: column;
+    }
+
+    .external-link {
+      width: 100%;
+    }
+  }
+</style>

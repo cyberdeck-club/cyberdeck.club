@@ -135,6 +135,96 @@ export const forumPosts = sqliteTable(
 
 // Builds table
 
+// TypeScript interfaces for JSON field structures
+export interface WiringData {
+  description: string;
+  imageUrls: string[];
+}
+
+export interface CodebaseData {
+  description: string;
+  url: string;
+}
+
+export interface Model3dFile {
+  name: string;
+  url: string;
+  imageUrl?: string;
+}
+
+export interface Models3dData {
+  description: string;
+  files: Model3dFile[];
+}
+
+export interface PhotosData {
+  mainImageUrl: string;
+  buildStepImages: string[];
+}
+
+export interface VideosData {
+  mainVideoUrl: string;
+  demoVideoUrl?: string;
+  buildStepVideos: string[];
+}
+
+export interface BillOfMaterialsItem {
+  item: string;
+  link?: string;
+  estimatedCost?: number;
+  notes?: string;
+}
+
+export interface BillOfMaterialsData {
+  items: BillOfMaterialsItem[];
+}
+
+export interface CircuitBoardFile {
+  name: string;
+  url: string;
+}
+
+export interface CircuitBoardsData {
+  description: string;
+  fileUrls: string[];
+  imageUrls: string[];
+}
+
+export interface ExternalLink {
+  title: string;
+  url: string;
+}
+
+export interface InspirationsData {
+  buildSlugs: string[];
+  externalLinks: ExternalLink[];
+}
+
+export interface PowerDetailsData {
+  batteryType: string;
+  capacity: string;
+  estimatedRuntime: string;
+}
+
+export interface ConnectivityData {
+  wifi: boolean;
+  bluetooth: boolean;
+  cellular: boolean;
+  other: string[];
+}
+
+export interface DisplayInfoData {
+  type: string;
+  size: string;
+  resolution: string;
+}
+
+export interface EnclosureDetailsData {
+  material: string;
+  source: string;
+  customization: string;
+}
+
 export const builds = sqliteTable("builds", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),
@@ -153,6 +243,27 @@ export const builds = sqliteTable("builds", {
   reviewedAt: text("reviewed_at"), // ISO 8601
   publishedAt: text("published_at"), // ISO 8601
   deletedAt: integer("deleted_at"),
+  // Specialized build fields
+  difficulty: text("difficulty"), // "beginner" | "intermediate" | "advanced"
+  computePlatform: text("compute_platform"), // e.g., "Raspberry Pi 5"
+  estimatedCost: integer("estimated_cost"), // cost in cents
+  buildTime: text("build_time"), // e.g., "3 months"
+  // JSON text columns (parsed in application code)
+  tags: text("tags"), // JSON string array
+  wiring: text("wiring"), // WiringData
+  codebase: text("codebase"), // CodebaseData
+  models3d: text("models_3d"), // Models3dData
+  photos: text("photos"), // PhotosData
+  videos: text("videos"), // VideosData
+  tiktokLinks: text("tiktok_links"), // JSON string array
+  billOfMaterials: text("bill_of_materials"), // BillOfMaterialsData
+  circuitBoards: text("circuit_boards"), // CircuitBoardsData
+  inspirations: text("inspirations"), // InspirationsData
+  // Additional optional JSON fields
+  powerDetails: text("power_details"), // PowerDetailsData
+  connectivity: text("connectivity"), // ConnectivityData
+  displayInfo: text("display_info"), // DisplayInfoData
+  enclosureDetails: text("enclosure_details"), // EnclosureDetailsData
 });
 
 // Meetups table

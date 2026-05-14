@@ -4,6 +4,7 @@ import { recordEdit } from "../../../lib/edit-history";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
 import { requireRole, ROLES } from "../../../lib/roles";
+import { serializeBuildJsonFields, validateBuildField } from "../../../lib/builds";
 
 /**
  * GET /api/builds/[slug]
@@ -113,6 +114,25 @@ export const PUT: APIRoute = async (ctx) => {
     content?: string;
     imageUrl?: string;
     status?: string;
+    // New fields
+    difficulty?: string | null;
+    computePlatform?: string | null;
+    estimatedCost?: number | null;
+    buildTime?: string | null;
+    tags?: string[] | null;
+    wiring?: schema.WiringData | null;
+    codebase?: schema.CodebaseData | null;
+    models3d?: schema.Models3dData | null;
+    photos?: schema.PhotosData | null;
+    videos?: schema.VideosData | null;
+    tiktokLinks?: string[] | null;
+    billOfMaterials?: schema.BillOfMaterialsData | null;
+    circuitBoards?: schema.CircuitBoardsData | null;
+    inspirations?: schema.InspirationsData | null;
+    powerDetails?: schema.PowerDetailsData | null;
+    connectivity?: schema.ConnectivityData | null;
+    displayInfo?: schema.DisplayInfoData | null;
+    enclosureDetails?: schema.EnclosureDetailsData | null;
   };
   try {
     body = await ctx.request.json();
@@ -123,11 +143,77 @@ export const PUT: APIRoute = async (ctx) => {
     });
   }
 
-  const { title, slug: newSlug, description, content, imageUrl, status } = body;
+  const {
+    title,
+    slug: newSlug,
+    description,
+    content,
+    imageUrl,
+    status,
+    // New fields
+    difficulty,
+    computePlatform,
+    estimatedCost,
+    buildTime,
+    tags,
+    wiring,
+    codebase,
+    models3d,
+    photos,
+    videos,
+    tiktokLinks,
+    billOfMaterials,
+    circuitBoards,
+    inspirations,
+    powerDetails,
+    connectivity,
+    displayInfo,
+    enclosureDetails,
+  } = body;
 
   // Validate required fields if provided
   if (title !== undefined && (typeof title !== "string" || title.trim().length === 0)) {
     return new Response(JSON.stringify({ error: "title cannot be empty" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Validate all new fields that are provided (not undefined)
+  const validationFields = [
+    { name: "difficulty", value: difficulty },
+    { name: "computePlatform", value: computePlatform },
+    { name: "estimatedCost", value: estimatedCost },
+    { name: "buildTime", value: buildTime },
+    { name: "tags", value: tags },
+    { name: "wiring", value: wiring },
+    { name: "codebase", value: codebase },
+    { name: "models3d", value: models3d },
+    { name: "photos", value: photos },
+    { name: "videos", value: videos },
+    { name: "tiktokLinks", value: tiktokLinks },
+    { name: "billOfMaterials", value: billOfMaterials },
+    { name: "circuitBoards", value: circuitBoards },
+    { name: "inspirations", value: inspirations },
+    { name: "powerDetails", value: powerDetails },
+    { name: "connectivity", value: connectivity },
+    { name: "displayInfo", value: displayInfo },
+    { name: "enclosureDetails", value: enclosureDetails },
+  ];
+
+  const allErrors: string[] = [];
+  for (const field of validationFields) {
+    // Only validate if the field was explicitly provided (not undefined)
+    if (field.value !== undefined) {
+      const result = validateBuildField(field.name, field.value);
+      if (!result.valid) {
+        allErrors.push(...result.errors);
+      }
+    }
+  }
+
+  if (allErrors.length > 0) {
+    return new Response(JSON.stringify({ error: "Validation failed", details: allErrors }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
@@ -142,6 +228,25 @@ export const PUT: APIRoute = async (ctx) => {
     heroImageUrl: string | null;
     status: string;
     updatedAt: number;
+    // New fields
+    difficulty: string | null;
+    computePlatform: string | null;
+    estimatedCost: number | null;
+    buildTime: string | null;
+    tags: string | null;
+    wiring: string | null;
+    codebase: string | null;
+    models3d: string | null;
+    photos: string | null;
+    videos: string | null;
+    tiktokLinks: string | null;
+    billOfMaterials: string | null;
+    circuitBoards: string | null;
+    inspirations: string | null;
+    powerDetails: string | null;
+    connectivity: string | null;
+    displayInfo: string | null;
+    enclosureDetails: string | null;
   }> = {
     updatedAt: Math.floor(Date.now() / 1000),
   };
@@ -185,6 +290,106 @@ export const PUT: APIRoute = async (ctx) => {
       );
     }
     updates.status = status;
+  }
+
+  // Handle new fields - only include in update if explicitly provided
+  // This preserves existing values when field is not in request
+  const hasNewFields =
+    difficulty !== undefined ||
+    computePlatform !== undefined ||
+    estimatedCost !== undefined ||
+    buildTime !== undefined ||
+    tags !== undefined ||
+    wiring !== undefined ||
+    codebase !== undefined ||
+    models3d !== undefined ||
+    photos !== undefined ||
+    videos !== undefined ||
+    tiktokLinks !== undefined ||
+    billOfMaterials !== undefined ||
+    circuitBoards !== undefined ||
+    inspirations !== undefined ||
+    powerDetails !== undefined ||
+    connectivity !== undefined ||
+    displayInfo !== undefined ||
+    enclosureDetails !== undefined;
+
+  if (hasNewFields) {
+    // Serialize the new fields that were provided
+    const serializedFields = serializeBuildJsonFields({
+      tags,
+      wiring,
+      codebase,
+      models3d,
+      photos,
+      videos,
+      tiktokLinks,
+      billOfMaterials,
+      circuitBoards,
+      inspirations,
+      powerDetails,
+      connectivity,
+      displayInfo,
+      enclosureDetails,
+    });
+
+    // Add simple string/number fields directly
+    if (difficulty !== undefined) {
+      updates.difficulty = difficulty;
+    }
+    if (computePlatform !== undefined) {
+      updates.computePlatform = computePlatform;
+    }
+    if (estimatedCost !== undefined) {
+      updates.estimatedCost = estimatedCost;
+    }
+    if (buildTime !== undefined) {
+      updates.buildTime = buildTime;
+    }
+
+    // Add serialized JSON fields
+    if (serializedFields.tags !== null || tags !== undefined) {
+      updates.tags = serializedFields.tags;
+    }
+    if (serializedFields.wiring !== null || wiring !== undefined) {
+      updates.wiring = serializedFields.wiring;
+    }
+    if (serializedFields.codebase !== null || codebase !== undefined) {
+      updates.codebase = serializedFields.codebase;
+    }
+    if (serializedFields.models3d !== null || models3d !== undefined) {
+      updates.models3d = serializedFields.models3d;
+    }
+    if (serializedFields.photos !== null || photos !== undefined) {
+      updates.photos = serializedFields.photos;
+    }
+    if (serializedFields.videos !== null || videos !== undefined) {
+      updates.videos = serializedFields.videos;
+    }
+    if (serializedFields.tiktokLinks !== null || tiktokLinks !== undefined) {
+      updates.tiktokLinks = serializedFields.tiktokLinks;
+    }
+    if (serializedFields.billOfMaterials !== null || billOfMaterials !== undefined) {
+      updates.billOfMaterials = serializedFields.billOfMaterials;
+    }
+    if (serializedFields.circuitBoards !== null || circuitBoards !== undefined) {
+      updates.circuitBoards = serializedFields.circuitBoards;
+    }
+    if (serializedFields.inspirations !== null || inspirations !== undefined) {
+      updates.inspirations = serializedFields.inspirations;
+    }
+    if (serializedFields.powerDetails !== null || powerDetails !== undefined) {
+      updates.powerDetails = serializedFields.powerDetails;
+    }
+    if (serializedFields.connectivity !== null || connectivity !== undefined) {
+      updates.connectivity = serializedFields.connectivity;
+    }
+    if (serializedFields.displayInfo !== null || displayInfo !== undefined) {
+      updates.displayInfo = serializedFields.displayInfo;
+    }
+    if (serializedFields.enclosureDetails !== null || enclosureDetails !== undefined) {
+      updates.enclosureDetails = serializedFields.enclosureDetails;
+    }
   }
 
   try {
@@ -389,6 +594,25 @@ export const PATCH: APIRoute = async (ctx) => {
     content?: string;
     imageUrl?: string;
     status?: string;
+    // New fields
+    difficulty?: string | null;
+    computePlatform?: string | null;
+    estimatedCost?: number | null;
+    buildTime?: string | null;
+    tags?: string[] | null;
+    wiring?: schema.WiringData | null;
+    codebase?: schema.CodebaseData | null;
+    models3d?: schema.Models3dData | null;
+    photos?: schema.PhotosData | null;
+    videos?: schema.VideosData | null;
+    tiktokLinks?: string[] | null;
+    billOfMaterials?: schema.BillOfMaterialsData | null;
+    circuitBoards?: schema.CircuitBoardsData | null;
+    inspirations?: schema.InspirationsData | null;
+    powerDetails?: schema.PowerDetailsData | null;
+    connectivity?: schema.ConnectivityData | null;
+    displayInfo?: schema.DisplayInfoData | null;
+    enclosureDetails?: schema.EnclosureDetailsData | null;
   };
   try {
     body = await ctx.request.json();
@@ -399,11 +623,77 @@ export const PATCH: APIRoute = async (ctx) => {
     });
   }
 
-  const { title, slug: newSlug, description, content, imageUrl, status } = body;
+  const {
+    title,
+    slug: newSlug,
+    description,
+    content,
+    imageUrl,
+    status,
+    // New fields
+    difficulty,
+    computePlatform,
+    estimatedCost,
+    buildTime,
+    tags,
+    wiring,
+    codebase,
+    models3d,
+    photos,
+    videos,
+    tiktokLinks,
+    billOfMaterials,
+    circuitBoards,
+    inspirations,
+    powerDetails,
+    connectivity,
+    displayInfo,
+    enclosureDetails,
+  } = body;
 
   // Validate required fields if provided
   if (title !== undefined && (typeof title !== "string" || title.trim().length === 0)) {
     return new Response(JSON.stringify({ error: "title cannot be empty" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Validate all new fields that are provided (not undefined)
+  const validationFields = [
+    { name: "difficulty", value: difficulty },
+    { name: "computePlatform", value: computePlatform },
+    { name: "estimatedCost", value: estimatedCost },
+    { name: "buildTime", value: buildTime },
+    { name: "tags", value: tags },
+    { name: "wiring", value: wiring },
+    { name: "codebase", value: codebase },
+    { name: "models3d", value: models3d },
+    { name: "photos", value: photos },
+    { name: "videos", value: videos },
+    { name: "tiktokLinks", value: tiktokLinks },
+    { name: "billOfMaterials", value: billOfMaterials },
+    { name: "circuitBoards", value: circuitBoards },
+    { name: "inspirations", value: inspirations },
+    { name: "powerDetails", value: powerDetails },
+    { name: "connectivity", value: connectivity },
+    { name: "displayInfo", value: displayInfo },
+    { name: "enclosureDetails", value: enclosureDetails },
+  ];
+
+  const allErrors: string[] = [];
+  for (const field of validationFields) {
+    // Only validate if the field was explicitly provided (not undefined)
+    if (field.value !== undefined) {
+      const result = validateBuildField(field.name, field.value);
+      if (!result.valid) {
+        allErrors.push(...result.errors);
+      }
+    }
+  }
+
+  if (allErrors.length > 0) {
+    return new Response(JSON.stringify({ error: "Validation failed", details: allErrors }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
@@ -418,6 +708,25 @@ export const PATCH: APIRoute = async (ctx) => {
     heroImageUrl: string | null;
     status: string;
     updatedAt: number;
+    // New fields
+    difficulty: string | null;
+    computePlatform: string | null;
+    estimatedCost: number | null;
+    buildTime: string | null;
+    tags: string | null;
+    wiring: string | null;
+    codebase: string | null;
+    models3d: string | null;
+    photos: string | null;
+    videos: string | null;
+    tiktokLinks: string | null;
+    billOfMaterials: string | null;
+    circuitBoards: string | null;
+    inspirations: string | null;
+    powerDetails: string | null;
+    connectivity: string | null;
+    displayInfo: string | null;
+    enclosureDetails: string | null;
   }> = {
     updatedAt: Math.floor(Date.now() / 1000),
   };
@@ -461,6 +770,106 @@ export const PATCH: APIRoute = async (ctx) => {
       );
     }
     updates.status = status;
+  }
+
+  // Handle new fields - only include in update if explicitly provided
+  // This preserves existing values when field is not in request
+  const hasNewFields =
+    difficulty !== undefined ||
+    computePlatform !== undefined ||
+    estimatedCost !== undefined ||
+    buildTime !== undefined ||
+    tags !== undefined ||
+    wiring !== undefined ||
+    codebase !== undefined ||
+    models3d !== undefined ||
+    photos !== undefined ||
+    videos !== undefined ||
+    tiktokLinks !== undefined ||
+    billOfMaterials !== undefined ||
+    circuitBoards !== undefined ||
+    inspirations !== undefined ||
+    powerDetails !== undefined ||
+    connectivity !== undefined ||
+    displayInfo !== undefined ||
+    enclosureDetails !== undefined;
+
+  if (hasNewFields) {
+    // Serialize the new fields that were provided
+    const serializedFields = serializeBuildJsonFields({
+      tags,
+      wiring,
+      codebase,
+      models3d,
+      photos,
+      videos,
+      tiktokLinks,
+      billOfMaterials,
+      circuitBoards,
+      inspirations,
+      powerDetails,
+      connectivity,
+      displayInfo,
+      enclosureDetails,
+    });
+
+    // Add simple string/number fields directly
+    if (difficulty !== undefined) {
+      updates.difficulty = difficulty;
+    }
+    if (computePlatform !== undefined) {
+      updates.computePlatform = computePlatform;
+    }
+    if (estimatedCost !== undefined) {
+      updates.estimatedCost = estimatedCost;
+    }
+    if (buildTime !== undefined) {
+      updates.buildTime = buildTime;
+    }
+
+    // Add serialized JSON fields
+    if (serializedFields.tags !== null || tags !== undefined) {
+      updates.tags = serializedFields.tags;
+    }
+    if (serializedFields.wiring !== null || wiring !== undefined) {
+      updates.wiring = serializedFields.wiring;
+    }
+    if (serializedFields.codebase !== null || codebase !== undefined) {
+      updates.codebase = serializedFields.codebase;
+    }
+    if (serializedFields.models3d !== null || models3d !== undefined) {
+      updates.models3d = serializedFields.models3d;
+    }
+    if (serializedFields.photos !== null || photos !== undefined) {
+      updates.photos = serializedFields.photos;
+    }
+    if (serializedFields.videos !== null || videos !== undefined) {
+      updates.videos = serializedFields.videos;
+    }
+    if (serializedFields.tiktokLinks !== null || tiktokLinks !== undefined) {
+      updates.tiktokLinks = serializedFields.tiktokLinks;
+    }
+    if (serializedFields.billOfMaterials !== null || billOfMaterials !== undefined) {
+      updates.billOfMaterials = serializedFields.billOfMaterials;
+    }
+    if (serializedFields.circuitBoards !== null || circuitBoards !== undefined) {
+      updates.circuitBoards = serializedFields.circuitBoards;
+    }
+    if (serializedFields.inspirations !== null || inspirations !== undefined) {
+      updates.inspirations = serializedFields.inspirations;
+    }
+    if (serializedFields.powerDetails !== null || powerDetails !== undefined) {
+      updates.powerDetails = serializedFields.powerDetails;
+    }
+    if (serializedFields.connectivity !== null || connectivity !== undefined) {
+      updates.connectivity = serializedFields.connectivity;
+    }
+    if (serializedFields.displayInfo !== null || displayInfo !== undefined) {
+      updates.displayInfo = serializedFields.displayInfo;
+    }
+    if (serializedFields.enclosureDetails !== null || enclosureDetails !== undefined) {
+      updates.enclosureDetails = serializedFields.enclosureDetails;
+    }
   }
 
   try {

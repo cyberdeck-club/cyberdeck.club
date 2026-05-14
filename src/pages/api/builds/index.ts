@@ -5,6 +5,7 @@ import { checkPublishingGate } from "../../../lib/publishing-gate";
 import { autoReviewBuild } from "../../../lib/moderation";
 import { requireAuth } from "../../../lib/require-auth";
 import { ROLES, requireRole } from "../../../lib/roles";
+import { serializeBuildJsonFields, validateBuildField } from "../../../lib/builds";
 
 /**
  * GET /api/builds
@@ -86,7 +87,7 @@ export const GET: APIRoute = async (ctx) => {
  * - MAKER+ roles: published directly (skip moderation)
  * - MEMBER role: enters auto-review, then human review queue
  *
- * Body: { title: string, slug?: string, description?: string, content?: string, imageUrl?: string }
+ * Body: { title: string, slug?: string, description?: string, content?: string, imageUrl?: string, ... }
  */
 export const POST: APIRoute = async (ctx) => {
   // Require authentication and MEMBER role minimum
@@ -113,6 +114,25 @@ export const POST: APIRoute = async (ctx) => {
     description?: string;
     content?: string;
     imageUrl?: string;
+    // New fields
+    difficulty?: string;
+    computePlatform?: string;
+    estimatedCost?: number;
+    buildTime?: string;
+    tags?: string[];
+    wiring?: schema.WiringData;
+    codebase?: schema.CodebaseData;
+    models3d?: schema.Models3dData;
+    photos?: schema.PhotosData;
+    videos?: schema.VideosData;
+    tiktokLinks?: string[];
+    billOfMaterials?: schema.BillOfMaterialsData;
+    circuitBoards?: schema.CircuitBoardsData;
+    inspirations?: schema.InspirationsData;
+    powerDetails?: schema.PowerDetailsData;
+    connectivity?: schema.ConnectivityData;
+    displayInfo?: schema.DisplayInfoData;
+    enclosureDetails?: schema.EnclosureDetailsData;
   };
   try {
     body = await ctx.request.json();
@@ -123,7 +143,32 @@ export const POST: APIRoute = async (ctx) => {
     });
   }
 
-  const { title, slug: providedSlug, description, content, imageUrl } = body;
+  const {
+    title,
+    slug: providedSlug,
+    description,
+    content,
+    imageUrl,
+    // New fields
+    difficulty,
+    computePlatform,
+    estimatedCost,
+    buildTime,
+    tags,
+    wiring,
+    codebase,
+    models3d,
+    photos,
+    videos,
+    tiktokLinks,
+    billOfMaterials,
+    circuitBoards,
+    inspirations,
+    powerDetails,
+    connectivity,
+    displayInfo,
+    enclosureDetails,
+  } = body;
 
   // Validate required fields
   if (!title || typeof title !== "string" || title.trim().length === 0) {
@@ -152,6 +197,61 @@ export const POST: APIRoute = async (ctx) => {
       }
     );
   }
+
+  // Validate all new fields
+  const validationFields = [
+    { name: "difficulty", value: difficulty },
+    { name: "computePlatform", value: computePlatform },
+    { name: "estimatedCost", value: estimatedCost },
+    { name: "buildTime", value: buildTime },
+    { name: "tags", value: tags },
+    { name: "wiring", value: wiring },
+    { name: "codebase", value: codebase },
+    { name: "models3d", value: models3d },
+    { name: "photos", value: photos },
+    { name: "videos", value: videos },
+    { name: "tiktokLinks", value: tiktokLinks },
+    { name: "billOfMaterials", value: billOfMaterials },
+    { name: "circuitBoards", value: circuitBoards },
+    { name: "inspirations", value: inspirations },
+    { name: "powerDetails", value: powerDetails },
+    { name: "connectivity", value: connectivity },
+    { name: "displayInfo", value: displayInfo },
+    { name: "enclosureDetails", value: enclosureDetails },
+  ];
+
+  const allErrors: string[] = [];
+  for (const field of validationFields) {
+    const result = validateBuildField(field.name, field.value);
+    if (!result.valid) {
+      allErrors.push(...result.errors);
+    }
+  }
+
+  if (allErrors.length > 0) {
+    return new Response(JSON.stringify({ error: "Validation failed", details: allErrors }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Serialize new fields for DB storage
+  const serializedFields = serializeBuildJsonFields({
+    tags,
+    wiring,
+    codebase,
+    models3d,
+    photos,
+    videos,
+    tiktokLinks,
+    billOfMaterials,
+    circuitBoards,
+    inspirations,
+    powerDetails,
+    connectivity,
+    displayInfo,
+    enclosureDetails,
+  });
 
   const now = Math.floor(Date.now() / 1000);
 
@@ -197,6 +297,12 @@ export const POST: APIRoute = async (ctx) => {
         createdAt: now,
         updatedAt: now,
         publishedAt,
+        // New fields
+        difficulty: difficulty ?? null,
+        computePlatform: computePlatform ?? null,
+        estimatedCost: estimatedCost ?? null,
+        buildTime: buildTime ?? null,
+        ...serializedFields,
       });
 
       return new Response(JSON.stringify({ id, slug, status: "published" }), {
@@ -227,6 +333,12 @@ export const POST: APIRoute = async (ctx) => {
         authorId: userId,
         createdAt: now,
         updatedAt: now,
+        // New fields
+        difficulty: difficulty ?? null,
+        computePlatform: computePlatform ?? null,
+        estimatedCost: estimatedCost ?? null,
+        buildTime: buildTime ?? null,
+        ...serializedFields,
       });
 
       // Run auto-review

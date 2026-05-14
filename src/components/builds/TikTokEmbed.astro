@@ -1,0 +1,106 @@
+---
+/**
+ * TikTokEmbed Component
+ * Displays TikTok videos using TikTok's embed iframe.
+ */
+
+interface Props {
+  tiktokLinks: string[] | null | undefined;
+}
+
+const { tiktokLinks } = Astro.props;
+
+// Helper to extract TikTok video ID from URL
+// TikTok URLs look like: https://www.tiktok.com/@username/video/1234567890
+function getTikTokVideoId(url: string): string | null {
+  const match = url.match(/tiktok\.com\/@[\w.]+\/video\/(\d+)/);
+  return match ? match[1] : null;
+}
+---
+
+{tiktokLinks && tiktokLinks.length > 0 && (
+  <section class="tiktok-section">
+    <h2 class="section-heading">
+      <span class="heading-icon">📱</span>
+      TikTok Videos
+    </h2>
+    
+    <div class="tiktok-grid">
+      {tiktokLinks.map((link, index) => {
+        const videoId = getTikTokVideoId(link);
+        if (!videoId) return null;
+        return (
+          <div class="tiktok-wrapper">
+            <iframe
+              src={`https://www.tiktok.com/embed/v2/${videoId}`}
+              title={`TikTok video ${index + 1}`}
+              allowfullscreen
+              loading="lazy"
+            ></iframe>
+          </div>
+        );
+      })}
+    </div>
+  </section>
+)}
+
+<style>
+  .tiktok-section {
+    margin-bottom: 2.5rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 0 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid var(--border);
+  }
+
+  .heading-icon {
+    font-size: 1.25rem;
+  }
+
+  .tiktok-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .tiktok-wrapper iframe {
+    width: 100%;
+    aspect-ratio: 9/16;
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+  }
+
+  /* Dark mode */
+  :global([data-theme="dark"]) .tiktok-section {
+    background: var(--surface);
+  }
+
+  :global([data-theme="dark"]) .tiktok-wrapper iframe {
+    background: var(--surface-alt);
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .tiktok-section {
+      padding: 1rem;
+    }
+
+    .tiktok-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

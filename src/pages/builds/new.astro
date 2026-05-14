@@ -7,6 +7,7 @@
 
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { BuildEditor } from "@/components/editor/BuildEditor";
+import { BuildFormFields } from "@/components/builds/BuildFormFields";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
 import { requireRole, ROLES } from "@/lib/roles";
 
@@ -110,6 +111,11 @@ const redirectParam = Astro.url.searchParams.get("redirect");
         <span class="form-hint">Optional: Add a hero image for your build showcase</span>
       </div>
 
+      <!-- Structured Build Fields (React Island) -->
+      <div id="build-form-fields-container" data-build-form-fields>
+        <BuildFormFields client:load />
+      </div>
+
       <div class="form-actions">
         <a href="/builds" class="btn-cancel">Cancel</a>
         <button type="submit" class="btn-submit" id="submit-btn">
@@ -134,6 +140,9 @@ const redirectParam = Astro.url.searchParams.get("redirect");
   const btnText = submitBtn.querySelector(".btn-text") as HTMLSpanElement;
   const btnLoading = submitBtn.querySelector(".btn-loading") as HTMLSpanElement;
   const formError = document.getElementById("form-error") as HTMLDivElement;
+
+  // Structured fields are collected from the BuildFormFields React island
+  // via window.__buildStructuredFields which is set by the onChange callback
 
   // Auto-generate slug from title
   titleInput.addEventListener("input", () => {
@@ -187,6 +196,8 @@ const redirectParam = Astro.url.searchParams.get("redirect");
           status: statusSelect.value,
           description: descriptionInput.value,
           imageUrl: imageUrlInput.value.trim() || undefined,
+          // Include structured fields from BuildFormFields component
+          ...(window as any).__buildStructuredFields,
         }),
       });
 

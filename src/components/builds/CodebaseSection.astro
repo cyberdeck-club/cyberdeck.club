@@ -1,0 +1,137 @@
+---
+/**
+ * CodebaseSection Component
+ * Displays codebase description and external link to the code repository.
+ */
+
+import type { CodebaseData } from "@/db/schema";
+
+interface Props {
+  codebase: CodebaseData | null | undefined;
+}
+
+const { codebase } = Astro.props;
+---
+
+{codebase && codebase.description && (
+  <section class="codebase-section">
+    <h2 class="section-heading">
+      <span class="heading-icon">💻</span>
+      Codebase
+    </h2>
+    
+    {codebase.description && (
+      <p class="codebase-description">{codebase.description}</p>
+    )}
+    
+    {codebase.url && (
+      <a
+        href={codebase.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="codebase-link"
+      >
+        <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/>
+        </svg>
+        View Source Code
+        <svg class="external-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
+        </svg>
+      </a>
+    )}
+  </section>
+)}
+
+<style>
+  .codebase-section {
+    margin-bottom: 2.5rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 0 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid var(--border);
+  }
+
+  .heading-icon {
+    font-size: 1.25rem;
+  }
+
+  .codebase-description {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin: 0 0 1.25rem;
+  }
+
+  .codebase-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--color-secondary-200);
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .codebase-link:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+    background: var(--color-secondary-300);
+  }
+
+  .codebase-link:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .link-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .external-icon {
+    width: 1rem;
+    height: 1rem;
+    opacity: 0.7;
+  }
+
+  /* Dark mode */
+  :global([data-theme="dark"]) .codebase-section {
+    background: var(--surface);
+  }
+
+  :global([data-theme="dark"]) .codebase-link {
+    background: var(--color-secondary-800);
+    color: var(--text-inverse);
+  }
+
+  :global([data-theme="dark"]) .codebase-link:hover {
+    background: var(--color-secondary-700);
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .codebase-section {
+      padding: 1rem;
+    }
+  }
+</style>

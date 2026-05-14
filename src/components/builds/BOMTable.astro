@@ -1,0 +1,297 @@
+---
+/**
+ * BOMTable Component
+ * Displays a styled bill of materials table with columns: Item, Link, Estimated Cost, Notes.
+ */
+
+import type { BillOfMaterialsItem } from "@/db/schema";
+
+interface Props {
+  billOfMaterials: BillOfMaterialsItem[] | null | undefined;
+}
+
+const { billOfMaterials } = Astro.props;
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(amount);
+};
+
+const totalCost = billOfMaterials?.reduce((sum, item) => sum + (item.estimatedCost || 0), 0) || 0;
+---
+
+{billOfMaterials && billOfMaterials.length > 0 && (
+  <section class="bom-section">
+    <h2 class="section-heading">
+      <span class="heading-icon">🛒</span>
+      Bill of Materials
+    </h2>
+    
+    <div class="bom-table-wrapper">
+      <table class="bom-table">
+        <thead>
+          <tr>
+            <th class="col-item">Item</th>
+            <th class="col-link">Link</th>
+            <th class="col-cost">Est. Cost</th>
+            <th class="col-notes">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {billOfMaterials.map((item, index) => (
+            <tr class="bom-row">
+              <td class="col-item">
+                <span class="item-name">{item.item}</span>
+              </td>
+              <td class="col-link">
+                {item.link ? (
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="item-link"
+                  >
+                    <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
+                    </svg>
+                    Link
+                  </a>
+                ) : (
+                  <span class="no-link">—</span>
+                )}
+              </td>
+              <td class="col-cost">
+                {item.estimatedCost ? (
+                  <span class="item-cost">{formatCurrency(item.estimatedCost)}</span>
+                ) : (
+                  <span class="no-cost">—</span>
+                )}
+              </td>
+              <td class="col-notes">
+                {item.notes ? (
+                  <span class="item-notes">{item.notes}</span>
+                ) : (
+                  <span class="no-notes">—</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        {totalCost > 0 && (
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="2" class="total-label">Total Estimated Cost</td>
+              <td class="total-cost">{formatCurrency(totalCost)}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  </section>
+)}
+
+<style>
+  .bom-section {
+    margin-bottom: 2.5rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 0 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid var(--border);
+  }
+
+  .heading-icon {
+    font-size: 1.25rem;
+  }
+
+  .bom-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .bom-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .bom-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: var(--color-secondary-100);
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    border-bottom: 3px solid var(--border);
+  }
+
+  .bom-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  .bom-row:hover td {
+    background: var(--color-secondary-50);
+  }
+
+  .bom-row:last-child td {
+    border-bottom: none;
+  }
+
+  .col-item {
+    min-width: 150px;
+  }
+
+  .item-name {
+    font-weight: 600;
+  }
+
+  .col-link {
+    min-width: 80px;
+    text-align: center;
+  }
+
+  .item-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--color-primary-700);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--color-primary-50);
+    border: 2px solid var(--color-primary-200);
+    border-radius: 4px;
+    transition: background 0.15s ease;
+  }
+
+  .item-link:hover {
+    background: var(--color-primary-100);
+    text-decoration: underline;
+  }
+
+  .item-link:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .link-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .no-link,
+  .no-cost,
+  .no-notes {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .col-cost {
+    min-width: 100px;
+    text-align: right;
+  }
+
+  .item-cost {
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--color-primary-700);
+  }
+
+  .col-notes {
+    min-width: 150px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .item-notes {
+    line-height: 1.4;
+  }
+
+  /* Total row */
+  .total-row td {
+    background: var(--color-secondary-100);
+    border-top: 3px solid var(--border);
+    border-bottom: none;
+  }
+
+  .total-label {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.8rem;
+  }
+
+  .total-cost {
+    font-weight: 800;
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    color: var(--color-primary-700);
+    text-align: right;
+  }
+
+  /* Dark mode */
+  :global([data-theme="dark"]) .bom-section {
+    background: var(--surface);
+  }
+
+  :global([data-theme="dark"]) .bom-table th {
+    background: var(--color-secondary-800);
+    color: var(--text-inverse);
+  }
+
+  :global([data-theme="dark"]) .bom-row:hover td {
+    background: var(--color-secondary-900);
+  }
+
+  :global([data-theme="dark"]) .item-link {
+    background: var(--color-secondary-800);
+    color: var(--color-secondary-200);
+    border-color: var(--color-secondary-600);
+  }
+
+  :global([data-theme="dark"]) .item-link:hover {
+    background: var(--color-secondary-700);
+  }
+
+  :global([data-theme="dark"]) .total-row td {
+    background: var(--color-secondary-800);
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .bom-section {
+      padding: 1rem;
+    }
+
+    .bom-table {
+      font-size: 0.8rem;
+    }
+
+    .bom-table th,
+    .bom-table td {
+      padding: 0.5rem 0.75rem;
+    }
+  }
+</style>

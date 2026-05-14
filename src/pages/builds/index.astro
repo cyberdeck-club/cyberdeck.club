@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
-import { getBuilds } from "@/lib/builds";
+import { getBuilds, parseBuildJsonFields } from "@/lib/builds";
 import { requireRole, ROLES } from "@/lib/roles";
 
 // Server-rendered page
@@ -19,17 +19,20 @@ const db = Astro.locals.db!;
 const buildsResult = await getBuilds(db);
 
 // Transform database results to the format expected by BuildCard
-const builds = buildsResult.map(({ build, authorName }) => ({
-  slug: build.slug,
-  title: build.title,
-  builderName: authorName,
-  builderId: build.authorId,
-  difficulty: "intermediate" as const, // Default - schema doesn't have difficulty yet
-  computePlatform: "Raspberry Pi", // Default - schema doesn't have computePlatform yet
-  estimatedCost: 0, // Default - schema doesn't have estimatedCost yet
-  featuredImage: build.heroImageUrl ? { url: build.heroImageUrl, alt: build.title } : undefined,
-  tags: [] as string[]
-}));
+const builds = buildsResult.map(({ build, authorName }) => {
+  const parsedBuild = parseBuildJsonFields(build);
+  return {
+    slug: build.slug,
+    title: build.title,
+    builderName: authorName,
+    builderId: build.authorId,
+    difficulty: (parsedBuild.difficulty as "beginner" | "intermediate" | "advanced") || "intermediate",
+    computePlatform: parsedBuild.computePlatform || "Raspberry Pi",
+    estimatedCost: parsedBuild.estimatedCost ?? 0,
+    featuredImage: build.heroImageUrl ? { url: build.heroImageUrl, alt: build.title } : undefined,
+    tags: parsedBuild.tags || []
+  };
+});
 
 // Get unique platforms and difficulties for filters
 const allPlatforms = [...new Set(builds.map(b => b.computePlatform))];

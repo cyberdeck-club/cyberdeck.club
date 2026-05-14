@@ -1,0 +1,117 @@
+---
+/**
+ * WiringSection Component
+ * Displays wiring diagram description and image gallery.
+ */
+
+import type { WiringData } from "@/db/schema";
+
+interface Props {
+  wiring: WiringData | null | undefined;
+}
+
+const { wiring } = Astro.props;
+---
+
+{wiring && wiring.description && (
+  <section class="wiring-section">
+    <h2 class="section-heading">
+      <span class="heading-icon">🔌</span>
+      Wiring
+    </h2>
+    
+    {wiring.description && (
+      <p class="wiring-description">{wiring.description}</p>
+    )}
+    
+    {wiring.imageUrls && wiring.imageUrls.length > 0 && (
+      <div class="wiring-gallery">
+        {wiring.imageUrls.map((imageUrl, index) => (
+          <div class="wiring-image-wrapper">
+            <img
+              src={imageUrl}
+              alt={`Wiring diagram ${index + 1}`}
+              loading="lazy"
+              class="wiring-image"
+            />
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
+)}
+
+<style>
+  .wiring-section {
+    margin-bottom: 2.5rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 0 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid var(--border);
+  }
+
+  .heading-icon {
+    font-size: 1.25rem;
+  }
+
+  .wiring-description {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin: 0 0 1.25rem;
+  }
+
+  .wiring-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .wiring-image-wrapper {
+    overflow: hidden;
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+  }
+
+  .wiring-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: transform 0.2s ease;
+  }
+
+  .wiring-image:hover {
+    transform: scale(1.02);
+  }
+
+  /* Dark mode */
+  :global([data-theme="dark"]) .wiring-section {
+    background: var(--surface);
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .wiring-section {
+      padding: 1rem;
+    }
+
+    .wiring-gallery {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
