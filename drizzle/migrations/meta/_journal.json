@@ -71,6 +71,13 @@
       "when": 1778680620228,
       "tag": "0009_ancient_shape",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1779810849299,
+      "tag": "0010_thin_thunderbolt",
+      "breakpoints": true
     }
   ]
 }

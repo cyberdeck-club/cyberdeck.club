@@ -17,6 +17,7 @@
     "build_comments": "build-comments.json",
     "wiki_comments": "wiki-comments.json",
     "personal_access_tokens": "personal-access-tokens.json",
-    "pat_usage_logs": "pat-usage-logs.json"
+    "pat_usage_logs": "pat-usage-logs.json",
+    "reports": "reports.json"
   }
 }

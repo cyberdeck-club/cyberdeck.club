@@ -33,6 +33,7 @@ interface SeedManifest {
     wiki_comments: string;
     personal_access_tokens: string;
     pat_usage_logs: string;
+    reports: string;
   };
 }
 
@@ -203,6 +204,20 @@ interface PatUsageLog {
   createdAt: string;
 }
 
+interface SeedReport {
+  id: string;
+  reporterSlug: string;
+  entityType: string;
+  entityId: string;
+  reason: string;
+  details?: string;
+  status: string;
+  createdAt: string;
+  reviewedBySlug?: string;
+  moderatorNotes?: string;
+  actionTaken?: string;
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function uid(): string {
@@ -293,6 +308,7 @@ const buildComments = loadSeedFile<BuildComment[]>(manifest.files.build_comments
 const wikiComments = loadSeedFile<WikiComment[]>(manifest.files.wiki_comments);
 const personalAccessTokens = loadSeedFile<PersonalAccessToken[]>(manifest.files.personal_access_tokens);
 const patUsageLogs = loadSeedFile<PatUsageLog[]>(manifest.files.pat_usage_logs);
+const reports = loadSeedFile<SeedReport[]>(manifest.files.reports);
 
 // Build user slug → userId map
 const userSlugToId = new Map<string, string>();
@@ -306,6 +322,7 @@ const forumCategoryIds = new Map<string, string>();
 const threadIds = new Map<string, string>();
 const buildIds = new Map<string, string>();
 const wikiArticleIds = new Map<string, string>();
+const postIds = new Map<string, string>();
 const patIds = new Map<string, string>();
 
 // ── Seed functions ─────────────────────────────────────────────────────────────
@@ -479,13 +496,15 @@ function seedForumPosts(): void {
   const sqls: string[] = [];
 
   for (const post of forumPosts) {
+    const postId = uid();
+    postIds.set(post.id, postId);
     const authorId = resolveBylineRef(post.data.author);
     const content = portableTextToString(post.data.content);
     const threadId = threadIds.get(post.data.thread_id) ?? post.data.thread_id;
 
     sqls.push(
       `INSERT OR REPLACE INTO forum_posts (id, thread_id, author_id, content, created_at, updated_at) VALUES (` +
-      `${sqlStr(uid())}, ${sqlStr(threadId)}, ${sqlStr(authorId)}, ${sqlStr(content)}, ${now}, ${now})`
+      `${sqlStr(postId)}, ${sqlStr(threadId)}, ${sqlStr(authorId)}, ${sqlStr(content)}, ${now}, ${now})`
     );
   }
 
@@ -649,6 +668,46 @@ function seedPatUsageLogs(): void {
   console.log(`  Created ${patUsageLogs.length} PAT usage logs`);
 }
 
+function seedReports(): void {
+  console.log("Seeding reports...");
+
+  const sqls: string[] = [];
+
+  for (const report of reports) {
+    const reporterId = userSlugToId.get(report.reporterSlug) ?? report.reporterSlug;
+    const reviewedById = report.reviewedBySlug
+      ? userSlugToId.get(report.reviewedBySlug) ?? report.reviewedBySlug
+      : null;
+    const createdAt = parseIsoToEpoch(report.createdAt);
+    const reviewedAt = report.reviewedBySlug ? createdAt + 86400 : null;
+
+    // Remap entity IDs based on entity type
+    let resolvedEntityId = report.entityId;
+    switch (report.entityType) {
+      case "build":
+        resolvedEntityId = buildIds.get(report.entityId) ?? report.entityId;
+        break;
+      case "forum_post":
+        resolvedEntityId = postIds.get(report.entityId) ?? report.entityId;
+        break;
+      case "forum_thread":
+        resolvedEntityId = threadIds.get(report.entityId) ?? report.entityId;
+        break;
+      case "wiki_article":
+        resolvedEntityId = wikiArticleIds.get(report.entityId) ?? report.entityId;
+        break;
+    }
+
+    sqls.push(
+      `INSERT OR REPLACE INTO reports (id, reporter_id, entity_type, entity_id, reason, details, status, created_at, reviewed_by, reviewed_at, moderator_notes, action_taken) VALUES (` +
+      `${sqlStr(uid())}, ${sqlStr(reporterId)}, ${sqlStr(report.entityType)}, ${sqlStr(resolvedEntityId)}, ${sqlStr(report.reason)}, ${sqlStr(report.details ?? null)}, ${sqlStr(report.status)}, ${createdAt}, ${sqlStr(reviewedById ?? null)}, ${reviewedAt ?? "NULL"}, ${sqlStr(report.moderatorNotes ?? null)}, ${sqlStr(report.actionTaken ?? null)})`
+    );
+  }
+
+  execSqlBatch(sqls);
+  console.log(`  Created ${reports.length} reports`);
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────────
 
 function resolveBylineRef(ref: string): string | null {
@@ -675,6 +734,7 @@ function main() {
     seedWikiComments();
     seedPersonalAccessTokens();
     seedPatUsageLogs();
+    seedReports();
 
     console.log("\n✅ Seed complete!");
   } catch (error) {

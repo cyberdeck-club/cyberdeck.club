@@ -1,0 +1,1 @@
+When you make changes to the database schema, you should ALWAYS add seed data to match the changes/demonstrate their capabilities. Failing to do this prevents users from visually/functionally checking your work. Make sure you add to the seed json files AND update the seed script to inject it.

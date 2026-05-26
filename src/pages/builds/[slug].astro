@@ -1,13 +1,14 @@
 ---
 import BuildLayout from "@/layouts/BuildLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
+import ReportButton from "@/components/reports/ReportButton";
 import { getBuild, getBuilds, parseBuildJsonFields } from "@/lib/builds";
 import { eq, isNull, and } from "drizzle-orm";
 import * as schema from "../../db/schema";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
 import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
 import { getLatestEdit } from "@/lib/edit-history";
-import { requireRole, ROLES } from "@/lib/roles";
+import { requireRole, ROLES, getRoleLevel } from "@/lib/roles";
 
 // Import new section components
 import BuildMetaBar from "@/components/builds/BuildMetaBar.astro";
@@ -390,6 +391,18 @@ if (user) {
       </div>
     )}
   </section>
+
+  <!-- Report Button (visible to logged-in members) -->
+  {user && (
+    <div class="report-action">
+      <ReportButton
+        client:visible
+        entityType="build"
+        entityId={build.id}
+        userRole={getRoleLevel(user.role)}
+      />
+    </div>
+  )}
 
   <!-- Edit / Delete Buttons (visible to author or moderator/admin) -->
   {isAuthorOrModerator && (
@@ -947,6 +960,12 @@ if (user) {
   .btn-primary:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
+  }
+
+  .report-action {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
   }
 
   .edit-build-action {

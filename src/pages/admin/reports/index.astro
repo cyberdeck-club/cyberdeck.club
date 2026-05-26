@@ -1,0 +1,857 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import * as schema from "../../../db/schema";
+import { desc, eq } from "drizzle-orm";
+import { ROLES, requireRole } from "../../../lib/roles";
+import { getAbusiveReporters } from "../../../lib/reporting";
+import { epochToDate } from "../../../lib/timestamp";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user || !requireRole(user.role, ROLES.MODERATOR)) {
+  return Astro.redirect("/");
+}
+
+const db = Astro.locals.db!;
+
+// Fetch reports with reporter names
+const reports = await db
+  .select({
+    id: schema.reports.id,
+    reporterId: schema.reports.reporterId,
+    entityType: schema.reports.entityType,
+    entityId: schema.reports.entityId,
+    reason: schema.reports.reason,
+    details: schema.reports.details,
+    status: schema.reports.status,
+    createdAt: schema.reports.createdAt,
+    reviewedBy: schema.reports.reviewedBy,
+    reviewedAt: schema.reports.reviewedAt,
+    moderatorNotes: schema.reports.moderatorNotes,
+    actionTaken: schema.reports.actionTaken,
+    reporterName: schema.user.name,
+  })
+  .from(schema.reports)
+  .leftJoin(schema.user, eq(schema.reports.reporterId, schema.user.id))
+  .orderBy(desc(schema.reports.createdAt));
+
+// Get status counts
+const statusCounts = {
+  pending: reports.filter(r => r.status === "pending").length,
+  reviewed: reports.filter(r => r.status === "reviewed").length,
+  dismissed: reports.filter(r => r.status === "dismissed").length,
+  action_taken: reports.filter(r => r.status === "action_taken").length,
+};
+
+// Get abusive reporters for warnings
+const abusiveReporterIds = await getAbusiveReporters(db);
+
+// Build a set for quick lookup
+const abusiveReporterSet = new Set(abusiveReporterIds);
+
+// Helper to generate entity link
+function getEntityLink(entityType: string, entityId: string): string {
+  switch (entityType) {
+    case "build":
+      return `/builds/${entityId}`;
+    case "forum_thread":
+      return `/forum/thread/${entityId}`;
+    case "forum_post":
+      return `/forum/thread/${entityId}`;
+    case "wiki_article":
+      return `/wiki/${entityId}`;
+    default:
+      return "#";
+  }
+}
+
+// Helper for entity type display label
+function getEntityLabel(entityType: string): string {
+  switch (entityType) {
+    case "build": return "Build";
+    case "forum_thread": return "Forum Thread";
+    case "forum_post": return "Forum Post";
+    case "wiki_article": return "Wiki Article";
+    default: return entityType;
+  }
+}
+
+// Helper for reason display label
+function getReasonLabel(reason: string): string {
+  switch (reason) {
+    case "spam": return "Spam";
+    case "harassment": return "Harassment";
+    case "inappropriate_content": return "Inappropriate Content";
+    case "off_topic": return "Off Topic";
+    case "other": return "Other";
+    default: return reason;
+  }
+}
+---
+
+<AdminLayout title="Reports & Moderation" section="reports">
+  <div class="reports-page">
+    <!-- Header -->
+    <div class="admin-header">
+      <div>
+        <h1 class="admin-title">Reports & Moderation</h1>
+        <p class="admin-subtitle">Review and manage user reports</p>
+      </div>
+    </div>
+
+    <!-- Abuse Detection Warning -->
+    {abusiveReporterIds.length > 0 && (
+      <div class="abuse-warning">
+        <div class="abuse-warning-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <strong>Abuse Detection Alert</strong>
+        </div>
+        <p class="abuse-warning-text">
+          {abusiveReporterIds.length} user{abusiveReporterIds.length > 1 ? "s have" : " has"} a pattern of dismissed reports (over 50% of their reports have been dismissed).
+          Reports from these users are flagged below.
+        </p>
+      </div>
+    )}
+
+    <!-- Status Summary -->
+    <div class="status-grid">
+      <div class="status-card">
+        <div class="status-count">{statusCounts.pending}</div>
+        <div class="status-label">Pending</div>
+      </div>
+      <div class="status-card">
+        <div class="status-count">{statusCounts.reviewed}</div>
+        <div class="status-label">Reviewed</div>
+      </div>
+      <div class="status-card">
+        <div class="status-count">{statusCounts.dismissed}</div>
+        <div class="status-label">Dismissed</div>
+      </div>
+      <div class="status-card">
+        <div class="status-count">{statusCounts.action_taken}</div>
+        <div class="status-label">Action Taken</div>
+      </div>
+    </div>
+
+    <!-- Reports List -->
+    <div class="reports-container">
+      <div class="reports-header">
+        <h2 class="reports-heading">All Reports</h2>
+      </div>
+
+      {reports.length === 0 ? (
+        <div class="empty-state">
+          No reports have been submitted yet.
+        </div>
+      ) : (
+        <div class="reports-list">
+          {reports.map((report) => (
+            <div class="report-item" data-report-id={report.id} data-report-status={report.status}>
+              <div class="report-main">
+                <div class="report-info">
+                  <div class="report-badges">
+                    <span class={`status-badge status-${report.status}`}>
+                      {report.status === "action_taken" ? "Action Taken" : report.status}
+                    </span>
+                    <span class="entity-badge">
+                      {getEntityLabel(report.entityType)}
+                    </span>
+                    {abusiveReporterSet.has(report.reporterId) && (
+                      <span class="abuse-badge" title="This reporter has a pattern of dismissed reports">
+                        ⚠ Flagged Reporter
+                      </span>
+                    )}
+                  </div>
+
+                  <div class="report-reason">{getReasonLabel(report.reason)}</div>
+
+                  {report.details && (
+                    <p class="report-details">{report.details}</p>
+                  )}
+
+                  <div class="report-meta">
+                    <span>
+                      Reported by: <a href={`/admin/users/${report.reporterId}`} class="meta-link">
+                        {report.reporterName || report.reporterId}
+                      </a>
+                    </span>
+                    <span class="meta-sep">•</span>
+                    <span class="font-mono">{epochToDate(report.createdAt).toLocaleDateString()}</span>
+                    <span class="meta-sep">•</span>
+                    <a href={getEntityLink(report.entityType, report.entityId)} class="meta-link" target="_blank">
+                      View Content ↗
+                    </a>
+                  </div>
+
+                  {/* Show moderator notes if already reviewed */}
+                  {report.moderatorNotes && (
+                    <div class="mod-notes">
+                      <strong>Moderator Notes:</strong> {report.moderatorNotes}
+                    </div>
+                  )}
+                  {report.actionTaken && (
+                    <div class="mod-notes">
+                      <strong>Action Taken:</strong> {report.actionTaken}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action buttons - only for pending reports */}
+                {report.status === "pending" && (
+                  <div class="report-actions">
+                    <button
+                      class="action-btn dismiss-btn"
+                      data-report-id={report.id}
+                      data-action="dismiss"
+                      title="Dismiss this report"
+                    >
+                      Dismiss
+                    </button>
+                    <button
+                      class="action-btn review-btn"
+                      data-report-id={report.id}
+                      data-action="review"
+                      title="Mark as reviewed"
+                    >
+                      Reviewed
+                    </button>
+                    <button
+                      class="action-btn take-action-btn"
+                      data-report-id={report.id}
+                      data-action="action"
+                      title="Take action on this report"
+                    >
+                      Take Action
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Expandable moderation form (hidden by default) */}
+              <div class="mod-form hidden" id={`mod-form-${report.id}`}>
+                <div class="mod-form-inner">
+                  <h4 class="mod-form-title" id={`mod-form-title-${report.id}`}>Moderator Notes</h4>
+
+                  <label class="mod-form-label" for={`mod-notes-${report.id}`}>
+                    Notes (optional for dismiss/review, required for action)
+                  </label>
+                  <textarea
+                    class="mod-form-textarea"
+                    id={`mod-notes-${report.id}`}
+                    placeholder="Add moderator notes..."
+                    rows="3"
+                  ></textarea>
+
+                  <div class="action-taken-field hidden" id={`action-field-${report.id}`}>
+                    <label class="mod-form-label" for={`action-desc-${report.id}`}>
+                      Action description (required)
+                    </label>
+                    <textarea
+                      class="mod-form-textarea"
+                      id={`action-desc-${report.id}`}
+                      placeholder="Describe the action taken (e.g., content removed, user warned)..."
+                      rows="2"
+                    ></textarea>
+                  </div>
+
+                  <div class="mod-form-buttons">
+                    <button class="cancel-btn" data-report-id={report.id}>
+                      Cancel
+                    </button>
+                    <button class="confirm-btn" data-report-id={report.id}>
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+  .reports-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .admin-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .admin-subtitle {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0.5rem 0 0;
+  }
+
+  /* Abuse Warning */
+  .abuse-warning {
+    padding: 1rem 1.25rem;
+    background: var(--surface-alt);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .abuse-warning-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .abuse-warning-text {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* Status Grid */
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+
+  .status-card {
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem 1.25rem;
+    box-shadow: 3px 3px 0 var(--shadow-hard);
+  }
+
+  .status-count {
+    font-size: 2rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: var(--text);
+  }
+
+  .status-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+  }
+
+  /* Reports Container */
+  .reports-container {
+    background: var(--surface);
+    border: 4px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+    overflow: hidden;
+  }
+
+  .reports-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 3px solid var(--border);
+    background: var(--bg);
+  }
+
+  .reports-heading {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .empty-state {
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+
+  .reports-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Report Item */
+  .report-item {
+    border-bottom: 2px solid var(--bg);
+    transition: background-color 0.15s ease;
+  }
+
+  .report-item:last-child {
+    border-bottom: none;
+  }
+
+  .report-item:hover {
+    background: var(--bg);
+  }
+
+  .report-main {
+    padding: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .report-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .report-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .status-pending {
+    background: var(--color-warn);
+    color: var(--color-ink-900);
+  }
+
+  .status-reviewed {
+    background: var(--color-info);
+    color: var(--color-surface-50);
+  }
+
+  .status-dismissed {
+    background: var(--bg);
+    color: var(--text-muted);
+  }
+
+  .status-action_taken {
+    background: var(--color-danger);
+    color: var(--color-surface-50);
+  }
+
+  .entity-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .abuse-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-ink-900);
+    background: var(--color-warn);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .report-reason {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .report-details {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .report-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .meta-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .meta-link:hover {
+    text-decoration: underline;
+  }
+
+  .meta-sep {
+    opacity: 0.5;
+  }
+
+  .mod-notes {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 0.5rem 0.75rem;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    line-height: 1.5;
+  }
+
+  /* Action Buttons */
+  .report-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .action-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: inherit;
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    min-width: 110px;
+    text-align: center;
+  }
+
+  .action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 3px 3px 0 var(--shadow-hard);
+  }
+
+  .action-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .dismiss-btn {
+    background: var(--bg);
+    color: var(--text-muted);
+  }
+
+  .dismiss-btn:hover {
+    background: var(--surface-alt);
+    color: var(--text);
+  }
+
+  .review-btn {
+    background: var(--surface-alt);
+    color: var(--text);
+  }
+
+  .review-btn:hover {
+    background: var(--surface);
+  }
+
+  .take-action-btn {
+    background: var(--color-primary);
+    color: var(--text-inverse);
+  }
+
+  .take-action-btn:hover {
+    background: var(--color-primary-hover);
+  }
+
+  /* Moderation Form */
+  .mod-form {
+    border-top: 2px solid var(--border);
+    background: var(--bg);
+  }
+
+  .mod-form.hidden {
+    display: none;
+  }
+
+  .mod-form-inner {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .mod-form-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .mod-form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .mod-form-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    resize: vertical;
+  }
+
+  .mod-form-textarea:focus {
+    outline: none;
+    border-color: var(--focus);
+  }
+
+  .action-taken-field.hidden {
+    display: none;
+  }
+
+  .mod-form-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+  }
+
+  .cancel-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: inherit;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .cancel-btn:hover {
+    background: var(--surface-alt);
+    color: var(--text);
+  }
+
+  .confirm-btn {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: inherit;
+    background: var(--color-primary);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-inverse);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 2px 2px 0 var(--shadow-hard);
+  }
+
+  .confirm-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 3px 3px 0 var(--shadow-hard);
+  }
+
+  .confirm-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .status-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .report-main {
+      flex-direction: column;
+    }
+
+    .report-actions {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+  }
+</style>
+
+<script>
+  // Track the current action being performed per report
+  const reportActions: Record<string, string> = {};
+
+  // Handle action button clicks (dismiss, review, take action)
+  document.querySelectorAll('.action-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const target = e.currentTarget as HTMLButtonElement;
+      const reportId = target.dataset.reportId;
+      const action = target.dataset.action;
+      if (!reportId || !action) return;
+
+      // Store the intended action
+      reportActions[reportId] = action;
+
+      // Show the form
+      const form = document.getElementById(`mod-form-${reportId}`);
+      if (!form) return;
+      form.classList.remove('hidden');
+
+      // Update form title based on action
+      const titleEl = document.getElementById(`mod-form-title-${reportId}`);
+      if (titleEl) {
+        switch (action) {
+          case 'dismiss':
+            titleEl.textContent = 'Dismiss Report';
+            break;
+          case 'review':
+            titleEl.textContent = 'Mark as Reviewed';
+            break;
+          case 'action':
+            titleEl.textContent = 'Take Action';
+            break;
+        }
+      }
+
+      // Show/hide the action description field
+      const actionField = document.getElementById(`action-field-${reportId}`);
+      if (actionField) {
+        if (action === 'action') {
+          actionField.classList.remove('hidden');
+        } else {
+          actionField.classList.add('hidden');
+        }
+      }
+
+      // Scroll into view
+      form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+
+  // Handle cancel buttons
+  document.querySelectorAll('.cancel-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const target = e.currentTarget as HTMLButtonElement;
+      const reportId = target.dataset.reportId;
+      if (!reportId) return;
+
+      const form = document.getElementById(`mod-form-${reportId}`);
+      if (form) {
+        form.classList.add('hidden');
+      }
+      delete reportActions[reportId];
+    });
+  });
+
+  // Handle confirm buttons
+  document.querySelectorAll('.confirm-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const target = e.currentTarget as HTMLButtonElement;
+      const reportId = target.dataset.reportId;
+      if (!reportId) return;
+
+      const action = reportActions[reportId];
+      if (!action) return;
+
+      const notesEl = document.getElementById(`mod-notes-${reportId}`) as HTMLTextAreaElement | null;
+      const actionDescEl = document.getElementById(`action-desc-${reportId}`) as HTMLTextAreaElement | null;
+
+      const moderatorNotes = notesEl?.value?.trim() || '';
+      const actionTaken = actionDescEl?.value?.trim() || '';
+
+      // Validate: action_taken requires an action description
+      if (action === 'action' && !actionTaken) {
+        alert('Please describe the action taken.');
+        actionDescEl?.focus();
+        return;
+      }
+
+      // Map action to status
+      let status: string;
+      switch (action) {
+        case 'dismiss':
+          status = 'dismissed';
+          break;
+        case 'review':
+          status = 'reviewed';
+          break;
+        case 'action':
+          status = 'action_taken';
+          break;
+        default:
+          return;
+      }
+
+      // Disable button while processing
+      target.disabled = true;
+      target.textContent = 'Saving...';
+
+      try {
+        const body: Record<string, string> = { status };
+        if (moderatorNotes) body.moderatorNotes = moderatorNotes;
+        if (actionTaken) body.actionTaken = actionTaken;
+
+        const response = await fetch(`/api/reports/${reportId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        if (response.ok) {
+          // Reload page to show updated state
+          window.location.reload();
+        } else {
+          const data = await response.json();
+          alert(`Could not update report: ${data.error || 'Unknown error'}`);
+          target.disabled = false;
+          target.textContent = 'Confirm';
+        }
+      } catch (err) {
+        alert('Could not update report. Please try again.');
+        target.disabled = false;
+        target.textContent = 'Confirm';
+      }
+    });
+  });
+</script>

@@ -1,0 +1,69 @@
+[
+  {
+    "id": "report-001",
+    "reporterSlug": "solderqueen",
+    "entityType": "build",
+    "entityId": "b1",
+    "reason": "spam",
+    "details": "This build is clearly spam - fake images and suspicious links",
+    "status": "action_taken",
+    "createdAt": "2024-05-06T12:00:00Z",
+    "reviewedBySlug": "divine_circuitry",
+    "moderatorNotes": "Confirmed spam - removed content and warned user",
+    "actionTaken": "content_removed"
+  },
+  {
+    "id": "report-002",
+    "reporterSlug": "glitchgrl",
+    "entityType": "forum_post",
+    "entityId": "p5",
+    "reason": "harassment",
+    "details": "This post contains inappropriate language targeting another user",
+    "status": "reviewed",
+    "createdAt": "2024-05-08T14:00:00Z",
+    "reviewedBySlug": "divine_circuitry",
+    "moderatorNotes": "Warning issued to user. Post removed.",
+    "actionTaken": "user_warned"
+  },
+  {
+    "id": "report-003",
+    "reporterSlug": "nova_spark",
+    "entityType": "wiki_article",
+    "entityId": "w2",
+    "reason": "inappropriate_content",
+    "details": "Article contains off-topic promotional content",
+    "status": "dismissed",
+    "createdAt": "2024-05-10T16:00:00Z",
+    "reviewedBySlug": "divine_circuitry",
+    "moderatorNotes": "Reviewed content - appears to be legitimate wiki contribution about cyberdeck OS options",
+    "actionTaken": "none"
+  },
+  {
+    "id": "report-004",
+    "reporterSlug": "solderqueen",
+    "entityType": "build",
+    "entityId": "b3",
+    "reason": "off_topic",
+    "details": "This isn't really a cyberdeck - just a regular laptop",
+    "status": "pending",
+    "createdAt": "2024-05-12T10:00:00Z",
+    "reviewedBySlug": null,
+    "reviewedAt": null,
+    "moderatorNotes": null,
+    "actionTaken": null
+  },
+  {
+    "id": "report-005",
+    "reporterSlug": "crystal_byte",
+    "entityType": "forum_thread",
+    "entityId": "t1",
+    "reason": "other",
+    "details": "Thread has become toxic and unhelpful",
+    "status": "pending",
+    "createdAt": "2024-05-13T18:00:00Z",
+    "reviewedBySlug": null,
+    "reviewedAt": null,
+    "moderatorNotes": null,
+    "actionTaken": null
+  }
+]

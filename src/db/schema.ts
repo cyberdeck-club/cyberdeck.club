@@ -579,3 +579,43 @@ export const editHistory = sqliteTable("edit_history", {
   changesSummary: text("changes_summary"), // JSON string describing what changed
   previousContent: text("previous_content"), // Optional: full previous content snapshot
 });
+
+// Reports table - user-driven content flagging and moderation
+export const reports = sqliteTable(
+  "reports",
+  {
+    id: text("id").primaryKey(),
+    reporterId: text("reporter_id")
+      .notNull()
+      .references(() => user.id),
+    entityType: text("entity_type").notNull(), // 'build' | 'forum_post' | 'wiki_article' | 'build_comment' | 'wiki_comment' | 'forum_thread'
+    entityId: text("entity_id").notNull(),
+    reason: text("reason").notNull(), // 'spam' | 'harassment' | 'inappropriate_content' | 'off_topic' | 'other'
+    details: text("details"), // Optional free-text explanation
+    status: text("status").notNull().default("pending"), // 'pending' | 'reviewed' | 'dismissed' | 'action_taken'
+    createdAt: integer("created_at").notNull(),
+    reviewedBy: text("reviewed_by").references(() => user.id),
+    reviewedAt: integer("reviewed_at"),
+    moderatorNotes: text("moderator_notes"),
+    actionTaken: text("action_taken"), // 'content_removed' | 'user_warned' | 'user_banned' | 'none'
+  },
+  (table) => [
+    index("reports_status_idx").on(table.status),
+    index("reports_reporter_id_idx").on(table.reporterId),
+    index("reports_entity_idx").on(table.entityType, table.entityId),
+    index("reports_created_at_idx").on(table.createdAt),
+  ]
+);
+
+export const reportsRelations = relations(reports, ({ one }) => ({
+  reporter: one(user, {
+    fields: [reports.reporterId],
+    references: [user.id],
+    relationName: "reportedBy",
+  }),
+  reviewer: one(user, {
+    fields: [reports.reviewedBy],
+    references: [user.id],
+    relationName: "reviewedBy",
+  }),
+}));

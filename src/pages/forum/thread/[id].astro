@@ -11,7 +11,8 @@ import { epochToDate } from "@/lib/timestamp";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
 import { ReplyForm } from "@/components/forum/ReplyForm";
 import { EditPostForm } from "@/components/forum/EditPostForm";
-import { ROLES, requireRole } from "@/lib/roles";
+import ReportButton from "@/components/reports/ReportButton";
+import { ROLES, requireRole, getRoleLevel } from "@/lib/roles";
 import { getLatestEdit } from "@/lib/edit-history";
 import * as schema from "../../../db/schema";
 import { eq } from "drizzle-orm";
@@ -279,6 +280,16 @@ for (const item of posts) {
                         Delete
                       </button>
                     )}
+                    {currentUser && (
+                      <span class="ml-2">
+                        <ReportButton
+                          client:visible
+                          entityType="forum_post"
+                          entityId={item.post.id}
+                          userRole={getRoleLevel(currentUser.role)}
+                        />
+                      </span>
+                    )}
                   </div>
                   <div id={`post-content-${item.post.id}`} class="post-body prose" set:html={renderMarkdownToHtml(item.post.content)} />
                   {(() => {
@@ -381,12 +392,16 @@ for (const item of posts) {
                 </svg>
                 Share Thread
               </button>
-              <button class="action-list-btn" disabled>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M4 8H12M4 4H12M4 12H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-                Report Thread
-              </button>
+              {currentUser && (
+                <div class="action-list-report">
+                  <ReportButton
+                    client:visible
+                    entityType="forum_thread"
+                    entityId={threadData.thread.id}
+                    userRole={getRoleLevel(currentUser.role)}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </aside>
@@ -885,6 +900,10 @@ for (const item of posts) {
   .action-list-btn:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
+  }
+
+  .action-list-report {
+    padding: 0.25rem 0.5rem;
   }
 
   /* Responsive */
