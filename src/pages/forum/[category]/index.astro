@@ -7,6 +7,7 @@
 import ForumLayout from "@/layouts/ForumLayout.astro";
 import ForumThreadPreview from "@/components/ForumThreadPreview.astro";
 import { getForumCategories, getForumThreads } from "@/lib/forum";
+import { getBlockedUserIds } from "@/lib/blocking";
 import { requireRole, ROLES } from "@/lib/roles";
 import { epochToDate } from "@/lib/timestamp";
 
@@ -31,8 +32,11 @@ if (!categoryData) {
   return Astro.redirect("/forum");
 }
 
-// Fetch threads for this category
-const threadsResult = await getForumThreads(db, category);
+// Get blocked user IDs for content filtering
+const blockedUserIds = user ? await getBlockedUserIds(db, user.id) : [];
+
+// Fetch threads for this category (filtered by blocked users)
+const threadsResult = await getForumThreads(db, category, { excludeUserIds: blockedUserIds });
 
 // Sort threads: pinned first, then by last activity
 const sortedThreads = [...threadsResult].sort((a, b) => {

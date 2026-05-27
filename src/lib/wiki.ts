@@ -1,4 +1,4 @@
-import { eq, desc, and, or, like, notLike, isNull, sql } from "drizzle-orm";
+import { eq, desc, and, or, like, notLike, isNull, sql, notInArray } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../db/schema";
 
@@ -146,8 +146,22 @@ export function getWikiRevisions(
  */
 export function getRecentWikiArticles(
   db: DrizzleD1Database<typeof schema>,
-  limit: number = 5
+  limit: number = 5,
+  options?: { excludeUserIds?: string[] }
 ) {
+  const { excludeUserIds } = options ?? {};
+
+  const conditions = [
+    eq(schema.wikiArticles.status, "published"),
+    isNull(schema.wikiArticles.deletedAt),
+    notLike(schema.user.name, "%[Test Account]%"),
+    notLike(schema.user.name, "%[deleted]%"),
+  ];
+
+  if (excludeUserIds && excludeUserIds.length > 0) {
+    conditions.push(notInArray(schema.wikiArticles.authorId, excludeUserIds));
+  }
+
   return db
     .select({
       article: schema.wikiArticles,
@@ -157,14 +171,7 @@ export function getRecentWikiArticles(
     .from(schema.wikiArticles)
     .innerJoin(schema.user, eq(schema.wikiArticles.authorId, schema.user.id))
     .leftJoin(schema.wikiCategories, eq(schema.wikiArticles.categoryId, schema.wikiCategories.id))
-    .where(
-      and(
-        eq(schema.wikiArticles.status, "published"),
-        isNull(schema.wikiArticles.deletedAt),
-        notLike(schema.user.name, "%[Test Account]%"),
-        notLike(schema.user.name, "%[deleted]%")
-      )
-    )
+    .where(and(...conditions))
     .orderBy(desc(schema.wikiArticles.publishedAt))
     .limit(limit);
 }

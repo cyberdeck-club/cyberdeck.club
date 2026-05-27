@@ -6,6 +6,7 @@
 
 import ForumLayout from "@/layouts/ForumLayout.astro";
 import { getForumThread, getForumPosts } from "@/lib/forum";
+import { getBlockedUserIds } from "@/lib/blocking";
 import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
 import { epochToDate } from "@/lib/timestamp";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
@@ -37,13 +38,17 @@ if (!threadData) {
 const td = threadData;
 let postsResult: Awaited<ReturnType<typeof getForumPosts>> = [];
 
-// Fetch posts if thread exists
-if (!notFound && threadData) {
-  postsResult = await getForumPosts(db, id);
-}
-
 // Get current user from session (populated by middleware)
 const currentUser = Astro.locals.user;
+
+// Get blocked user IDs for content filtering
+const blockedUserIds = currentUser ? await getBlockedUserIds(db, currentUser.id) : [];
+const isThreadAuthorBlocked = blockedUserIds.includes(threadData.thread.authorId);
+
+// Fetch posts if thread exists (filtered by blocked users)
+if (!notFound && threadData) {
+  postsResult = await getForumPosts(db, id, { excludeUserIds: blockedUserIds });
+}
 
 // Check guidelines acceptance for reply form
 let guidelinesAccepted = false;
@@ -63,7 +68,6 @@ let posts: Array<{
   authorId: string;
 }> = [];
 if (!notFound && threadData) {
-  postsResult = await getForumPosts(db, id);
   posts = postsResult;
 }
 
@@ -175,6 +179,13 @@ for (const item of posts) {
     ]}
   >
     <article class="thread-view">
+      {/* Blocked author notice */}
+      {isThreadAuthorBlocked && (
+        <div class="blocked-notice" role="status">
+          <p>This thread was created by a user you've blocked. Their content is hidden.</p>
+        </div>
+      )}
+
       {/* Thread Header */}
       <header class="thread-header">
         <div class="thread-badges">
@@ -415,6 +426,20 @@ for (const item of posts) {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+  }
+
+  .blocked-notice {
+    padding: 1rem 1.25rem;
+    background: var(--color-accent);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .blocked-notice p {
+    margin: 0;
   }
 
   /* Thread Header */

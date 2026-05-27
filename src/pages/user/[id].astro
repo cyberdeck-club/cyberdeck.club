@@ -12,9 +12,11 @@ import ForumThreadPreview from "@/components/ForumThreadPreview.astro";
 import WikiArticleCard from "@/components/WikiArticleCard.astro";
 import SectionHeader from "@/components/SectionHeader.astro";
 import { eq, desc, and } from "drizzle-orm";
-import { user, builds, forumThreads, wikiArticles, forumCategories, wikiCategories } from "@/db/schema";
+import { user, builds, forumThreads, wikiArticles, forumCategories, wikiCategories, userBlocks } from "@/db/schema";
 import { epochToDate } from "@/lib/timestamp";
 import { getRoleLevel, ROLES } from "@/lib/roles";
+import { hasBlocked } from "@/lib/blocking";
+import BlockButton from "@/components/blocking/BlockButton";
 
 // Server-rendered page
 export const prerender = false;
@@ -47,6 +49,25 @@ const isOwnProfile = !!currentUser && currentUser.id === id;
 
 // Determine if current user is admin
 const isAdmin = !!(currentUser && getRoleLevel(currentUser.role) >= ROLES.ADMIN);
+
+// Block state — only compute if viewing someone else's profile and logged in
+let isBlockedByCurrentUser = false;
+let existingBlockId: string | undefined;
+
+if (currentUser && !isOwnProfile) {
+  isBlockedByCurrentUser = await hasBlocked(db, currentUser.id, profileUser.id);
+
+  if (isBlockedByCurrentUser) {
+    const blocks = await db.select({ id: userBlocks.id })
+      .from(userBlocks)
+      .where(and(
+        eq(userBlocks.blockerId, currentUser.id),
+        eq(userBlocks.blockedId, profileUser.id)
+      ))
+      .limit(1);
+    existingBlockId = blocks[0]?.id;
+  }
+}
 
 // Fetch user's published builds
 const userBuilds = await db
@@ -137,11 +158,25 @@ const userData = {
   <div class="profile-page">
     <!-- Profile Card -->
     <section class="profile-card-section">
-      <UserProfileCard 
-        user={userData} 
-        isOwnProfile={isOwnProfile} 
+      <UserProfileCard
+        user={userData}
+        isOwnProfile={isOwnProfile}
         isAdmin={isAdmin}
       />
+      {currentUser && !isOwnProfile && (
+        <div class="profile-page-actions">
+          <BlockButton
+            client:visible
+            targetUserId={profileUser.id}
+            targetUserName={profileUser.name || "Unknown User"}
+            targetUserRole={getRoleLevel(profileUser.role)}
+            currentUserRole={getRoleLevel(currentUser.role)}
+            isCurrentlyBlocked={isBlockedByCurrentUser}
+            existingBlockId={existingBlockId}
+            variant="profile"
+          />
+        </div>
+      )}
     </section>
 
     <!-- Builds Section -->
@@ -227,6 +262,13 @@ const userData = {
 
   .profile-card-section {
     margin-bottom: 1rem;
+  }
+
+  .profile-page-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
   }
 
   .profile-content-section {

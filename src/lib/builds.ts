@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, notLike, isNull } from "drizzle-orm";
+import { eq, desc, and, sql, notLike, isNull, notInArray } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../db/schema";
 
@@ -10,9 +10,20 @@ export type Build = typeof schema.builds.$inferSelect;
  */
 export function getBuilds(
   db: DrizzleD1Database<typeof schema>,
-  options?: { limit?: number; offset?: number }
+  options?: { limit?: number; offset?: number; excludeUserIds?: string[] }
 ) {
-  const { limit = 50, offset = 0 } = options ?? {};
+  const { limit = 50, offset = 0, excludeUserIds } = options ?? {};
+
+  const conditions = [
+    eq(schema.builds.status, "published"),
+    isNull(schema.builds.deletedAt),
+    notLike(schema.user.name, "%[Test Account]%"),
+    notLike(schema.user.name, "%[deleted]%"),
+  ];
+
+  if (excludeUserIds && excludeUserIds.length > 0) {
+    conditions.push(notInArray(schema.builds.authorId, excludeUserIds));
+  }
 
   return db
     .select({
@@ -21,14 +32,7 @@ export function getBuilds(
     })
     .from(schema.builds)
     .innerJoin(schema.user, eq(schema.builds.authorId, schema.user.id))
-    .where(
-      and(
-        eq(schema.builds.status, "published"),
-        isNull(schema.builds.deletedAt),
-        notLike(schema.user.name, "%[Test Account]%"),
-        notLike(schema.user.name, "%[deleted]%")
-      )
-    )
+    .where(and(...conditions))
     .orderBy(desc(schema.builds.createdAt))
     .limit(limit)
     .offset(offset);
@@ -57,8 +61,22 @@ export function getBuild(
  */
 export function getRecentBuilds(
   db: DrizzleD1Database<typeof schema>,
-  limit: number
+  limit: number,
+  options?: { excludeUserIds?: string[] }
 ) {
+  const { excludeUserIds } = options ?? {};
+
+  const conditions = [
+    eq(schema.builds.status, "published"),
+    isNull(schema.builds.deletedAt),
+    notLike(schema.user.name, "%[Test Account]%"),
+    notLike(schema.user.name, "%[deleted]%"),
+  ];
+
+  if (excludeUserIds && excludeUserIds.length > 0) {
+    conditions.push(notInArray(schema.builds.authorId, excludeUserIds));
+  }
+
   return db
     .select({
       build: schema.builds,
@@ -66,14 +84,7 @@ export function getRecentBuilds(
     })
     .from(schema.builds)
     .innerJoin(schema.user, eq(schema.builds.authorId, schema.user.id))
-    .where(
-      and(
-        eq(schema.builds.status, "published"),
-        isNull(schema.builds.deletedAt),
-        notLike(schema.user.name, "%[Test Account]%"),
-        notLike(schema.user.name, "%[deleted]%")
-      )
-    );
+    .where(and(...conditions));
 }
 // JSON field names that need parsing
 const JSON_FIELDS = [

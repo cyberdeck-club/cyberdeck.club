@@ -6,8 +6,9 @@
 
 import ForumLayout from "@/layouts/ForumLayout.astro";
 import { getForumCategories } from "@/lib/forum";
+import { getBlockedUserIds } from "@/lib/blocking";
 import { requireRole, ROLES } from "@/lib/roles";
-import { sql, desc, notLike, and } from "drizzle-orm";
+import { sql, desc, notLike, notInArray, and } from "drizzle-orm";
 import * as schema from "../../db/schema";
 
 export const prerender = false;
@@ -16,7 +17,19 @@ const db = Astro.locals.db!;
 const user = Astro.locals.user;
 const categoriesResult = await getForumCategories(db);
 
-// Query actual thread counts per category (excluding test/deleted users)
+// Get blocked user IDs for content filtering
+const blockedUserIds = user ? await getBlockedUserIds(db, user.id) : [];
+
+// Build conditions for thread count query
+const threadCountConditions = [
+  notLike(schema.user.name, "%[Test Account]%"),
+  notLike(schema.user.name, "%[deleted]%"),
+];
+if (blockedUserIds.length > 0) {
+  threadCountConditions.push(notInArray(schema.forumThreads.authorId, blockedUserIds));
+}
+
+// Query actual thread counts per category (excluding test/deleted/blocked users)
 const threadCounts = await db
   .select({
     categoryId: schema.forumThreads.categoryId,
@@ -24,17 +37,21 @@ const threadCounts = await db
   })
   .from(schema.forumThreads)
   .innerJoin(schema.user, sql`${schema.forumThreads.authorId} = ${schema.user.id}`)
-  .where(
-    and(
-      notLike(schema.user.name, "%[Test Account]%"),
-      notLike(schema.user.name, "%[deleted]%")
-    )
-  )
+  .where(and(...threadCountConditions))
   .groupBy(schema.forumThreads.categoryId);
 
 const threadCountMap = new Map(threadCounts.map(r => [r.categoryId, r.count]));
 
-// Query latest thread per category (ordered by lastReplyAt descending, excluding test/deleted users)
+// Build conditions for latest thread query
+const latestThreadConditions = [
+  notLike(schema.user.name, "%[Test Account]%"),
+  notLike(schema.user.name, "%[deleted]%"),
+];
+if (blockedUserIds.length > 0) {
+  latestThreadConditions.push(notInArray(schema.forumThreads.authorId, blockedUserIds));
+}
+
+// Query latest thread per category (ordered by lastReplyAt descending, excluding test/deleted/blocked users)
 const latestThreads = await db
   .select({
     categoryId: schema.forumThreads.categoryId,
@@ -42,12 +59,7 @@ const latestThreads = await db
   })
   .from(schema.forumThreads)
   .innerJoin(schema.user, sql`${schema.forumThreads.authorId} = ${schema.user.id}`)
-  .where(
-    and(
-      notLike(schema.user.name, "%[Test Account]%"),
-      notLike(schema.user.name, "%[deleted]%")
-    )
-  )
+  .where(and(...latestThreadConditions))
   .orderBy(desc(schema.forumThreads.lastReplyAt));
 
 // Build a map of categoryId -> latest thread title (first occurrence per category)

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "block-001",
+    "blockerSlug": "solderqueen",
+    "blockedSlug": "shadow_hex",
+    "createdAt": "2026-04-27T08:00:00-07:00"
+  },
+  {
+    "id": "block-002",
+    "blockerSlug": "glitchgrl",
+    "blockedSlug": "shadow_hex",
+    "createdAt": "2026-04-28T10:30:00-05:00"
+  }
+]

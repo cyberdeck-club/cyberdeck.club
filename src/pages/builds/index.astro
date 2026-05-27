@@ -2,6 +2,7 @@
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
 import { getBuilds, parseBuildJsonFields } from "@/lib/builds";
+import { getBlockedUserIds } from "@/lib/blocking";
 import { requireRole, ROLES } from "@/lib/roles";
 
 // Server-rendered page
@@ -14,9 +15,10 @@ const user = Astro.locals.user;
 const canSubmitBuild = requireRole(user?.role, ROLES.MAKER);
 const isLoggedIn = !!user;
 
-// Fetch builds from database
+// Fetch builds from database (filtered by blocked users)
 const db = Astro.locals.db!;
-const buildsResult = await getBuilds(db);
+const blockedUserIds = user ? await getBlockedUserIds(db, user.id) : [];
+const buildsResult = await getBuilds(db, { excludeUserIds: blockedUserIds });
 
 // Transform database results to the format expected by BuildCard
 const builds = buildsResult.map(({ build, authorName }) => {

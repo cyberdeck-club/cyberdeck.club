@@ -3,6 +3,7 @@ export const prerender = false;
 
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import SectionHeader from "@/components/SectionHeader.astro";
+import { getBlockedUserIds } from "@/lib/blocking";
 import { isBetaSite } from "@/lib/beta";
 import WikiArticleCard from "@/components/WikiArticleCard.astro";
 import ForumThreadPreview from "@/components/ForumThreadPreview.astro";
@@ -39,14 +40,18 @@ const homepageIntroduceBtn = "Introduce Yourself";
 const homepageReadWikiBtn = "Read the Wiki";
 
 const db = Astro.locals.db!;
+const user = Astro.locals.user;
 const isBeta = isBetaSite(Astro.request);
 
-// Fetch dynamic content
+// Get blocked user IDs for content filtering
+const blockedUserIds = user ? await getBlockedUserIds(db as any, user.id) : [];
+
+// Fetch dynamic content (filtered by blocked users)
 const [buildsResult, meetupsResult, wikiResult, forumResult] = await Promise.all([
-  getRecentBuilds(db, 3),
+  getRecentBuilds(db, 3, { excludeUserIds: blockedUserIds }),
   getUpcomingMeetups(db, 3),
-  getRecentWikiArticles(db, 3),
-  getRecentForumThreads(db, 3),
+  getRecentWikiArticles(db, 3, { excludeUserIds: blockedUserIds }),
+  getRecentForumThreads(db, 3, { excludeUserIds: blockedUserIds }),
 ]);
 
 const builds = buildsResult.map(({ build, authorName }) => ({

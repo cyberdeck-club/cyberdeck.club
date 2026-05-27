@@ -78,6 +78,13 @@
       "when": 1779810849299,
       "tag": "0010_thin_thunderbolt",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1779894616465,
+      "tag": "0011_opposite_scourge",
+      "breakpoints": true
     }
   ]
 }

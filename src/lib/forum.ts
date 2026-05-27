@@ -1,4 +1,4 @@
-import { eq, desc, asc, and, notLike, isNull, sql } from "drizzle-orm";
+import { eq, desc, asc, and, notLike, isNull, sql, notInArray } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../db/schema";
 
@@ -26,9 +26,20 @@ export function getForumCategories(
 export function getForumThreads(
   db: DrizzleD1Database<typeof schema>,
   categorySlug: string,
-  options?: { limit?: number; offset?: number }
+  options?: { limit?: number; offset?: number; excludeUserIds?: string[] }
 ) {
-  const { limit = 50, offset = 0 } = options ?? {};
+  const { limit = 50, offset = 0, excludeUserIds } = options ?? {};
+
+  const conditions = [
+    eq(schema.forumCategories.slug, categorySlug),
+    isNull(schema.forumThreads.deletedAt),
+    notLike(schema.user.name, "%[Test Account]%"),
+    notLike(schema.user.name, "%[deleted]%"),
+  ];
+
+  if (excludeUserIds && excludeUserIds.length > 0) {
+    conditions.push(notInArray(schema.forumThreads.authorId, excludeUserIds));
+  }
 
   return db
     .select({
@@ -43,14 +54,7 @@ export function getForumThreads(
       eq(schema.forumThreads.categoryId, schema.forumCategories.id)
     )
     .innerJoin(schema.user, eq(schema.forumThreads.authorId, schema.user.id))
-    .where(
-      and(
-        eq(schema.forumCategories.slug, categorySlug),
-        isNull(schema.forumThreads.deletedAt),
-        notLike(schema.user.name, "%[Test Account]%"),
-        notLike(schema.user.name, "%[deleted]%")
-      )
-    )
+    .where(and(...conditions))
     .orderBy(desc(schema.forumThreads.isPinned), desc(schema.forumThreads.lastReplyAt))
     .limit(limit)
     .offset(offset);
@@ -94,14 +98,25 @@ export function getForumThread(
 export function getForumPosts(
   db: DrizzleD1Database<typeof schema>,
   threadId: string,
-  options?: { limit?: number; offset?: number }
+  options?: { limit?: number; offset?: number; excludeUserIds?: string[] }
 ) {
-  const { limit = 50, offset = 0 } = options ?? {};
+  const { limit = 50, offset = 0, excludeUserIds } = options ?? {};
 
   // Normalise: if a timestamp is > 10 000 000 000 it was stored in
   // milliseconds — divide by 1000 so it compares correctly with
   // second-precision values.
   const normalisedCreatedAt = sql`CASE WHEN ${schema.forumPosts.createdAt} > 10000000000 THEN ${schema.forumPosts.createdAt} / 1000 ELSE ${schema.forumPosts.createdAt} END`;
+
+  const conditions = [
+    eq(schema.forumPosts.threadId, threadId),
+    isNull(schema.forumPosts.deletedAt),
+    notLike(schema.user.name, "%[Test Account]%"),
+    notLike(schema.user.name, "%[deleted]%"),
+  ];
+
+  if (excludeUserIds && excludeUserIds.length > 0) {
+    conditions.push(notInArray(schema.forumPosts.authorId, excludeUserIds));
+  }
 
   return db
     .select({
@@ -111,14 +126,7 @@ export function getForumPosts(
     })
     .from(schema.forumPosts)
     .innerJoin(schema.user, eq(schema.forumPosts.authorId, schema.user.id))
-    .where(
-      and(
-        eq(schema.forumPosts.threadId, threadId),
-        isNull(schema.forumPosts.deletedAt),
-        notLike(schema.user.name, "%[Test Account]%"),
-        notLike(schema.user.name, "%[deleted]%")
-      )
-    )
+    .where(and(...conditions))
     .orderBy(asc(normalisedCreatedAt), asc(schema.forumPosts.id))
     .limit(limit)
     .offset(offset);
@@ -176,8 +184,21 @@ export function getUserPostCount(
  */
 export function getRecentForumThreads(
   db: DrizzleD1Database<typeof schema>,
-  limit: number = 5
+  limit: number = 5,
+  options?: { excludeUserIds?: string[] }
 ) {
+  const { excludeUserIds } = options ?? {};
+
+  const conditions = [
+    isNull(schema.forumThreads.deletedAt),
+    notLike(schema.user.name, "%[Test Account]%"),
+    notLike(schema.user.name, "%[deleted]%"),
+  ];
+
+  if (excludeUserIds && excludeUserIds.length > 0) {
+    conditions.push(notInArray(schema.forumThreads.authorId, excludeUserIds));
+  }
+
   return db
     .select({
       thread: schema.forumThreads,
@@ -187,13 +208,7 @@ export function getRecentForumThreads(
     .from(schema.forumThreads)
     .innerJoin(schema.user, eq(schema.forumThreads.authorId, schema.user.id))
     .leftJoin(schema.forumCategories, eq(schema.forumThreads.categoryId, schema.forumCategories.id))
-    .where(
-      and(
-        isNull(schema.forumThreads.deletedAt),
-        notLike(schema.user.name, "%[Test Account]%"),
-        notLike(schema.user.name, "%[deleted]%")
-      )
-    )
+    .where(and(...conditions))
     .orderBy(desc(schema.forumThreads.lastReplyAt))
     .limit(limit);
 }

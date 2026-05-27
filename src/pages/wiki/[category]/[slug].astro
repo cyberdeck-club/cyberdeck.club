@@ -13,7 +13,8 @@ import ReportButton from "@/components/reports/ReportButton";
 import { getWikiArticle, getWikiCategories, incrementWikiViewCount } from "@/lib/wiki";
 import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
-import { eq, isNull, and } from "drizzle-orm";
+import { getBlockedUserIds } from "@/lib/blocking";
+import { eq, isNull, and, notInArray } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 
 // Server-rendered page
@@ -102,8 +103,19 @@ let comments: any[] = [];
 let wikiCategories: Array<{ id: string; label: string; slug: string }> = [];
 let currentCategoryId = "";
 
-// Fetch comments for this article
+// Get blocked user IDs for content filtering
+const blockedUserIds = user ? await getBlockedUserIds(db as any, user.id) : [];
+
+// Fetch comments for this article (filtered by blocked users)
 async function fetchComments(artId: string) {
+  const commentConditions = [
+    eq(schema.wikiComments.articleId, artId),
+    isNull(schema.wikiComments.deletedAt),
+  ];
+  if (blockedUserIds.length > 0) {
+    commentConditions.push(notInArray(schema.wikiComments.authorId, blockedUserIds));
+  }
+
   return db
     .select({
       id: schema.wikiComments.id,
@@ -116,20 +128,17 @@ async function fetchComments(artId: string) {
     })
     .from(schema.wikiComments)
     .innerJoin(schema.user, eq(schema.wikiComments.authorId, schema.user.id))
-    .where(
-      and(
-        eq(schema.wikiComments.articleId, artId),
-        isNull(schema.wikiComments.deletedAt)
-      )
-    )
+    .where(and(...commentConditions))
     .orderBy(schema.wikiComments.createdAt);
 }
 
 if (!notFound) {
   const result = articleResult[0];
   article = result.article;
-  authorName = result.authorName;
-  authorId = result.authorId;
+  // If the article author is blocked, hide their identity but still show the article
+  const isArticleAuthorBlocked = result.authorId ? blockedUserIds.includes(result.authorId) : false;
+  authorName = isArticleAuthorBlocked ? "Author hidden" : result.authorName;
+  authorId = isArticleAuthorBlocked ? null : result.authorId;
   categoryName = result.categoryName;
 
   // Increment view count (fire and forget)

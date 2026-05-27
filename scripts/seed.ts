@@ -34,6 +34,7 @@ interface SeedManifest {
     personal_access_tokens: string;
     pat_usage_logs: string;
     reports: string;
+    user_blocks: string;
   };
 }
 
@@ -218,6 +219,13 @@ interface SeedReport {
   actionTaken?: string;
 }
 
+interface SeedUserBlock {
+  id: string;
+  blockerSlug: string;
+  blockedSlug: string;
+  createdAt: string;
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function uid(): string {
@@ -309,6 +317,7 @@ const wikiComments = loadSeedFile<WikiComment[]>(manifest.files.wiki_comments);
 const personalAccessTokens = loadSeedFile<PersonalAccessToken[]>(manifest.files.personal_access_tokens);
 const patUsageLogs = loadSeedFile<PatUsageLog[]>(manifest.files.pat_usage_logs);
 const reports = loadSeedFile<SeedReport[]>(manifest.files.reports);
+const userBlocks = loadSeedFile<SeedUserBlock[]>(manifest.files.user_blocks);
 
 // Build user slug → userId map
 const userSlugToId = new Map<string, string>();
@@ -716,6 +725,26 @@ function resolveBylineRef(ref: string): string | null {
   return userSlugToId.get(slug) ?? null;
 }
 
+function seedUserBlocks(): void {
+  console.log("Seeding user blocks...");
+
+  const sqls: string[] = [];
+
+  for (const block of userBlocks) {
+    const blockerId = userSlugToId.get(block.blockerSlug) ?? block.blockerSlug;
+    const blockedId = userSlugToId.get(block.blockedSlug) ?? block.blockedSlug;
+    const createdAt = parseIsoToEpoch(block.createdAt);
+
+    sqls.push(
+      `INSERT OR REPLACE INTO user_blocks (id, blocker_id, blocked_id, created_at) VALUES (` +
+      `${sqlStr(uid())}, ${sqlStr(blockerId)}, ${sqlStr(blockedId)}, ${createdAt})`
+    );
+  }
+
+  execSqlBatch(sqls);
+  console.log(`  Created ${userBlocks.length} user blocks`);
+}
+
 function main() {
   console.log(`🌱 Starting seed: ${manifest.meta.name}\n`);
   console.log(`   ${manifest.meta.description}\n`);
@@ -735,6 +764,7 @@ function main() {
     seedPersonalAccessTokens();
     seedPatUsageLogs();
     seedReports();
+    seedUserBlocks();
 
     console.log("\n✅ Seed complete!");
   } catch (error) {

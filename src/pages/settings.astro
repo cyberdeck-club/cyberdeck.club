@@ -7,6 +7,7 @@
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import TokenManager from "@/components/tokens/TokenManager";
 import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
+import BlockedUsersList from "@/components/blocking/BlockedUsersList";
 
 export const prerender = false;
 
@@ -130,6 +131,15 @@ const currentUser = user;
         Personal Access Tokens let you use the cyberdeck.club API from scripts, tools, and AI assistants.
       </p>
       <TokenManager client:load userRole={currentUser.role} />
+    </div>
+
+    <!-- Blocked Users Section -->
+    <div class="settings-container" style="margin-top: var(--space-8);">
+      <h2 class="section-title">Blocked Users 🚫</h2>
+      <p class="section-description">
+        People you've blocked won't see your content, and you won't see theirs.
+      </p>
+      <BlockedUsersList client:load />
     </div>
 
     <!-- Danger Zone Section -->

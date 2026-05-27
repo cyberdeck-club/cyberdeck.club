@@ -1,9 +1,11 @@
 ---
 import BuildLayout from "@/layouts/BuildLayout.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
 import ReportButton from "@/components/reports/ReportButton";
 import { getBuild, getBuilds, parseBuildJsonFields } from "@/lib/builds";
-import { eq, isNull, and } from "drizzle-orm";
+import { getBlockedUserIds } from "@/lib/blocking";
+import { eq, isNull, and, notInArray } from "drizzle-orm";
 import * as schema from "../../db/schema";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
 import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
@@ -47,6 +49,13 @@ const result = buildResult[0];
 const build = result.build;
 const authorName = result.authorName;
 const authorId = build.authorId;
+
+// Get current user for blocking check (need it early)
+const user = Astro.locals.user;
+
+// Get blocked user IDs for content filtering
+const blockedUserIds = user ? await getBlockedUserIds(db, user.id) : [];
+const isBuildAuthorBlocked = typeof build.authorId === "string" && blockedUserIds.includes(build.authorId);
 
 // Parse JSON fields to get typed data
 const parsedBuild = parseBuildJsonFields(build);
@@ -139,6 +148,15 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
+// Build comment query conditions (filtered by blocked users)
+const commentConditions = [
+  eq(schema.buildComments.buildId, build.id),
+  isNull(schema.buildComments.deletedAt),
+];
+if (blockedUserIds.length > 0) {
+  commentConditions.push(notInArray(schema.buildComments.authorId, blockedUserIds));
+}
+
 // Fetch build comments
 const commentsResult = await db
   .select({
@@ -152,12 +170,7 @@ const commentsResult = await db
   })
   .from(schema.buildComments)
   .innerJoin(schema.user, eq(schema.buildComments.authorId, schema.user.id))
-  .where(
-    and(
-      eq(schema.buildComments.buildId, build.id),
-      isNull(schema.buildComments.deletedAt)
-    )
-  )
+  .where(and(...commentConditions))
   .orderBy(schema.buildComments.createdAt);
 
 const comments = commentsResult.map(c => ({
@@ -165,8 +178,7 @@ const comments = commentsResult.map(c => ({
   contentHtml: renderMarkdownToHtml(c.content),
 }));
 
-// Get current user and guidelines status
-const user = Astro.locals.user;
+// Get guidelines status (user already fetched above for blocking)
 let guidelinesAccepted = false;
 let isAuthorOrModerator = false;
 
@@ -176,6 +188,17 @@ if (user) {
 }
 ---
 
+{isBuildAuthorBlocked ? (
+<BaseLayout title="Build Unavailable" description="This build is from a user you've blocked.">
+  <section class="blocked-build-page">
+    <div class="blocked-build-content">
+      <h1 class="blocked-build-title">Build Unavailable</h1>
+      <p class="blocked-build-text">This build is from a user you've blocked. Their content is hidden.</p>
+      <a href="/builds" class="blocked-build-link">← Back to Builds</a>
+    </div>
+  </section>
+</BaseLayout>
+) : (
 <BuildLayout
   title={buildData.title}
   description={`${buildData.title} by ${buildData.builderName} - ${buildData.computePlatform} cyberdeck build`}
@@ -429,8 +452,60 @@ if (user) {
     </div>
   )}
 </BuildLayout>
+)}
 
 <style>
+  /* Blocked build page */
+  .blocked-build-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    padding: 4rem 2rem;
+  }
+
+  .blocked-build-content {
+    text-align: center;
+    max-width: 500px;
+  }
+
+  .blocked-build-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 0 1rem;
+  }
+
+  .blocked-build-text {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0 0 2rem;
+    line-height: 1.6;
+  }
+
+  .blocked-build-link {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: var(--color-primary);
+    color: var(--text-inverse);
+    text-decoration: none;
+    font-weight: 600;
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  .blocked-build-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .blocked-build-link:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
   /* Build Sections */
   .build-section {
     margin-bottom: 3rem;

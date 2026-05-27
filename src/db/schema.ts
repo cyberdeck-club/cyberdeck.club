@@ -619,3 +619,36 @@ export const reportsRelations = relations(reports, ({ one }) => ({
     relationName: "reviewedBy",
   }),
 }));
+
+// User blocks table — user-to-user blocking/muting
+export const userBlocks = sqliteTable(
+  "user_blocks",
+  {
+    id: text("id").primaryKey(),
+    blockerId: text("blocker_id")
+      .notNull()
+      .references(() => user.id),
+    blockedId: text("blocked_id")
+      .notNull()
+      .references(() => user.id),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("user_blocks_pair_idx").on(table.blockerId, table.blockedId),
+    index("user_blocks_blocker_idx").on(table.blockerId),
+    index("user_blocks_blocked_idx").on(table.blockedId),
+  ]
+);
+
+export const userBlocksRelations = relations(userBlocks, ({ one }) => ({
+  blocker: one(user, {
+    fields: [userBlocks.blockerId],
+    references: [user.id],
+    relationName: "blocksCreated",
+  }),
+  blocked: one(user, {
+    fields: [userBlocks.blockedId],
+    references: [user.id],
+    relationName: "blocksReceived",
+  }),
+}));
