@@ -14,7 +14,7 @@ export const prerender = false;
 interface Props {
   title: string;
   description?: string;
-  section?: "dashboard" | "users" | "forum" | "wiki" | "static" | "builds" | "nominations" | "beta" | "reports";
+  section?: "dashboard" | "users" | "forum" | "wiki" | "static" | "builds" | "nominations" | "beta" | "reports" | "announcements";
 }
 
 const { 
@@ -54,6 +54,7 @@ const navItems = [
 const adminOnlyNavItems = [
   { href: "/admin/nominations", label: "Nominations", icon: "nominations", section: "nominations" },
   { href: "/admin/beta", label: "Beta Requests", icon: "beta", section: "beta" },
+  { href: "/admin/announcements", label: "Announcements", icon: "announcements", section: "announcements" },
 ];
 
 // Current path for active state
@@ -172,6 +173,14 @@ const currentPath = Astro.url.pathname;
                   {item.icon === "beta" && (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                  )}
+                  {item.icon === "announcements" && (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M22 2L11 13"/>
+                      <path d="M22 2L15 22"/>
+                      <path d="M22 2H2"/>
+                      <path d="M11 13L15 22"/>
                     </svg>
                   )}
                 </span>

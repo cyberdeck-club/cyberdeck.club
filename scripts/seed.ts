@@ -35,6 +35,7 @@ interface SeedManifest {
     pat_usage_logs: string;
     reports: string;
     user_blocks: string;
+    announcements: string;
   };
 }
 
@@ -226,6 +227,17 @@ interface SeedUserBlock {
   createdAt: string;
 }
 
+interface SeedAnnouncement {
+  id: string;
+  title: string;
+  content: string;
+  is_published: boolean;
+  published_at: number | null;
+  author_id: string;
+  created_at: number;
+  updated_at: number;
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function uid(): string {
@@ -317,6 +329,7 @@ const wikiComments = loadSeedFile<WikiComment[]>(manifest.files.wiki_comments);
 const personalAccessTokens = loadSeedFile<PersonalAccessToken[]>(manifest.files.personal_access_tokens);
 const patUsageLogs = loadSeedFile<PatUsageLog[]>(manifest.files.pat_usage_logs);
 const reports = loadSeedFile<SeedReport[]>(manifest.files.reports);
+const announcements = loadSeedFile<SeedAnnouncement[]>(manifest.files.announcements);
 const userBlocks = loadSeedFile<SeedUserBlock[]>(manifest.files.user_blocks);
 
 // Build user slug → userId map
@@ -725,6 +738,28 @@ function resolveBylineRef(ref: string): string | null {
   return userSlugToId.get(slug) ?? null;
 }
 
+function seedAnnouncements(): void {
+  console.log("Seeding announcements...");
+
+  const now = Math.floor(Date.now() / 1000);
+  const sqls: string[] = [];
+
+  for (const announcement of announcements) {
+    const authorId = userSlugToId.get(announcement.author_id) ?? announcement.author_id;
+    const createdAt = announcement.created_at ?? now;
+    const updatedAt = announcement.updated_at ?? now;
+    const publishedAt = announcement.published_at ?? "NULL";
+
+    sqls.push(
+      `INSERT OR REPLACE INTO announcements (id, title, content, is_published, published_at, author_id, created_at, updated_at) VALUES (` +
+      `${sqlStr(announcement.id)}, ${sqlStr(announcement.title)}, ${sqlStr(announcement.content)}, ${announcement.is_published ? 1 : 0}, ${publishedAt}, ${sqlStr(authorId)}, ${createdAt}, ${updatedAt})`
+    );
+  }
+
+  execSqlBatch(sqls);
+  console.log(`  Created ${announcements.length} announcements`);
+}
+
 function seedUserBlocks(): void {
   console.log("Seeding user blocks...");
 
@@ -758,6 +793,7 @@ function main() {
     seedForumPosts();
     seedMeetups();
     seedBuilds();
+    seedAnnouncements();
     seedCommunityGuidelinesAcceptances();
     seedBuildComments();
     seedWikiComments();

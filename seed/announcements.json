@@ -1,0 +1,42 @@
+[
+  {
+    "id": "announcement-001",
+    "title": "Welcome to cyberdeck.club Beta!",
+    "content": "We're excited to launch our beta! Here are some things to know:\n\n- This is an early release\n- Features are being added weekly\n- Please report bugs via the feedback widget\n\nHappy building! 🚀",
+    "is_published": true,
+    "published_at": 1717113600,
+    "author_id": "divine_circuitry",
+    "created_at": 1717113600,
+    "updated_at": 1717113600
+  },
+  {
+    "id": "announcement-002",
+    "title": "New Feature: Forum Categories",
+    "content": "We've added forum categories to help organize discussions:\n\n- **General** - All-purpose discussion\n- **Builds** - Share your builds\n- **Help** - Ask for assistance\n- **Show & Tell** - Show off your work\n\nCheck them out!",
+    "is_published": true,
+    "published_at": 1717193600,
+    "author_id": "divine_circuitry",
+    "created_at": 1717193600,
+    "updated_at": 1717193600
+  },
+  {
+    "id": "announcement-003",
+    "title": "Community Guidelines Now Live",
+    "content": "Our community guidelines are now in effect! Please take a moment to read them:\n\n- [Read the Guidelines](/guidelines)\n\nKey points:\n- Be kind and respectful\n- No harassment or hate speech\n- Credit your inspirations\n- Have fun!\n\nThanks for helping make this a great space! ✨",
+    "is_published": true,
+    "published_at": 1717273600,
+    "author_id": "divine_circuitry",
+    "created_at": 1717273600,
+    "updated_at": 1717273600
+  },
+  {
+    "id": "announcement-004",
+    "title": "Upcoming Maintenance: April 15",
+    "content": "We'll be performing scheduled maintenance on April 15th from 2-4 AM EST. The site may be briefly unavailable.\n\n**What's changing:**\n- Performance improvements\n- Database optimization\n- Bug fixes\n\nThank you for your patience! 🔧",
+    "is_published": false,
+    "published_at": null,
+    "author_id": "divine_circuitry",
+    "created_at": 1717353600,
+    "updated_at": 1717353600
+  }
+]

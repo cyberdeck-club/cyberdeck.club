@@ -6,6 +6,7 @@ import Footer from "@/components/Footer.astro";
 import Nav from "@/components/Nav.astro";
 import ThemeToggle from "@/components/ThemeToggle.astro";
 import FeedbackWidget from "@/components/feedback/FeedbackWidget";
+import AnnouncementModal from "@/components/announcements/AnnouncementModal";
 import BetaGateModal from "@/components/BetaGateModal";
 
 import clsx from 'clsx';
@@ -123,6 +124,8 @@ const isBetaSite = Astro.locals.isBetaSite;
     {!hideFooter && <div class="relative z-10"><Footer /></div>}
     
     {user && <FeedbackWidget client:load />}
+    
+    {user && <AnnouncementModal client:load />}
     
     {isBetaSite && <BetaGateModal client:load isAuthenticated={isAuthenticated} />}
   </body>

@@ -1,0 +1,108 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import * as schema from "@/db/schema";
+import { and, eq, isNull, desc } from "drizzle-orm";
+
+export const prerender = false;
+
+const db = Astro.locals.db!;
+
+const allAnnouncements = await db
+  .select()
+  .from(schema.announcements)
+  .where(
+    and(
+      eq(schema.announcements.isPublished, true),
+      isNull(schema.announcements.deletedAt)
+    )
+  )
+  .orderBy(desc(schema.announcements.publishedAt));
+---
+
+<BaseLayout
+  title="📢 Announcements — cyberdeck.club"
+  description="Site announcements and updates from the cyberdeck.club team."
+>
+  <div class="announcements-page max-w-3xl mx-auto px-4 py-12">
+    <h1 class="announcements-heading">
+      📢 Announcements
+    </h1>
+
+    {
+      allAnnouncements.length === 0 ? (
+        <p class="announcements-empty">No announcements yet.</p>
+      ) : (
+        <div class="announcements-list">
+          {allAnnouncements.map((announcement) => (
+            <article class="announcement-card">
+              <h2 class="announcement-title">{announcement.title}</h2>
+              <time class="announcement-date" datetime={new Date(announcement.publishedAt! * 1000).toISOString()}>
+                {new Date(announcement.publishedAt! * 1000).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </time>
+              <div class="announcement-content">
+                {announcement.content}
+              </div>
+            </article>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .announcements-page {
+    color: var(--color-text);
+  }
+
+  .announcements-heading {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    line-height: 1.1;
+  }
+
+  .announcements-empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+
+  .announcements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .announcement-card {
+    background-color: var(--color-surface);
+    border: 3px solid var(--color-border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 5px 5px 0 var(--color-shadow-hard);
+  }
+
+  .announcement-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+  }
+
+  .announcement-date {
+    display: inline-block;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .announcement-content {
+    line-height: 1.65;
+    white-space: pre-wrap;
+  }
+</style>

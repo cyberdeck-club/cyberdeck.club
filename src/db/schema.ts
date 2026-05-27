@@ -652,3 +652,31 @@ export const userBlocksRelations = relations(userBlocks, ({ one }) => ({
     relationName: "blocksReceived",
   }),
 }));
+
+// Announcements table - for site-wide announcements
+export const announcements = sqliteTable(
+  "announcements",
+  {
+    id: text("id").primaryKey(),
+    title: text("title").notNull(),
+    content: text("content").notNull(), // Markdown content
+    isPublished: integer("is_published", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    publishedAt: integer("published_at"), // When it was published (epoch seconds or null)
+    authorId: text("author_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+    deletedAt: integer("deleted_at"), // Soft-delete
+  },
+  (table) => []
+);
+
+export const announcementsRelations = relations(announcements, ({ one }) => ({
+  author: one(user, {
+    fields: [announcements.authorId],
+    references: [user.id],
+  }),
+}));
