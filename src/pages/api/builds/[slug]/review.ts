@@ -184,17 +184,18 @@ export const POST: APIRoute = async (ctx) => {
       ? await checkAndPromoteUser(db, build.authorId)
       : { promoted: false };
 
-    // 4. Send celebratory email (fire-and-forget)
+    // 4. Send celebratory email — awaited to ensure delivery completes
+    //    before the worker isolate terminates (Cloudflare Workers can
+    //    terminate unresolved promises after the Response is sent).
+    //    The email function has its own try/catch, so this won't throw.
     if (author) {
-      sendBuildApprovedEmail({
+      await sendBuildApprovedEmail({
         to: author.email,
         displayName: author.name,
         buildTitle: build.title,
         buildSlug: build.slug,
         siteUrl,
-      }).catch((err) =>
-        console.error("[review] Failed to send approval email:", err)
-      );
+      });
     }
 
     // 5. Fetch updated build
@@ -235,18 +236,17 @@ export const POST: APIRoute = async (ctx) => {
       })
       .where(eq(schema.builds.id, build.id));
 
-    // 2. Send "needs revision" email (fire-and-forget)
+    // 2. Send "needs revision" email — awaited to ensure delivery completes
+    //    before the worker isolate terminates (same fix as approve path).
     if (author && reason) {
-      sendBuildNeedsRevisionEmail({
+      await sendBuildNeedsRevisionEmail({
         to: author.email,
         displayName: author.name,
         buildTitle: build.title,
         buildSlug: build.slug,
         feedback: reason.trim(),
         siteUrl,
-      }).catch((err) =>
-        console.error("[review] Failed to send needs-revision email:", err)
-      );
+      });
     }
 
     return new Response(

@@ -1,10 +1,12 @@
 import type { APIRoute } from "astro";
 import { eq } from "drizzle-orm";
+import { env } from "cloudflare:workers";
 import { recordEdit } from "../../../lib/edit-history";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
 import { requireRole, ROLES } from "../../../lib/roles";
 import { serializeBuildJsonFields, validateBuildField } from "../../../lib/builds";
+import { sendBuildResubmittedAdminEmail } from "../../../lib/build-emails";
 
 /**
  * GET /api/builds/[slug]
@@ -416,6 +418,40 @@ export const PUT: APIRoute = async (ctx) => {
       .innerJoin(schema.user, eq(schema.builds.authorId, schema.user.id))
       .where(eq(schema.builds.slug, updates.slug ?? slug))
       .limit(1);
+
+    // Send admin email notification when build is resubmitted for review
+    // Only fires on a status TRANSITION to pending_human (not on every edit)
+    if (
+      status === "pending_human" &&
+      build.status !== "pending_human"
+    ) {
+      const adminEmail = (
+        env.ADMIN_EMAIL ?? import.meta.env.ADMIN_EMAIL ?? ""
+      ).toLowerCase().trim();
+      const fromAddress =
+        env.RESEND_FROM_ADDRESS ??
+        import.meta.env.RESEND_FROM_ADDRESS ??
+        "cyberdeck.club <noreply@cyberdeck.club>";
+      const baseUrl =
+        env.PUBLIC_BASE_URL ??
+        import.meta.env.PUBLIC_BASE_URL ??
+        "https://cyberdeck.club";
+      // Use display name only per AGENTS.md §4.1
+      const builderDisplayName = String(
+        updatedBuilds[0]?.authorName ?? ctx.locals.user.name ?? "A member"
+      );
+
+      // Awaited to ensure delivery completes before the worker isolate
+      // terminates — the email function has its own try/catch.
+      await sendBuildResubmittedAdminEmail({
+        adminEmail,
+        fromAddress,
+        buildTitle: updatedBuilds[0]?.build.title ?? build.title,
+        builderDisplayName,
+        buildSlug: updates.slug ?? slug,
+        siteUrl: baseUrl,
+      });
+    }
 
     return new Response(JSON.stringify({ build: updatedBuilds[0].build }), {
       status: 200,
@@ -896,6 +932,40 @@ export const PATCH: APIRoute = async (ctx) => {
       .innerJoin(schema.user, eq(schema.builds.authorId, schema.user.id))
       .where(eq(schema.builds.slug, updates.slug ?? slug))
       .limit(1);
+
+    // Send admin email notification when build is resubmitted for review
+    // Only fires on a status TRANSITION to pending_human (not on every edit)
+    if (
+      status === "pending_human" &&
+      build.status !== "pending_human"
+    ) {
+      const adminEmail = (
+        env.ADMIN_EMAIL ?? import.meta.env.ADMIN_EMAIL ?? ""
+      ).toLowerCase().trim();
+      const fromAddress =
+        env.RESEND_FROM_ADDRESS ??
+        import.meta.env.RESEND_FROM_ADDRESS ??
+        "cyberdeck.club <noreply@cyberdeck.club>";
+      const baseUrl =
+        env.PUBLIC_BASE_URL ??
+        import.meta.env.PUBLIC_BASE_URL ??
+        "https://cyberdeck.club";
+      // Use display name only per AGENTS.md §4.1
+      const builderDisplayName = String(
+        updatedBuilds[0]?.authorName ?? ctx.locals.user.name ?? "A member"
+      );
+
+      // Awaited to ensure delivery completes before the worker isolate
+      // terminates — the email function has its own try/catch.
+      await sendBuildResubmittedAdminEmail({
+        adminEmail,
+        fromAddress,
+        buildTitle: updatedBuilds[0]?.build.title ?? build.title,
+        builderDisplayName,
+        buildSlug: updates.slug ?? slug,
+        siteUrl: baseUrl,
+      });
+    }
 
     return new Response(JSON.stringify({ build: updatedBuilds[0].build }), {
       status: 200,

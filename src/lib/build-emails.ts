@@ -153,3 +153,59 @@ export async function sendBuildApprovedEmail(opts: {
     console.error("[build-emails] Failed to send build-approved email:", err);
   }
 }
+
+/**
+ * Send an admin notification email when a build is resubmitted for review.
+ * Fire-and-forget with error logging — same pattern as the initial submission
+ * notification in POST /api/builds.
+ *
+ * Uses display name only per AGENTS.md §4.1.
+ */
+export async function sendBuildResubmittedAdminEmail(opts: {
+  adminEmail: string;
+  fromAddress: string;
+  buildTitle: string;
+  builderDisplayName: string;
+  buildSlug: string;
+  siteUrl?: string;
+}): Promise<void> {
+  const {
+    adminEmail,
+    fromAddress,
+    buildTitle,
+    builderDisplayName,
+    buildSlug,
+    siteUrl = "https://cyberdeck.club",
+  } = opts;
+
+  if (!adminEmail) return;
+
+  const resend = getResend();
+
+  try {
+    await resend.emails.send({
+      from: fromAddress,
+      to: adminEmail,
+      subject: `[cyberdeck.club] Build resubmitted for review: ${buildTitle}`,
+      html: `
+        <h2>Build Resubmitted for Review</h2>
+        <p><strong>${builderDisplayName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</strong> has revised and resubmitted a build that is waiting for human review.</p>
+        <table style="border-collapse: collapse; margin: 1rem 0;">
+          <tr>
+            <td style="padding: 0.5rem 1rem; font-weight: bold;">Build Title</td>
+            <td style="padding: 0.5rem 1rem;">${buildTitle.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+          </tr>
+          <tr>
+            <td style="padding: 0.5rem 1rem; font-weight: bold;">Resubmitted By</td>
+            <td style="padding: 0.5rem 1rem;">${builderDisplayName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+          </tr>
+        </table>
+        <p><a href="${siteUrl}/admin/builds">Review in the moderation queue →</a></p>
+        <p><a href="${siteUrl}/builds/${buildSlug}">View the build →</a></p>
+        <p><em>Sent automatically by cyberdeck.club</em></p>
+      `,
+    });
+  } catch (err) {
+    console.error("[build-emails] Failed to send resubmission admin notification email:", err);
+  }
+}
