@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import { requireAuth } from "@/lib/require-auth";
 import { ROLES } from "@/lib/roles";
+import { sendAnnouncementEmailBlast } from "@/lib/announcement-emails";
 
 /**
  * GET /api/admin/announcements/[id]
@@ -121,6 +122,10 @@ export const PUT: APIRoute = async (ctx) => {
   const now = Math.floor(Date.now() / 1000);
   const announcement = existing[0];
 
+  // Detect draft → published transition (for email blast)
+  const isNewlyPublished =
+    !announcement.isPublished && body.isPublished === true;
+
   // Build update object
   const updateData: Record<string, unknown> = { updatedAt: now };
 
@@ -155,6 +160,18 @@ export const PUT: APIRoute = async (ctx) => {
       .from(schema.announcements)
       .where(eq(schema.announcements.id, id))
       .limit(1);
+
+    // Fire email blast on draft → published transition (fire-and-forget)
+    if (isNewlyPublished && updated[0]) {
+      sendAnnouncementEmailBlast({
+        db,
+        announcementTitle: updated[0].title,
+        announcementContent: updated[0].content,
+        announcementId: id,
+      }).catch((err) => {
+        console.error("[announcements] Email blast failed (update):", err);
+      });
+    }
 
     return new Response(JSON.stringify(updated[0]), {
       status: 200,

@@ -8,7 +8,7 @@
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { BuildEditor } from "@/components/editor/BuildEditor";
 import { BuildFormFields } from "@/components/builds/BuildFormFields";
-import { getBuild, parseBuildJsonFields } from "@/lib/builds";
+import { getBuildForReview, parseBuildJsonFields } from "@/lib/builds";
 import { eq } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
@@ -36,8 +36,9 @@ if (!slug) {
   return Astro.redirect("/builds");
 }
 
-// Fetch the existing build
-const buildResult = await getBuild(db, slug);
+// Fetch the existing build — getBuildForReview returns all statuses (not just published)
+// so authors can edit their pending/needs-revision builds
+const buildResult = await getBuildForReview(db, slug);
 
 if (!buildResult || buildResult.length === 0) {
   return Astro.redirect("/builds?error=build_not_found");
@@ -52,6 +53,11 @@ const isModeratorOrAdmin = requireRole(user.role, ROLES.MODERATOR);
 if (!isAuthor && !isModeratorOrAdmin) {
   return Astro.redirect("/builds?error=not_authorized");
 }
+
+// Check if this build needs revision — show feedback banner
+// IMPORTANT: Never use the word "rejected" in user-facing copy
+const needsRevision = existingBuild.status === "rejected" || existingBuild.status === "rejected_auto";
+const revisionFeedback = needsRevision ? existingBuild.rejectionReason : null;
 
 // Get initial content for the editor
 const initialContent = existingBuild.description || existingBuild.content || "";
@@ -115,7 +121,18 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
       <p class="page-subtitle">Update your cyberdeck creation</p>
     </header>
 
-    <form id="edit-build-form" class="build-form" data-build-slug={existingBuild.slug}>
+    {needsRevision && revisionFeedback && (
+      <div class="revision-banner" role="status">
+        <p class="revision-banner-label">▸ REVIEWER FEEDBACK</p>
+        <p class="revision-banner-text">{revisionFeedback}</p>
+        <p class="revision-banner-hint">
+          Make the changes you think are right, then save — your build will go
+          back into review automatically. No rush. ✨
+        </p>
+      </div>
+    )}
+
+    <form id="edit-build-form" class="build-form" data-build-slug={existingBuild.slug} data-build-needs-revision={needsRevision ? "true" : "false"}>
       <div class="form-group">
         <label for="title" class="form-label">Title <span class="required">*</span></label>
         <input 
@@ -192,9 +209,9 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
       </div>
 
       <div class="form-actions">
-        <a href={`/builds/${existingBuild.slug}`} class="btn-cancel">Cancel</a>
+        <a href={needsRevision ? "/builds/mine" : `/builds/${existingBuild.slug}`} class="btn-cancel">Cancel</a>
         <button type="submit" class="btn-submit" id="submit-btn">
-          <span class="btn-text">Save Changes ✨</span>
+          <span class="btn-text">{needsRevision ? "Save & Resubmit ✨" : "Save Changes ✨"}</span>
           <span class="btn-loading" style="display: none;">Saving...</span>
         </button>
       </div>
@@ -248,6 +265,10 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
     btnLoading.style.display = "inline";
     formError.style.display = "none";
 
+    // If this build needs revision, resubmit to pending_human on save
+    const needsRevision = form.dataset.buildNeedsRevision === "true";
+    const submitStatus = needsRevision ? "pending_human" : statusSelect.value;
+
     try {
       const response = await fetch(`/api/builds/${buildSlug}`, {
         method: "PUT",
@@ -257,7 +278,7 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
         body: JSON.stringify({
           title: titleInput.value.trim(),
           slug: slugManuallyEdited ? slugInput.value.trim() : undefined,
-          status: statusSelect.value,
+          status: submitStatus,
           description: descriptionInput.value,
           imageUrl: imageUrlInput.value.trim() || undefined,
           // Include structured fields from BuildFormFields component
@@ -275,8 +296,12 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
 
       if (response.ok) {
         const data = await response.json();
-        // Redirect to the updated build page
-        window.location.href = `/builds/${data.build.slug}`;
+        // If resubmitting after revision, go to My Builds; otherwise go to the build page
+        if (needsRevision) {
+          window.location.href = "/builds/mine";
+        } else {
+          window.location.href = `/builds/${data.build.slug}`;
+        }
       } else {
         const data = await response.json();
         throw new Error(data.error || "Failed to update build");
@@ -303,8 +328,42 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
 
   .page-header {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
     position: relative;
+  }
+
+  /* Revision feedback banner */
+  .revision-banner {
+    background: var(--color-surface-alt);
+    border: 3px solid var(--color-secondary, #7c3aed);
+    border-radius: 4px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .revision-banner-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-secondary, #7c3aed);
+    margin: 0 0 0.5rem;
+  }
+
+  .revision-banner-text {
+    font-size: 0.9375rem;
+    color: var(--text);
+    margin: 0 0 0.75rem;
+    line-height: 1.6;
+  }
+
+  .revision-banner-hint {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
   }
 
   .header-sparkles {

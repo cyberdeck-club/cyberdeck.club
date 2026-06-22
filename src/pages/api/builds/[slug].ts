@@ -278,8 +278,8 @@ export const PUT: APIRoute = async (ctx) => {
   }
 
   if (status !== undefined) {
-    // Validate status value
-    const validStatuses = ["planning", "in-progress", "complete", "draft", "published"];
+    // Validate status value — includes pending_human for resubmission after revision
+    const validStatuses = ["planning", "in-progress", "complete", "draft", "published", "pending_human"];
     if (!validStatuses.includes(status)) {
       return new Response(
         JSON.stringify({ error: `status must be one of: ${validStatuses.join(", ")}` }),
@@ -758,8 +758,8 @@ export const PATCH: APIRoute = async (ctx) => {
   }
 
   if (status !== undefined) {
-    // Validate status value
-    const validStatuses = ["planning", "in-progress", "complete", "draft", "published"];
+    // Validate status value — includes pending_human for resubmission after revision
+    const validStatuses = ["planning", "in-progress", "complete", "draft", "published", "pending_human"];
     if (!validStatuses.includes(status)) {
       return new Response(
         JSON.stringify({ error: `status must be one of: ${validStatuses.join(", ")}` }),

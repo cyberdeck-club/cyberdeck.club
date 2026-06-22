@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import { requireAuth } from "@/lib/require-auth";
 import { ROLES } from "@/lib/roles";
+import { sendAnnouncementEmailBlast } from "@/lib/announcement-emails";
 
 /**
  * GET /api/admin/announcements
@@ -108,6 +109,18 @@ export const POST: APIRoute = async (ctx) => {
       .from(schema.announcements)
       .where(eq(schema.announcements.id, id))
       .limit(1);
+
+    // Fire email blast if publishing on create (fire-and-forget)
+    if (published) {
+      sendAnnouncementEmailBlast({
+        db,
+        announcementTitle: title.trim(),
+        announcementContent: content.trim(),
+        announcementId: id,
+      }).catch((err) => {
+        console.error("[announcements] Email blast failed (create):", err);
+      });
+    }
 
     return new Response(JSON.stringify(created[0]), {
       status: 201,

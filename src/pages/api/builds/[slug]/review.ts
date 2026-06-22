@@ -4,6 +4,7 @@ import * as schema from "../../../../db/schema";
 import { requireAuth } from "../../../../lib/require-auth";
 import { ROLES } from "../../../../lib/roles";
 import { checkAndPromoteUser } from "../../../../lib/promotion";
+import { sendBuildApprovedEmail, sendBuildNeedsRevisionEmail } from "../../../../lib/build-emails";
 
 /**
  * POST /api/builds/[slug]/review
@@ -18,12 +19,14 @@ import { checkAndPromoteUser } from "../../../../lib/promotion";
  *   2. Update build author: acceptedBuildCount += 1
  *   3. If this is the author's first published build, set firstBuildPublishedAt = now()
  *   4. Call checkAndPromoteUser() for the build author
- *   5. Return success with the build data
+ *   5. Send celebratory email to the build author
+ *   6. Return success with the build data
  *
  * On REJECT:
  *   1. Require reason (non-empty string, min 10 chars)
  *   2. Update build: status = 'rejected', rejectionReason = reason, reviewedBy = reviewer.id, reviewedAt = now()
- *   3. Return success
+ *   3. Send "needs revision" email to the build author with constructive feedback
+ *   4. Return success
  *
  * Prevent self-review: reviewer cannot review their own build.
  */
@@ -128,6 +131,25 @@ export const POST: APIRoute = async (ctx) => {
   const now = Math.floor(Date.now() / 1000);
   const reviewedAt = new Date().toISOString();
 
+  // Fetch the build author's info for email notifications
+  const authorUsers = await db
+    .select({
+      id: schema.user.id,
+      name: schema.user.name,
+      email: schema.user.email,
+      acceptedBuildCount: schema.user.acceptedBuildCount,
+      firstBuildPublishedAt: schema.user.firstBuildPublishedAt,
+    })
+    .from(schema.user)
+    .where(eq(schema.user.id, build.authorId))
+    .limit(1);
+
+  const author = authorUsers.length > 0 ? authorUsers[0] : null;
+
+  // Derive site URL from request for email links
+  const requestUrl = new URL(ctx.request.url);
+  const siteUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+
   if (action === "approve") {
     // APPROVE: Publish the build
 
@@ -144,18 +166,7 @@ export const POST: APIRoute = async (ctx) => {
       .where(eq(schema.builds.id, build.id));
 
     // 2. Update author: acceptedBuildCount += 1
-    const authorUsers = await db
-      .select({
-        id: schema.user.id,
-        acceptedBuildCount: schema.user.acceptedBuildCount,
-        firstBuildPublishedAt: schema.user.firstBuildPublishedAt,
-      })
-      .from(schema.user)
-      .where(eq(schema.user.id, build.authorId))
-      .limit(1);
-
-    if (authorUsers.length > 0) {
-      const author = authorUsers[0];
+    if (author) {
       const newAcceptedCount = (author.acceptedBuildCount ?? 0) + 1;
       const isFirstPublished = !author.firstBuildPublishedAt;
 
@@ -173,7 +184,20 @@ export const POST: APIRoute = async (ctx) => {
       ? await checkAndPromoteUser(db, build.authorId)
       : { promoted: false };
 
-    // 4. Fetch updated build
+    // 4. Send celebratory email (fire-and-forget)
+    if (author) {
+      sendBuildApprovedEmail({
+        to: author.email,
+        displayName: author.name,
+        buildTitle: build.title,
+        buildSlug: build.slug,
+        siteUrl,
+      }).catch((err) =>
+        console.error("[review] Failed to send approval email:", err)
+      );
+    }
+
+    // 5. Fetch updated build
     const updatedBuilds = await db
       .select({
         build: schema.builds,
@@ -210,6 +234,20 @@ export const POST: APIRoute = async (ctx) => {
         updatedAt: now,
       })
       .where(eq(schema.builds.id, build.id));
+
+    // 2. Send "needs revision" email (fire-and-forget)
+    if (author && reason) {
+      sendBuildNeedsRevisionEmail({
+        to: author.email,
+        displayName: author.name,
+        buildTitle: build.title,
+        buildSlug: build.slug,
+        feedback: reason.trim(),
+        siteUrl,
+      }).catch((err) =>
+        console.error("[review] Failed to send needs-revision email:", err)
+      );
+    }
 
     return new Response(
       JSON.stringify({

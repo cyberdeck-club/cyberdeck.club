@@ -78,6 +78,32 @@ export function getBuildForReview(
 }
 
 /**
+ * Get all builds by a specific user, regardless of status.
+ * Excludes soft-deleted builds. Ordered by createdAt DESC.
+ * Used for the "My Builds" page so users can see their published,
+ * pending, and needs-revision builds.
+ */
+export function getUserBuilds(
+  db: DrizzleD1Database<typeof schema>,
+  userId: string
+) {
+  return db
+    .select({
+      build: schema.builds,
+      authorName: schema.user.name,
+    })
+    .from(schema.builds)
+    .innerJoin(schema.user, eq(schema.builds.authorId, schema.user.id))
+    .where(
+      and(
+        eq(schema.builds.authorId, userId),
+        isNull(schema.builds.deletedAt)
+      )
+    )
+    .orderBy(desc(schema.builds.createdAt));
+}
+
+/**
  * Get the latest N published builds, ordered by created_at DESC
  */
 export function getRecentBuilds(
