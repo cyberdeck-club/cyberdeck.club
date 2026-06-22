@@ -161,9 +161,12 @@ export const PUT: APIRoute = async (ctx) => {
       .where(eq(schema.announcements.id, id))
       .limit(1);
 
-    // Fire email blast on draft → published transition (fire-and-forget)
+    // Fire email blast on draft → published transition.
+    // Must use waitUntil() so Cloudflare Workers keeps the isolate alive
+    // until the email blast completes — without it, the worker terminates
+    // as soon as the Response is returned, killing the in-flight async work.
     if (isNewlyPublished && updated[0]) {
-      sendAnnouncementEmailBlast({
+      const emailPromise = sendAnnouncementEmailBlast({
         db,
         announcementTitle: updated[0].title,
         announcementContent: updated[0].content,
@@ -171,6 +174,14 @@ export const PUT: APIRoute = async (ctx) => {
       }).catch((err) => {
         console.error("[announcements] Email blast failed (update):", err);
       });
+
+      const execCtx = ctx.locals.cfContext;
+      if (execCtx?.waitUntil) {
+        execCtx.waitUntil(emailPromise);
+      } else {
+        // Local dev — no waitUntil available, fire and forget
+        void emailPromise;
+      }
     }
 
     return new Response(JSON.stringify(updated[0]), {

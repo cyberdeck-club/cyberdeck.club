@@ -437,6 +437,41 @@ token's scopes AND the user's current role must both permit the operation. If
 a user's role is demoted, their existing tokens are effectively narrowed — the
 request fails if all scopes become invalid for the new role level.
 
+### 9. Background Async Work Requires `waitUntil()` on Cloudflare Workers
+
+Cloudflare Workers terminates the isolate as soon as the `Response` is
+returned. Any fire-and-forget async work (email blasts, audit logging,
+promotion checks) that is left as a floating promise **will be killed before
+it completes**. This fails silently — no error is thrown, the work just
+never finishes.
+
+**Always register background work with `waitUntil()`:**
+
+```ts
+const execCtx = ctx.locals.cfContext;
+if (execCtx?.waitUntil) {
+  execCtx.waitUntil(backgroundPromise);
+} else {
+  // Local dev — no waitUntil available, fire and forget
+  void backgroundPromise;
+}
+```
+
+The `cfContext` is the Cloudflare `ExecutionContext`, available on
+`ctx.locals.cfContext` in API routes and middleware. The `else` branch
+handles local dev where `waitUntil` is not available.
+
+**Do NOT do this** — the promise will be killed when the response is sent:
+
+```ts
+// ❌ BROKEN — Worker dies before this completes
+sendEmailBlast({ ... }).catch(console.error);
+return new Response(...);
+```
+
+See `src/middleware.ts` lines 114–131 for the canonical pattern used in
+PAT usage logging.
+
 ---
 
 ## 10. Guardrails
@@ -465,6 +500,9 @@ These rules apply in every coding session, regardless of task type:
   paths (auto-promotion, admin appointment). No self-service role upgrades.
 - **Do NOT** delete wiki revisions. Revisions are append-only.
 - **Do NOT** hard-delete user accounts — soft-ban with `banned_at` timestamp.
+- **Do NOT** leave background async work (emails, logging, promotions) as
+  floating promises in API routes — Cloudflare Workers kills them when the
+  response is sent. ALWAYS use `ctx.locals.cfContext?.waitUntil()`.
 
 ---
 
@@ -488,4 +526,4 @@ These rules apply in every coding session, regardless of task type:
 
 ---
 
-*Last updated: 2026-05-03*
+*Last updated: 2026-06-22*

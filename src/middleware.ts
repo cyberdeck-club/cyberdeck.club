@@ -27,6 +27,7 @@ import {
 } from "./lib/pat-auth";
 import { getRequiredScope, hasScope } from "./lib/token-scopes";
 import { isBetaSite } from "./lib/beta";
+import { checkAndPromoteUser } from "./lib/promotion";
 
 // ---------------------------------------------------------------------------
 // Session-only paths — PAT auth is BLOCKED for these routes.
@@ -160,6 +161,52 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   } else {
     ctx.locals.user = null;
     ctx.locals.session = null;
+  }
+
+  // -------------------------------------------------------------------------
+  // Lightweight on-request promotion check
+  // -------------------------------------------------------------------------
+  // Only runs when the user is clearly eligible based on data already in
+  // locals.user — avoids unnecessary DB queries for ineligible users.
+  // The cron job is the primary batch mechanism; this catches promotions
+  // sooner for active users between cron runs.
+  if (ctx.locals.user && !ctx.locals.user.bannedAt) {
+    const userRole = ctx.locals.user.role;
+    const firstPublished = ctx.locals.user.firstBuildPublishedAt;
+    const buildCount = ctx.locals.user.acceptedBuildCount ?? 0;
+
+    let shouldCheck = false;
+
+    // Member → Maker: first build published ≥ 7 days ago
+    if (userRole === "member" && firstPublished) {
+      const daysSince = Math.floor(
+        (Date.now() - new Date(firstPublished).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysSince >= 7) {
+        shouldCheck = true;
+      }
+    }
+
+    // Maker → Trusted Maker: 3+ accepted builds
+    if (userRole === "maker" && buildCount >= 3) {
+      shouldCheck = true;
+    }
+
+    if (shouldCheck) {
+      try {
+        const promotionResult = await checkAndPromoteUser(db, ctx.locals.user.id);
+        if (promotionResult.promoted && promotionResult.newRole) {
+          // Update locals so the current request sees the new role immediately
+          ctx.locals.user = {
+            ...ctx.locals.user,
+            role: promotionResult.newRole,
+          };
+        }
+      } catch (err) {
+        // Non-fatal — log and continue serving the request
+        console.error("[middleware] On-request promotion check failed:", err);
+      }
+    }
   }
 
   // Beta site detection — makes isBetaSite available to all pages/layouts

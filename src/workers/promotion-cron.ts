@@ -1,25 +1,24 @@
 /**
  * Promotion Cron Worker
- * 
- * Cloudflare Scheduled Worker that runs daily as a safety net for
- * automatic role promotions:
- * 
- * 1. Member → Maker: After first build is published for 7+ days
- * 2. Maker → Trusted Maker: After 3+ builds are published
- * 
- * NOTE: This file uses raw types for Cloudflare Workers environment.
- * The @cloudflare/workers-types package provides the full type definitions.
- * 
- * TODO: Wire up in wrangler.jsonc with a separate worker configuration
- * or via the Astro adapter's scheduled handler approach for Cloudflare Pages.
+ *
+ * Standalone Cloudflare Scheduled Worker that triggers batch role promotions
+ * by calling the cron endpoint with a shared secret.
+ *
+ * This Worker is a thin proxy — all promotion logic lives in
+ * src/lib/batch-promotion.ts, called via the /api/cron/promotions endpoint.
+ *
+ * Configure in wrangler.jsonc (or a separate wrangler config for this worker)
+ * with a cron trigger: triggers = { crons = ["0 6 * * *"] }
+ *
+ * Required env vars:
+ *   - CRON_SECRET: shared secret matching the Pages app's CRON_SECRET
+ *   - PROMOTION_ENDPOINT: full URL to the cron endpoint
+ *     (e.g., https://cyberdeck.club/api/cron/promotions)
  */
 
 interface Env {
-  DB: {
-    prepare(sql: string): {
-      run(): Promise<{ meta?: { changes?: number } }>;
-    };
-  };
+  CRON_SECRET: string;
+  PROMOTION_ENDPOINT: string;
 }
 
 interface ScheduledController {
@@ -28,54 +27,47 @@ interface ScheduledController {
 }
 
 export default {
-  /**
-   * Runs on a schedule (configured in wrangler.jsonc)
-   * Daily at 6:00 AM UTC is recommended: triggers = [{ type: "schedule", cron: "0 6 * * *" }]
-   */
-  async scheduled(controller: ScheduledController, env: Env, _ctx: { waitUntil(promise: Promise<void>): void }): Promise<void> {
-    console.log(`[PromotionCron] Running at ${new Date(controller.scheduledTime).toISOString()}`);
+  async scheduled(
+    controller: ScheduledController,
+    env: Env,
+    ctx: { waitUntil(promise: Promise<unknown>): void }
+  ): Promise<void> {
+    const timestamp = new Date(controller.scheduledTime).toISOString();
+    console.log(`[promotion-cron] Scheduled run at ${timestamp} (cron: ${controller.cron})`);
 
-    let memberToMakerPromotions = 0;
-    let makerToTrustedMakerPromotions = 0;
-
-    try {
-      // 1. Member → Maker promotion
-      // Find members whose first build was published 7+ days ago and aren't banned
-      const memberResult = await env.DB
-        .prepare(`
-          UPDATE users
-          SET role = 'maker'
-          WHERE role = 'member'
-            AND first_build_published_at IS NOT NULL
-            AND datetime(first_build_published_at) <= datetime('now', '-7 days')
-            AND banned_at IS NULL
-        `)
-        .run();
-
-      memberToMakerPromotions = memberResult.meta?.changes ?? 0;
-
-      // 2. Maker → Trusted Maker promotion
-      // Find makers with 3+ accepted builds who aren't banned
-      const trustedResult = await env.DB
-        .prepare(`
-          UPDATE users
-          SET role = 'trusted_maker'
-          WHERE role = 'maker'
-            AND accepted_build_count >= 3
-            AND banned_at IS NULL
-        `)
-        .run();
-
-      makerToTrustedMakerPromotions = trustedResult.meta?.changes ?? 0;
-
-      console.log(
-        `[PromotionCron] Completed. ` +
-        `Member→Maker: ${memberToMakerPromotions}, ` +
-        `Maker→TrustedMaker: ${makerToTrustedMakerPromotions}`
+    if (!env.CRON_SECRET || !env.PROMOTION_ENDPOINT) {
+      console.error(
+        "[promotion-cron] Missing required env vars: CRON_SECRET and/or PROMOTION_ENDPOINT"
       );
-    } catch (error) {
-      console.error("[PromotionCron] Error during promotion check:", error);
-      // Don't throw - let the cron continue and retry next run
+      return;
     }
-  }
+
+    ctx.waitUntil(
+      (async () => {
+        try {
+          const response = await fetch(env.PROMOTION_ENDPOINT, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${env.CRON_SECRET}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          const body = await response.text();
+
+          if (!response.ok && response.status !== 207) {
+            console.error(
+              `[promotion-cron] Endpoint returned ${response.status}: ${body}`
+            );
+            return;
+          }
+
+          console.log(`[promotion-cron] Success (${response.status}): ${body}`);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Unknown fetch error";
+          console.error(`[promotion-cron] Failed to call endpoint: ${message}`);
+        }
+      })()
+    );
+  },
 };
