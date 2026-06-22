@@ -2,7 +2,7 @@
 /**
  * New Build Page
  * Form for submitting a new cyberdeck build
- * Only accessible by maker, moderator, or admin roles
+ * Accessible by member and above — members go through moderation, makers+ publish directly
  */
 
 import BaseLayout from "@/layouts/BaseLayout.astro";
@@ -19,9 +19,9 @@ if (!user) {
   return Astro.redirect("/login?redirect=/builds/new");
 }
 
-// Check role - only MAKER and above can submit builds
-if (!requireRole(user.role, ROLES.MAKER)) {
-  return Astro.redirect("/builds?error=only_makers_can_submit");
+// Check role - MEMBER and above can submit builds (members go through moderation)
+if (!requireRole(user.role, ROLES.MEMBER)) {
+  return Astro.redirect("/builds?error=login_required");
 }
 
 // Check guidelines acceptance

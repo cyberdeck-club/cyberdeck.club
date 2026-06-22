@@ -11,8 +11,8 @@ export const prerender = false;
 // Get current user
 const user = Astro.locals.user;
 
-// Permission checks
-const canSubmitBuild = requireRole(user?.role, ROLES.MAKER);
+// Permission checks — MEMBER and above can submit builds (members go through moderation)
+const canSubmitBuild = requireRole(user?.role, ROLES.MEMBER);
 const isLoggedIn = !!user;
 
 // Fetch builds from database (filtered by blocked users)
@@ -144,7 +144,7 @@ const costRanges = [
         </a>
       ) : isLoggedIn ? (
         <p class="submit-note">
-          Share a build first — after your first build is published, you'll be able to submit directly.
+          Your account doesn't have the required permissions to submit a build. Please contact support if you think this is an error.
         </p>
       ) : (
         <a href="/login?redirect=/builds/new" class="submit-btn">
