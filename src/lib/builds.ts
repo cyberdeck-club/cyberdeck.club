@@ -57,6 +57,27 @@ export function getBuild(
 }
 
 /**
+ * Get a single build by slug regardless of status (for privileged review).
+ * Used by moderators/admins to preview builds before approval,
+ * and by build authors to view their own pending/rejected builds.
+ * Caller MUST verify the user has permission before using this.
+ */
+export function getBuildForReview(
+  db: DrizzleD1Database<typeof schema>,
+  slug: string
+) {
+  return db
+    .select({
+      build: schema.builds,
+      authorName: schema.user.name,
+    })
+    .from(schema.builds)
+    .innerJoin(schema.user, eq(schema.builds.authorId, schema.user.id))
+    .where(and(eq(schema.builds.slug, slug), isNull(schema.builds.deletedAt)))
+    .limit(1);
+}
+
+/**
  * Get the latest N published builds, ordered by created_at DESC
  */
 export function getRecentBuilds(

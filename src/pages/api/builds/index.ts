@@ -1,11 +1,13 @@
 import type { APIRoute } from "astro";
 import * as schema from "../../../db/schema";
 import { eq, and, sql, count, isNull } from "drizzle-orm";
+import { env } from "cloudflare:workers";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
 import { autoReviewBuild } from "../../../lib/moderation";
 import { requireAuth } from "../../../lib/require-auth";
 import { ROLES, requireRole } from "../../../lib/roles";
 import { serializeBuildJsonFields, validateBuildField } from "../../../lib/builds";
+import { getResend } from "../../../lib/resend";
 
 /**
  * GET /api/builds
@@ -358,6 +360,51 @@ export const POST: APIRoute = async (ctx) => {
             updatedAt: Math.floor(Date.now() / 1000),
           })
           .where(eq(schema.builds.id, id));
+
+        // Send admin email notification for member build submissions
+        // Fire-and-forget — do not block the response on email delivery
+        const adminEmail = (
+          env.ADMIN_EMAIL ?? import.meta.env.ADMIN_EMAIL ?? ""
+        ).toLowerCase().trim();
+        const fromAddress =
+          env.RESEND_FROM_ADDRESS ??
+          import.meta.env.RESEND_FROM_ADDRESS ??
+          "cyberdeck.club <noreply@cyberdeck.club>";
+        const baseUrl =
+          env.PUBLIC_BASE_URL ??
+          import.meta.env.PUBLIC_BASE_URL ??
+          "https://cyberdeck.club";
+        const submitterName = String(user.name ?? "A member");
+
+        if (adminEmail) {
+          try {
+            const resend = getResend();
+            await resend.emails.send({
+              from: fromAddress,
+              to: adminEmail,
+              subject: `[cyberdeck.club] New build submitted for review: ${title.trim()}`,
+              html: `
+                <h2>New Build Submitted for Review</h2>
+                <p><strong>${submitterName}</strong> has submitted a new build that passed automated review and is waiting for human review.</p>
+                <table style="border-collapse: collapse; margin: 1rem 0;">
+                  <tr>
+                    <td style="padding: 0.5rem 1rem; font-weight: bold;">Build Title</td>
+                    <td style="padding: 0.5rem 1rem;">${title.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 0.5rem 1rem; font-weight: bold;">Submitted By</td>
+                    <td style="padding: 0.5rem 1rem;">${submitterName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+                  </tr>
+                </table>
+                <p><a href="${baseUrl}/admin/builds">Review in the moderation queue →</a></p>
+                <p><em>Sent automatically by cyberdeck.club</em></p>
+              `,
+            });
+          } catch (emailErr) {
+            // Log but do not fail the build submission if email fails
+            console.error("[builds] Failed to send admin notification email:", emailErr);
+          }
+        }
 
         return new Response(JSON.stringify({ id, slug, status: "pending_human" }), {
           status: 201,

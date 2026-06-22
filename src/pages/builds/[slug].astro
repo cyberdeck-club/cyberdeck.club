@@ -3,7 +3,7 @@ import BuildLayout from "@/layouts/BuildLayout.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
 import ReportButton from "@/components/reports/ReportButton";
-import { getBuild, getBuilds, parseBuildJsonFields } from "@/lib/builds";
+import { getBuild, getBuildForReview, getBuilds, parseBuildJsonFields } from "@/lib/builds";
 import { getBlockedUserIds } from "@/lib/blocking";
 import { eq, isNull, and, notInArray } from "drizzle-orm";
 import * as schema from "../../db/schema";
@@ -36,7 +36,32 @@ if (!slug) {
 
 // Fetch build from database
 const db = Astro.locals.db!;
-const buildResult = await getBuild(db, slug);
+const user = Astro.locals.user;
+let buildResult = await getBuild(db, slug);
+
+// If published build not found, try privileged access for mods/admins/authors
+let isReviewMode = false;
+if (!buildResult || buildResult.length === 0) {
+  // Check if user is a moderator/admin (or we'll check author match after fetch)
+  const isModerator = requireRole(user?.role, ROLES.TRUSTED_MAKER);
+  if (user && isModerator) {
+    buildResult = await getBuildForReview(db, slug);
+    if (buildResult && buildResult.length > 0) {
+      isReviewMode = true;
+    }
+  } else if (user) {
+    // Non-mod user — still check if they're the author
+    buildResult = await getBuildForReview(db, slug);
+    if (buildResult && buildResult.length > 0) {
+      if (buildResult[0].build.authorId === user.id) {
+        isReviewMode = true;
+      } else {
+        // Not the author and not a mod — treat as not found
+        buildResult = [];
+      }
+    }
+  }
+}
 
 // Build not found - redirect to builds list
 const notFound = !buildResult || buildResult.length === 0;
@@ -50,8 +75,20 @@ const build = result.build;
 const authorName = result.authorName;
 const authorId = build.authorId;
 
-// Get current user for blocking check (need it early)
-const user = Astro.locals.user;
+// Determine the review banner status label
+const buildStatusLabel: Record<string, { label: string; tone: string }> = {
+  pending_human: { label: "Pending Review", tone: "warning" },
+  pending_auto: { label: "Pending Auto-Review", tone: "warning" },
+  rejected: { label: "Rejected", tone: "danger" },
+  rejected_auto: { label: "Auto-Rejected", tone: "danger" },
+  draft: { label: "Draft", tone: "info" },
+};
+const reviewStatus = isReviewMode
+  ? (buildStatusLabel[build.status] ?? { label: build.status, tone: "info" })
+  : null;
+
+// Check if current user can perform mod actions on this build
+const canModerate = isReviewMode && user && requireRole(user.role, ROLES.TRUSTED_MAKER) && build.status === "pending_human";
 
 // Get blocked user IDs for content filtering
 const blockedUserIds = user ? await getBlockedUserIds(db, user.id) : [];
@@ -211,6 +248,56 @@ if (user) {
   buildTime={buildData.buildTime}
   tags={buildData.tags}
 >
+  <!-- Review Mode Banner — shown when viewing a non-published build -->
+  {reviewStatus && (
+    <div class={`review-banner review-banner--${reviewStatus.tone}`} role="alert">
+      <div class="review-banner-content">
+        <svg class="review-banner-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+        </svg>
+        <span class="review-banner-text">
+          <strong>Status: {reviewStatus.label}</strong> — This build is not yet visible to the public.
+        </span>
+        <a href="/admin/builds" class="review-banner-link">← Back to Mod Queue</a>
+      </div>
+      {canModerate && (
+        <div class="review-banner-actions" data-build-slug={build.slug}>
+          <button class="review-approve-btn" data-action="approve">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            Approve
+          </button>
+          <button class="review-reject-btn" data-action="reject">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+            Needs Revision
+          </button>
+        </div>
+      )}
+    </div>
+  )}
+
+  <!-- Reject Feedback Form (hidden by default, shown when "Needs Revision" is clicked) -->
+  {canModerate && (
+    <div class="review-reject-form hidden" id="review-reject-form">
+      <label class="review-reject-label">
+        <span>Feedback for the builder (required — be kind and specific):</span>
+        <textarea
+          class="review-reject-textarea"
+          id="review-reject-reason"
+          placeholder="What could be improved? Be encouraging and specific..."
+          rows="3"
+        ></textarea>
+      </label>
+      <div class="review-reject-form-actions">
+        <button class="review-cancel-btn" id="review-cancel-reject">Cancel</button>
+        <button class="review-submit-reject-btn" id="review-submit-reject" disabled>Send Feedback</button>
+      </div>
+    </div>
+  )}
+
   <!-- Build Meta Bar -->
   <BuildMetaBar
     difficulty={parsedBuild.difficulty}
@@ -455,6 +542,216 @@ if (user) {
 )}
 
 <style>
+  /* Review Mode Banner */
+  .review-banner {
+    padding: 1rem 1.5rem;
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 2rem;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .review-banner--warning {
+    background: var(--color-accent);
+    border-color: var(--border);
+  }
+
+  .review-banner--danger {
+    background: var(--color-danger, #fee2e2);
+    border-color: var(--border);
+  }
+
+  .review-banner--info {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+
+  .review-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .review-banner-icon {
+    flex-shrink: 0;
+    color: var(--text);
+  }
+
+  .review-banner-text {
+    flex: 1;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .review-banner-text strong {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .review-banner-link {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .review-banner-link:hover {
+    color: var(--color-primary);
+  }
+
+  .review-banner-link:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .review-banner-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--border);
+  }
+
+  .review-approve-btn,
+  .review-reject-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    font-family: inherit;
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--shadow-hard);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  .review-approve-btn {
+    background: var(--color-primary);
+    color: var(--text-inverse);
+  }
+
+  .review-reject-btn {
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .review-approve-btn:hover,
+  .review-reject-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 5px 5px 0 var(--shadow-hard);
+  }
+
+  .review-approve-btn:focus-visible,
+  .review-reject-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .review-approve-btn:disabled,
+  .review-reject-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Review reject form */
+  .review-reject-form {
+    margin-bottom: 2rem;
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .review-reject-form.hidden {
+    display: none;
+  }
+
+  .review-reject-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .review-reject-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    font-family: inherit;
+    background: var(--background);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .review-reject-textarea:focus {
+    outline: none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+
+  .review-reject-form-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    justify-content: flex-end;
+  }
+
+  .review-cancel-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .review-cancel-btn:hover {
+    background: var(--background);
+  }
+
+  .review-submit-reject-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    font-family: inherit;
+    background: var(--color-danger, #e53e3e);
+    color: white;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .review-submit-reject-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .review-submit-reject-btn:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  .review-cancel-btn:focus-visible,
+  .review-submit-reject-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
   /* Blocked build page */
   .blocked-build-page {
     display: flex;
@@ -1196,6 +1493,100 @@ if (user) {
         alert(err instanceof Error ? err.message : 'Failed to delete build');
         deleteBtn.disabled = false;
         deleteBtn.textContent = 'Delete Build';
+      }
+    });
+  });
+</script>
+
+<script>
+  // Review mode moderation actions (approve/reject from build detail page)
+  document.addEventListener('DOMContentLoaded', () => {
+    const bannerActions = document.querySelector('.review-banner-actions');
+    if (!bannerActions) return;
+
+    const buildSlug = (bannerActions as HTMLElement).dataset.buildSlug;
+    if (!buildSlug) return;
+
+    const approveBtn = bannerActions.querySelector('.review-approve-btn');
+    const rejectBtn = bannerActions.querySelector('.review-reject-btn');
+    const rejectForm = document.getElementById('review-reject-form');
+    const cancelRejectBtn = document.getElementById('review-cancel-reject');
+    const submitRejectBtn = document.getElementById('review-submit-reject') as HTMLButtonElement | null;
+    const rejectReason = document.getElementById('review-reject-reason') as HTMLTextAreaElement | null;
+
+    // Approve
+    approveBtn?.addEventListener('click', async () => {
+      if (!confirm('Approve this build? It will be published and visible to everyone.')) return;
+
+      try {
+        (approveBtn as HTMLButtonElement).disabled = true;
+        const response = await fetch(`/api/builds/${buildSlug}/review`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'approve' }),
+        });
+
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          const data = await response.json();
+          alert(data.error || 'Failed to approve build');
+          (approveBtn as HTMLButtonElement).disabled = false;
+        }
+      } catch {
+        alert('Failed to approve build');
+        (approveBtn as HTMLButtonElement).disabled = false;
+      }
+    });
+
+    // Show reject form
+    rejectBtn?.addEventListener('click', () => {
+      rejectForm?.classList.remove('hidden');
+      (rejectBtn as HTMLElement).style.display = 'none';
+      (approveBtn as HTMLElement).style.display = 'none';
+    });
+
+    // Cancel reject
+    cancelRejectBtn?.addEventListener('click', () => {
+      rejectForm?.classList.add('hidden');
+      (rejectBtn as HTMLElement).style.display = '';
+      (approveBtn as HTMLElement).style.display = '';
+      if (rejectReason) rejectReason.value = '';
+    });
+
+    // Enable submit when reason is long enough
+    rejectReason?.addEventListener('input', () => {
+      if (submitRejectBtn) {
+        submitRejectBtn.disabled = rejectReason.value.trim().length < 10;
+      }
+    });
+
+    // Submit reject
+    submitRejectBtn?.addEventListener('click', async () => {
+      const reason = rejectReason?.value.trim();
+      if (!reason || reason.length < 10) {
+        alert('Please provide feedback of at least 10 characters');
+        return;
+      }
+
+      try {
+        submitRejectBtn.disabled = true;
+        const response = await fetch(`/api/builds/${buildSlug}/review`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reject', reason }),
+        });
+
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          const data = await response.json();
+          alert(data.error || 'Failed to send feedback');
+          submitRejectBtn.disabled = false;
+        }
+      } catch {
+        alert('Failed to send feedback');
+        submitRejectBtn.disabled = false;
       }
     });
   });

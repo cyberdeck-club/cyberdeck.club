@@ -211,8 +211,14 @@ const redirectParam = Astro.url.searchParams.get("redirect");
 
       if (response.ok) {
         const data = await response.json();
-        // Redirect to the new build page
-        window.location.href = `/builds/${data.slug}`;
+        // If the build entered moderation queue, redirect to confirmation page
+        if (data.status === "pending_human" || data.status === "pending_auto") {
+          const titleParam = encodeURIComponent(titleInput.value.trim());
+          window.location.href = `/builds/submitted?title=${titleParam}`;
+        } else {
+          // Makers+ get published directly — go to the build page
+          window.location.href = `/builds/${data.slug}`;
+        }
       } else {
         const data = await response.json();
         throw new Error(data.error || "Failed to submit build");

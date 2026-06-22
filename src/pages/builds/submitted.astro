@@ -1,0 +1,195 @@
+---
+/**
+ * Build Submission Confirmation Page
+ *
+ * Shown after a member successfully submits a build that enters
+ * the moderation queue (pending_human). Provides warm, encouraging
+ * feedback per AGENTS.md §7.4 — no blame, no urgency.
+ */
+
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+export const prerender = false;
+
+// This page is accessible to anyone with the URL, but only meaningful
+// after a submission. We don't gate it — it's just a confirmation message.
+const buildTitle = Astro.url.searchParams.get("title") ?? "";
+---
+
+<BaseLayout title="Build Submitted!" description="Your build has been submitted for review">
+  <div class="submitted-page">
+    <div class="submitted-card">
+      <div class="submitted-icon" aria-hidden="true">
+        <span class="sparkle-lg">✨</span>
+      </div>
+
+      <h1 class="submitted-title">Build Submitted!</h1>
+
+      {buildTitle && (
+        <p class="submitted-build-name">&ldquo;{buildTitle}&rdquo;</p>
+      )}
+
+      <p class="submitted-message">
+        Your build is in the review queue. A moderator or admin will
+        take a look within the next few days. You'll be able to see it
+        on the builds page once it's approved.
+      </p>
+
+      <p class="submitted-encouragement">
+        Thank you for sharing your creation with the community — we
+        can't wait to see it! 💜
+      </p>
+
+      <div class="submitted-actions">
+        <a href="/builds" class="btn-back">
+          ← Browse Builds
+        </a>
+        <a href="/builds/new" class="btn-another">
+          Submit Another Build ✦
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .submitted-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 2rem 1rem;
+  }
+
+  .submitted-card {
+    max-width: 560px;
+    width: 100%;
+    text-align: center;
+    background: var(--color-surface);
+    border: 3px solid var(--border);
+    border-radius: 4px;
+    padding: 3rem 2rem;
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .submitted-icon {
+    margin-bottom: 1.5rem;
+  }
+
+  .sparkle-lg {
+    font-size: 3rem;
+    display: inline-block;
+    animation: sparkle-bounce 2s ease-in-out infinite;
+  }
+
+  @keyframes sparkle-bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-8px) scale(1.1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sparkle-lg {
+      animation: none;
+    }
+  }
+
+  .submitted-title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    color: var(--text);
+    margin: 0 0 0.75rem;
+  }
+
+  .submitted-build-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin: 0 0 1.5rem;
+    word-break: break-word;
+  }
+
+  .submitted-message {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text);
+    margin: 0 0 1rem;
+  }
+
+  .submitted-encouragement {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text-muted);
+    margin: 0 0 2rem;
+    font-style: italic;
+  }
+
+  .submitted-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-back,
+  .btn-another {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  .btn-back {
+    background: var(--color-surface-alt);
+    border: 3px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-back:hover {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .btn-back:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .btn-another {
+    background: var(--color-primary);
+    border: 3px solid var(--border);
+    color: var(--text-inverse);
+    box-shadow: 4px 4px 0 var(--shadow-hard);
+  }
+
+  .btn-another:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--shadow-hard);
+  }
+
+  .btn-another:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 480px) {
+    .submitted-card {
+      padding: 2rem 1.5rem;
+    }
+
+    .submitted-actions {
+      flex-direction: column;
+    }
+
+    .btn-back,
+    .btn-another {
+      justify-content: center;
+    }
+  }
+</style>
