@@ -3,6 +3,7 @@ import BuildLayout from "@/layouts/BuildLayout.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import BuildCard from "@/components/BuildCard.astro";
 import ReportButton from "@/components/reports/ReportButton";
+import SubscribeButton from "@/components/subscriptions/SubscribeButton";
 import { getBuild, getBuildForReview, getBuilds, parseBuildJsonFields } from "@/lib/builds";
 import { getBlockedUserIds } from "@/lib/blocking";
 import { eq, isNull, and, notInArray } from "drizzle-orm";
@@ -11,6 +12,7 @@ import { hasAcceptedGuidelines } from "@/lib/guidelines";
 import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
 import { getLatestEdit } from "@/lib/edit-history";
 import { requireRole, ROLES, getRoleLevel } from "@/lib/roles";
+import { isSubscribed } from "@/lib/notifications";
 
 // Import new section components
 import BuildMetaBar from "@/components/builds/BuildMetaBar.astro";
@@ -222,6 +224,12 @@ let isAuthorOrModerator = false;
 if (user) {
   guidelinesAccepted = await hasAcceptedGuidelines(db, user.id);
   isAuthorOrModerator = build.authorId === user.id || requireRole(user.role, ROLES.MODERATOR);
+}
+
+// Check subscription status for current user
+let isUserSubscribed = false;
+if (user && db) {
+  isUserSubscribed = await isSubscribed(db as any, user.id, "build", build.id);
 }
 ---
 
@@ -502,17 +510,24 @@ if (user) {
     )}
   </section>
 
-  <!-- Report Button (visible to logged-in members) -->
-  {user && (
-    <div class="report-action">
+  <!-- Subscribe & Report Buttons -->
+  <div class="build-actions-row" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+    <SubscribeButton
+      client:visible
+      targetType="build"
+      targetId={build.id}
+      initialSubscribed={isUserSubscribed}
+      isLoggedIn={!!user}
+    />
+    {user && (
       <ReportButton
         client:visible
         entityType="build"
         entityId={build.id}
         userRole={getRoleLevel(user.role)}
       />
-    </div>
-  )}
+    )}
+  </div>
 
   <!-- Edit / Delete Buttons (visible to author or moderator/admin) -->
   {isAuthorOrModerator && (

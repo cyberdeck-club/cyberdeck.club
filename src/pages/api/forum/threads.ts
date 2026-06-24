@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
+import { autoSubscribe } from "../../../lib/notifications";
 
 /**
  * POST /api/forum/threads
@@ -102,6 +103,22 @@ export const POST: APIRoute = async (ctx) => {
         updatedAt: now,
       }),
     ]);
+
+    // Background: auto-subscribe the thread creator to their own thread
+    const notificationWork = (async () => {
+      try {
+        await autoSubscribe(db, userId, "forum_thread", threadId);
+      } catch (err) {
+        console.error("[notifications] Failed to auto-subscribe thread creator:", err);
+      }
+    })();
+
+    const execCtx = ctx.locals.cfContext;
+    if (execCtx?.waitUntil) {
+      execCtx.waitUntil(notificationWork);
+    } else {
+      void notificationWork;
+    }
 
     // Return redirect to the new thread
     return new Response(null, {

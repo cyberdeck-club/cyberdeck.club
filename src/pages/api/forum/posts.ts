@@ -1,7 +1,9 @@
 import type { APIRoute } from "astro";
-import { eq, asc, and, isNull, sql } from "drizzle-orm";
+import { eq, asc, and, isNull, sql, inArray } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
+import { notifySubscribers, autoSubscribe } from "../../../lib/notifications";
+import { sendNotificationEmail } from "../../../lib/notification-emails";
 
 /**
  * POST /api/forum/posts
@@ -74,7 +76,7 @@ export const POST: APIRoute = async (ctx) => {
   // Check if thread is locked
   const thread = threads[0];
   const threadData = await db
-    .select({ isLocked: schema.forumThreads.isLocked })
+    .select({ isLocked: schema.forumThreads.isLocked, title: schema.forumThreads.title })
     .from(schema.forumThreads)
     .where(eq(schema.forumThreads.id, threadId))
     .limit(1);
@@ -110,6 +112,66 @@ export const POST: APIRoute = async (ctx) => {
         })
         .where(eq(schema.forumThreads.id, threadId)),
     ]);
+
+    // Background notification work
+    const actorName = ctx.locals.user.name || "Someone";
+    const threadTitle = threadData[0]?.title || "a thread";
+    const siteUrl = new URL(ctx.request.url).origin;
+
+    const notificationWork = (async () => {
+      try {
+        // 1. Auto-subscribe the replier to the thread
+        await autoSubscribe(db, userId, "forum_thread", threadId);
+
+        // 2. Notify all thread subscribers (excluding the replier)
+        const notifiedUserIds = await notifySubscribers(db, {
+          targetType: "forum_thread",
+          targetId: threadId,
+          excludeUserId: userId,
+          type: "new_forum_post",
+          title: `New reply in: ${threadTitle}`,
+          body: `${actorName} posted a new reply`,
+          entityType: "forum_thread",
+          entityId: threadId,
+          actorId: userId,
+        });
+
+        // 3. Send email to each notified user
+        if (notifiedUserIds.length > 0) {
+          const users = await db
+            .select({
+              id: schema.user.id,
+              email: schema.user.email,
+              name: schema.user.name,
+            })
+            .from(schema.user)
+            .where(inArray(schema.user.id, notifiedUserIds));
+
+          for (const u of users) {
+            if (u.email) {
+              await sendNotificationEmail({
+                to: u.email,
+                displayName: u.name || "there",
+                type: "new_forum_post",
+                title: `New reply in: ${threadTitle}`,
+                entityUrl: `${siteUrl}/forum/thread/${threadId}`,
+                actorName,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[notifications] Failed to process forum post notifications:", err);
+      }
+    })();
+
+    // Use waitUntil for background work
+    const execCtx = ctx.locals.cfContext;
+    if (execCtx?.waitUntil) {
+      execCtx.waitUntil(notificationWork);
+    } else {
+      void notificationWork;
+    }
 
     // Return success with post ID
     return new Response(

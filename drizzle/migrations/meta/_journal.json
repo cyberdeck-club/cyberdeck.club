@@ -99,6 +99,13 @@
       "when": 1782229969492,
       "tag": "0013_brown_black_bolt",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1782313965570,
+      "tag": "0014_flashy_whiplash",
+      "breakpoints": true
     }
   ]
 }

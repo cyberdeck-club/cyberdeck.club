@@ -1,7 +1,9 @@
 import type { APIRoute } from "astro";
-import { eq, isNull, and, notLike } from "drizzle-orm";
+import { eq, isNull, and, notLike, inArray } from "drizzle-orm";
 import * as schema from "../../../../db/schema";
 import { checkPublishingGate } from "../../../../lib/publishing-gate";
+import { notifySubscribers, autoSubscribe } from "../../../../lib/notifications";
+import { sendNotificationEmail } from "../../../../lib/notification-emails";
 
 /**
  * GET /api/builds/[slug]/comments
@@ -98,9 +100,9 @@ export const POST: APIRoute = async (ctx) => {
     return gateResponse;
   }
 
-  // Look up build by slug to get build ID
+  // Look up build by slug to get build ID and title for notifications
   const buildResults = await db
-    .select({ id: schema.builds.id })
+    .select({ id: schema.builds.id, title: schema.builds.title })
     .from(schema.builds)
     .where(eq(schema.builds.slug, rawSlug))
     .limit(1);
@@ -187,6 +189,66 @@ export const POST: APIRoute = async (ctx) => {
       .innerJoin(schema.user, eq(schema.buildComments.authorId, schema.user.id))
       .where(eq(schema.buildComments.id, commentId))
       .limit(1);
+
+    // Background notification work
+    const buildTitle = buildResults[0]?.title || "a build";
+    const actorName = ctx.locals.user.name || "Someone";
+    const siteUrl = new URL(ctx.request.url).origin;
+
+    const notificationWork = (async () => {
+      try {
+        // 1. Auto-subscribe the commenter to the build
+        await autoSubscribe(db, userId, "build", buildId);
+
+        // 2. Notify all build subscribers (excluding the commenter)
+        const notifiedUserIds = await notifySubscribers(db, {
+          targetType: "build",
+          targetId: buildId,
+          excludeUserId: userId,
+          type: "new_build_comment",
+          title: `New comment on: ${buildTitle}`,
+          body: `${actorName} commented on this build`,
+          entityType: "build",
+          entityId: buildId,
+          actorId: userId,
+        });
+
+        // 3. Send email to each notified user
+        if (notifiedUserIds.length > 0) {
+          const users = await db
+            .select({
+              id: schema.user.id,
+              email: schema.user.email,
+              name: schema.user.name,
+            })
+            .from(schema.user)
+            .where(inArray(schema.user.id, notifiedUserIds));
+
+          for (const u of users) {
+            if (u.email) {
+              await sendNotificationEmail({
+                to: u.email,
+                displayName: u.name || "there",
+                type: "new_build_comment",
+                title: `New comment on: ${buildTitle}`,
+                entityUrl: `${siteUrl}/builds/${rawSlug}`,
+                actorName,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[notifications] Failed to process build comment notifications:", err);
+      }
+    })();
+
+    // Use waitUntil for background work
+    const execCtx = ctx.locals.cfContext;
+    if (execCtx?.waitUntil) {
+      execCtx.waitUntil(notificationWork);
+    } else {
+      void notificationWork;
+    }
 
     return new Response(JSON.stringify({ comment: createdComment[0] }), {
       status: 201,

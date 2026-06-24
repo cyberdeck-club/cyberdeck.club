@@ -10,10 +10,12 @@ import { WikiEditor } from "@/components/wiki/WikiEditor";
 import { InlineEditor } from "@/components/wiki/InlineEditor";
 import { WikiCommentForm } from "@/components/wiki/CommentForm";
 import ReportButton from "@/components/reports/ReportButton";
+import SubscribeButton from "@/components/subscriptions/SubscribeButton";
 import { getWikiArticle, getWikiCategories, incrementWikiViewCount } from "@/lib/wiki";
 import { renderMarkdownToHtml } from "@/utils/MarkdownRenderer";
 import { hasAcceptedGuidelines } from "@/lib/guidelines";
 import { getBlockedUserIds } from "@/lib/blocking";
+import { isSubscribed } from "@/lib/notifications";
 import { eq, isNull, and, notInArray } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 
@@ -194,6 +196,12 @@ if (!notFound) {
   // Fetch comments for this article
   comments = await fetchComments(articleId);
 }
+
+// Check subscription status for current user
+let isUserSubscribed = false;
+if (user && db && articleId) {
+  isUserSubscribed = await isSubscribed(db as any, user.id, "wiki_article", articleId);
+}
 ---
 
 {notFound ? (
@@ -237,6 +245,13 @@ if (!notFound) {
           <span class={`status-badge status-${statusClass}`}>
             {article.status}
           </span>
+          <SubscribeButton
+            client:visible
+            targetType="wiki_article"
+            targetId={articleId}
+            initialSubscribed={isUserSubscribed}
+            isLoggedIn={!!user}
+          />
         </div>
       </header>
 

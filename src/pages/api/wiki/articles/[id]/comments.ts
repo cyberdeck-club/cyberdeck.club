@@ -1,7 +1,9 @@
 import type { APIRoute } from "astro";
-import { eq, isNull, and, notLike } from "drizzle-orm";
+import { eq, isNull, and, notLike, inArray } from "drizzle-orm";
 import * as schema from "../../../../../db/schema";
 import { checkPublishingGate } from "../../../../../lib/publishing-gate";
+import { notifySubscribers, autoSubscribe } from "../../../../../lib/notifications";
+import { sendNotificationEmail } from "../../../../../lib/notification-emails";
 
 /**
  * GET /api/wiki/articles/[id]/comments
@@ -82,9 +84,14 @@ export const POST: APIRoute = async (ctx) => {
     return gateResponse;
   }
 
-  // Verify article exists
+  // Verify article exists and get info for notifications
   const articles = await db
-    .select({ id: schema.wikiArticles.id })
+    .select({
+      id: schema.wikiArticles.id,
+      title: schema.wikiArticles.title,
+      slug: schema.wikiArticles.slug,
+      categoryId: schema.wikiArticles.categoryId,
+    })
     .from(schema.wikiArticles)
     .where(eq(schema.wikiArticles.id, articleId))
     .limit(1);
@@ -169,6 +176,77 @@ export const POST: APIRoute = async (ctx) => {
       .innerJoin(schema.user, eq(schema.wikiComments.authorId, schema.user.id))
       .where(eq(schema.wikiComments.id, commentId))
       .limit(1);
+
+    // Background notification work
+    const articleData = articles[0];
+    const actorName = ctx.locals.user.name || "Someone";
+    const siteUrl = new URL(ctx.request.url).origin;
+
+    const notificationWork = (async () => {
+      try {
+        // 1. Auto-subscribe the commenter to the article
+        await autoSubscribe(db, userId, "wiki_article", articleId);
+
+        // 2. Look up category slug for URL construction
+        let categorySlug = "general";
+        const categories = await db
+          .select({ slug: schema.wikiCategories.slug })
+          .from(schema.wikiCategories)
+          .where(eq(schema.wikiCategories.id, articleData.categoryId))
+          .limit(1);
+        if (categories.length > 0) {
+          categorySlug = categories[0].slug;
+        }
+
+        // 3. Notify all article subscribers (excluding the commenter)
+        const notifiedUserIds = await notifySubscribers(db, {
+          targetType: "wiki_article",
+          targetId: articleId,
+          excludeUserId: userId,
+          type: "wiki_comment",
+          title: `New comment on: ${articleData.title}`,
+          body: `${actorName} commented on this article`,
+          entityType: "wiki_article",
+          entityId: articleId,
+          actorId: userId,
+        });
+
+        // 4. Send email to each notified user
+        if (notifiedUserIds.length > 0) {
+          const users = await db
+            .select({
+              id: schema.user.id,
+              email: schema.user.email,
+              name: schema.user.name,
+            })
+            .from(schema.user)
+            .where(inArray(schema.user.id, notifiedUserIds));
+
+          for (const u of users) {
+            if (u.email) {
+              await sendNotificationEmail({
+                to: u.email,
+                displayName: u.name || "there",
+                type: "wiki_comment",
+                title: `New comment on: ${articleData.title}`,
+                entityUrl: `${siteUrl}/wiki/${categorySlug}/${articleData.slug}`,
+                actorName,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[notifications] Failed to process wiki comment notifications:", err);
+      }
+    })();
+
+    // Use waitUntil for background work
+    const execCtx = ctx.locals.cfContext;
+    if (execCtx?.waitUntil) {
+      execCtx.waitUntil(notificationWork);
+    } else {
+      void notificationWork;
+    }
 
     return new Response(JSON.stringify({ comment: createdComment[0] }), {
       status: 201,

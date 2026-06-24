@@ -1,0 +1,79 @@
+[
+  {
+    "userSlug": "divine_circuitry",
+    "type": "new_forum_post",
+    "title": "New reply in: Welcome to cyberdeck.club! Introduce Yourself 💜",
+    "body": "SolderQueen posted a new reply",
+    "entityType": "forum_thread",
+    "entityRef": "t1",
+    "actorSlug": "solderqueen",
+    "readAt": "2026-04-20T15:00:00Z",
+    "createdAt": "2026-04-20T14:30:00Z"
+  },
+  {
+    "userSlug": "solderqueen",
+    "type": "new_forum_post",
+    "title": "New reply in: The Thrift Store Finds Thread 🛒",
+    "body": "CircuitFae posted a new reply",
+    "entityType": "forum_thread",
+    "entityRef": "t2",
+    "actorSlug": "circuitfae",
+    "readAt": null,
+    "createdAt": "2026-04-21T09:15:00Z"
+  },
+  {
+    "userSlug": "nova_spark",
+    "type": "new_forum_post",
+    "title": "New reply in: My First Build: Pelican 1200 + Pi 5 (help needed with display)",
+    "body": "ByteWitch posted a new reply with display recommendations",
+    "entityType": "forum_thread",
+    "entityRef": "t3",
+    "actorSlug": "bytewitch",
+    "readAt": "2026-04-22T11:00:00Z",
+    "createdAt": "2026-04-22T10:45:00Z"
+  },
+  {
+    "userSlug": "glitchgrl",
+    "type": "wiki_updated",
+    "title": "Wiki article updated: What Is a Cyberdeck?",
+    "body": "DivineCircuitry updated the article with new content",
+    "entityType": "wiki_article",
+    "entityRef": "w1",
+    "actorSlug": "divine_circuitry",
+    "readAt": null,
+    "createdAt": "2026-04-23T16:20:00Z"
+  },
+  {
+    "userSlug": "bytewitch",
+    "type": "wiki_updated",
+    "title": "Wiki article updated: Your First Cyberdeck: A Beginner's Guide",
+    "body": "SolderQueen expanded the beginner guide with new sections",
+    "entityType": "wiki_article",
+    "entityRef": "w2",
+    "actorSlug": "solderqueen",
+    "readAt": "2026-04-24T08:30:00Z",
+    "createdAt": "2026-04-24T07:00:00Z"
+  },
+  {
+    "userSlug": "solderqueen",
+    "type": "new_build_comment",
+    "title": "New comment on: The Recovery Kit Remix",
+    "body": "NovaSpark commented on your build",
+    "entityType": "build",
+    "entityRef": "b1",
+    "actorSlug": "nova_spark",
+    "readAt": null,
+    "createdAt": "2026-04-25T13:45:00Z"
+  },
+  {
+    "userSlug": "circuitfae",
+    "type": "new_build_comment",
+    "title": "New comment on: Fernweh — Solarpunk Bamboo Writing Deck",
+    "body": "GlitchGrl commented on your build",
+    "entityType": "build",
+    "entityRef": "b2",
+    "actorSlug": "glitchgrl",
+    "readAt": "2026-04-26T10:00:00Z",
+    "createdAt": "2026-04-26T09:30:00Z"
+  }
+]

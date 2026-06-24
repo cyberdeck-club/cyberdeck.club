@@ -680,3 +680,61 @@ export const announcementsRelations = relations(announcements, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// Subscriptions table - user subscriptions to content for notifications
+export const subscriptions = sqliteTable(
+  "subscriptions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    targetType: text("target_type").notNull(), // 'forum_thread' | 'wiki_article' | 'build'
+    targetId: text("target_id").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("subscriptions_user_target_idx").on(
+      table.userId,
+      table.targetType,
+      table.targetId
+    ),
+  ]
+);
+
+// Notifications table - user notifications generated from subscriptions
+export const notifications = sqliteTable("notifications", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // 'new_forum_post' | 'wiki_updated' | 'wiki_comment' | 'new_build_comment'
+  title: text("title").notNull(),
+  body: text("body"),
+  entityType: text("entity_type"), // 'forum_thread' | 'wiki_article' | 'build'
+  entityId: text("entity_id"),
+  actorId: text("actor_id").references(() => user.id),
+  readAt: integer("read_at"),
+  emailSent: integer("email_sent", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at").notNull(),
+});
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(user, {
+    fields: [subscriptions.userId],
+    references: [user.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(user, {
+    fields: [notifications.userId],
+    references: [user.id],
+    relationName: "notificationRecipient",
+  }),
+  actor: one(user, {
+    fields: [notifications.actorId],
+    references: [user.id],
+    relationName: "notificationActor",
+  }),
+}));

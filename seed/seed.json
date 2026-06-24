@@ -20,6 +20,8 @@
     "pat_usage_logs": "pat-usage-logs.json",
     "reports": "reports.json",
     "user_blocks": "user-blocks.json",
-    "announcements": "announcements.json"
+    "announcements": "announcements.json",
+    "subscriptions": "subscriptions.json",
+    "notifications": "notifications.json"
   }
 }

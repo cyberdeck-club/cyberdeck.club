@@ -1,9 +1,11 @@
 import type { APIRoute } from "astro";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { recordEdit } from "../../../../lib/edit-history";
 import * as schema from "../../../../db/schema";
 import { checkPublishingGate } from "../../../../lib/publishing-gate";
 import { ROLES, requireRole, getRoleLevel } from "../../../../lib/roles";
+import { notifySubscribers, autoSubscribe } from "../../../../lib/notifications";
+import { sendNotificationEmail } from "../../../../lib/notification-emails";
 
 /**
  * GET /api/wiki/articles/[id]
@@ -131,12 +133,13 @@ export const PUT: APIRoute = async (ctx) => {
 
   const now = Math.floor(Date.now() / 1000);
 
-  // Fetch the article to check ownership
+  // Fetch the article to check ownership, including slug and category for notification URL
   const articles = await db
     .select({
       id: schema.wikiArticles.id,
       authorId: schema.wikiArticles.authorId,
       title: schema.wikiArticles.title,
+      slug: schema.wikiArticles.slug,
       categoryId: schema.wikiArticles.categoryId,
     })
     .from(schema.wikiArticles)
@@ -246,6 +249,77 @@ export const PUT: APIRoute = async (ctx) => {
       editorId: userId,
       changesSummary: "Article content updated",
     }).catch((err) => console.error("Failed to record edit history:", err));
+
+    // Background notification work
+    const actorName = ctx.locals.user.name || "Someone";
+    const siteUrl = new URL(ctx.request.url).origin;
+
+    // Look up category slug for constructing the entity URL
+    const notificationWork = (async () => {
+      try {
+        // 1. Auto-subscribe the editor to the article
+        await autoSubscribe(db, userId, "wiki_article", articleId);
+
+        // 2. Look up category slug for URL construction
+        let categorySlug = "general";
+        const categories = await db
+          .select({ slug: schema.wikiCategories.slug })
+          .from(schema.wikiCategories)
+          .where(eq(schema.wikiCategories.id, resolvedCategoryId))
+          .limit(1);
+        if (categories.length > 0) {
+          categorySlug = categories[0].slug;
+        }
+
+        // 3. Notify all article subscribers (excluding the editor)
+        const notifiedUserIds = await notifySubscribers(db, {
+          targetType: "wiki_article",
+          targetId: articleId,
+          excludeUserId: userId,
+          type: "wiki_updated",
+          title: `Wiki updated: ${article.title}`,
+          body: `${actorName} updated this article`,
+          entityType: "wiki_article",
+          entityId: articleId,
+          actorId: userId,
+        });
+
+        // 4. Send email to each notified user
+        if (notifiedUserIds.length > 0) {
+          const users = await db
+            .select({
+              id: schema.user.id,
+              email: schema.user.email,
+              name: schema.user.name,
+            })
+            .from(schema.user)
+            .where(inArray(schema.user.id, notifiedUserIds));
+
+          for (const u of users) {
+            if (u.email) {
+              await sendNotificationEmail({
+                to: u.email,
+                displayName: u.name || "there",
+                type: "wiki_updated",
+                title: `Wiki updated: ${article.title}`,
+                entityUrl: `${siteUrl}/wiki/${categorySlug}/${article.slug}`,
+                actorName,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[notifications] Failed to process wiki edit notifications:", err);
+      }
+    })();
+
+    // Use waitUntil for background work
+    const execCtx = ctx.locals.cfContext;
+    if (execCtx?.waitUntil) {
+      execCtx.waitUntil(notificationWork);
+    } else {
+      void notificationWork;
+    }
 
     // Return success with revision ID and review flag info
     return new Response(

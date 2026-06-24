@@ -36,6 +36,8 @@ interface SeedManifest {
     reports: string;
     user_blocks: string;
     announcements: string;
+    subscriptions: string;
+    notifications: string;
   };
 }
 
@@ -239,6 +241,25 @@ interface SeedAnnouncement {
   updated_at: number;
 }
 
+interface SeedSubscription {
+  userSlug: string;
+  targetType: string;
+  targetRef: string;
+  createdAt: string;
+}
+
+interface SeedNotification {
+  userSlug: string;
+  type: string;
+  title: string;
+  body: string | null;
+  entityType: string | null;
+  entityRef: string | null;
+  actorSlug: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function uid(): string {
@@ -332,6 +353,8 @@ const patUsageLogs = loadSeedFile<PatUsageLog[]>(manifest.files.pat_usage_logs);
 const reports = loadSeedFile<SeedReport[]>(manifest.files.reports);
 const announcements = loadSeedFile<SeedAnnouncement[]>(manifest.files.announcements);
 const userBlocks = loadSeedFile<SeedUserBlock[]>(manifest.files.user_blocks);
+const seedSubscriptions_data = loadSeedFile<SeedSubscription[]>(manifest.files.subscriptions);
+const seedNotifications_data = loadSeedFile<SeedNotification[]>(manifest.files.notifications);
 
 // Build user slug → userId map
 const userSlugToId = new Map<string, string>();
@@ -782,6 +805,76 @@ function seedUserBlocks(): void {
   console.log(`  Created ${userBlocks.length} user blocks`);
 }
 
+function seedSubscriptions(): void {
+  console.log("Seeding subscriptions...");
+
+  const sqls: string[] = [];
+
+  for (const sub of seedSubscriptions_data) {
+    const userId = userSlugToId.get(sub.userSlug) ?? sub.userSlug;
+    const createdAt = parseIsoToEpoch(sub.createdAt);
+
+    // Resolve target ID based on target type
+    let resolvedTargetId = sub.targetRef;
+    switch (sub.targetType) {
+      case "forum_thread":
+        resolvedTargetId = threadIds.get(sub.targetRef) ?? sub.targetRef;
+        break;
+      case "wiki_article":
+        resolvedTargetId = wikiArticleIds.get(sub.targetRef) ?? sub.targetRef;
+        break;
+      case "build":
+        resolvedTargetId = buildIds.get(sub.targetRef) ?? sub.targetRef;
+        break;
+    }
+
+    sqls.push(
+      `INSERT OR REPLACE INTO subscriptions (id, user_id, target_type, target_id, created_at) VALUES (` +
+      `${sqlStr(uid())}, ${sqlStr(userId)}, ${sqlStr(sub.targetType)}, ${sqlStr(resolvedTargetId)}, ${createdAt})`
+    );
+  }
+
+  execSqlBatch(sqls);
+  console.log(`  Created ${seedSubscriptions_data.length} subscriptions`);
+}
+
+function seedNotifications(): void {
+  console.log("Seeding notifications...");
+
+  const sqls: string[] = [];
+
+  for (const notif of seedNotifications_data) {
+    const userId = userSlugToId.get(notif.userSlug) ?? notif.userSlug;
+    const actorId = notif.actorSlug ? (userSlugToId.get(notif.actorSlug) ?? notif.actorSlug) : null;
+    const createdAt = parseIsoToEpoch(notif.createdAt);
+    const readAt = notif.readAt ? parseIsoToEpoch(notif.readAt) : null;
+
+    // Resolve entity ID based on entity type
+    let resolvedEntityId: string | null = notif.entityRef;
+    if (notif.entityRef && notif.entityType) {
+      switch (notif.entityType) {
+        case "forum_thread":
+          resolvedEntityId = threadIds.get(notif.entityRef) ?? notif.entityRef;
+          break;
+        case "wiki_article":
+          resolvedEntityId = wikiArticleIds.get(notif.entityRef) ?? notif.entityRef;
+          break;
+        case "build":
+          resolvedEntityId = buildIds.get(notif.entityRef) ?? notif.entityRef;
+          break;
+      }
+    }
+
+    sqls.push(
+      `INSERT OR REPLACE INTO notifications (id, user_id, type, title, body, entity_type, entity_id, actor_id, read_at, email_sent, created_at) VALUES (` +
+      `${sqlStr(uid())}, ${sqlStr(userId)}, ${sqlStr(notif.type)}, ${sqlStr(notif.title)}, ${sqlStr(notif.body)}, ${sqlStr(notif.entityType)}, ${sqlStr(resolvedEntityId)}, ${sqlStr(actorId)}, ${readAt ?? "NULL"}, 0, ${createdAt})`
+    );
+  }
+
+  execSqlBatch(sqls);
+  console.log(`  Created ${seedNotifications_data.length} notifications`);
+}
+
 function main() {
   console.log(`🌱 Starting seed: ${manifest.meta.name}\n`);
   console.log(`   ${manifest.meta.description}\n`);
@@ -803,6 +896,8 @@ function main() {
     seedPatUsageLogs();
     seedReports();
     seedUserBlocks();
+    seedSubscriptions();
+    seedNotifications();
 
     console.log("\n✅ Seed complete!");
   } catch (error) {
