@@ -9,6 +9,7 @@ import {
   getOrCreateDeletedUser,
   sendAccountDeletionEmails,
 } from "../../../lib/account-deletion";
+import { SOCIAL_KEYS } from "../../../lib/social-icons";
 
 /**
  * GET /api/users/me
@@ -34,6 +35,7 @@ export const GET: APIRoute = async (ctx) => {
         image: user.image,
         bio: user.bio,
         role: user.role,
+        socialLinks: user.socialLinks,
       })
       .from(user)
       .where(eq(user.id, currentUser.id))
@@ -46,7 +48,15 @@ export const GET: APIRoute = async (ctx) => {
       });
     }
 
-    return new Response(JSON.stringify(users[0]), {
+    // Parse socialLinks JSON string into object
+    const userData = {
+      ...users[0],
+      socialLinks: users[0].socialLinks
+        ? JSON.parse(users[0].socialLinks)
+        : null,
+    };
+
+    return new Response(JSON.stringify(userData), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -59,14 +69,19 @@ export const GET: APIRoute = async (ctx) => {
   }
 };
 
+const ALLOWED_SOCIAL_KEYS = SOCIAL_KEYS;
+
+type SocialKey = (typeof ALLOWED_SOCIAL_KEYS)[number];
+
 /**
  * PATCH /api/users/me
  *
  * Updates the authenticated user's own profile.
- * Accepts: { name?: string, bio?: string, image?: string }
+ * Accepts: { name?: string, bio?: string, image?: string, socialLinks?: Record<string, string> | null }
  * - name: non-empty string if provided
  * - bio: max 500 characters if provided
  * - image: valid URL if provided
+ * - socialLinks: object with platform URLs or null to clear
  */
 export const PATCH: APIRoute = async (ctx) => {
   // Require authentication
@@ -77,7 +92,12 @@ export const PATCH: APIRoute = async (ctx) => {
   const db = ctx.locals.db;
 
   // Parse request body
-  let body: { name?: string; bio?: string; image?: string };
+  let body: {
+    name?: string;
+    bio?: string;
+    image?: string;
+    socialLinks?: Record<string, string> | null;
+  };
   try {
     body = await ctx.request.json();
   } catch {
@@ -87,10 +107,15 @@ export const PATCH: APIRoute = async (ctx) => {
     });
   }
 
-  const { name, bio, image } = body;
+  const { name, bio, image, socialLinks } = body;
 
   // Build update object with validation
-  const updates: { name?: string; bio?: string | null; image?: string | null } = {};
+  const updates: {
+    name?: string;
+    bio?: string | null;
+    image?: string | null;
+    socialLinks?: string | null;
+  } = {};
 
   // Validate name if provided
   if (name !== undefined) {
@@ -168,6 +193,63 @@ export const PATCH: APIRoute = async (ctx) => {
     }
   }
 
+  // Validate socialLinks if provided
+  if (socialLinks !== undefined) {
+    if (socialLinks === null) {
+      // Clear all social links
+      updates.socialLinks = null;
+    } else if (typeof socialLinks !== "object" || Array.isArray(socialLinks)) {
+      return new Response(
+        JSON.stringify({ error: "socialLinks must be an object or null" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } else {
+      // Filter to only allowed keys, validate URLs
+      const cleaned: Partial<Record<SocialKey, string>> = {};
+
+      for (const key of ALLOWED_SOCIAL_KEYS) {
+        const value = socialLinks[key];
+        if (value === undefined || value === null) continue;
+        if (typeof value !== "string") {
+          return new Response(
+            JSON.stringify({
+              error: `socialLinks.${key} must be a string`,
+            }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        }
+        // Skip empty strings (clearing that platform)
+        if (value.trim() === "") continue;
+        // Validate URL starts with https://
+        if (!value.startsWith("https://")) {
+          return new Response(
+            JSON.stringify({
+              error: `socialLinks.${key} must start with https://`,
+            }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        }
+        cleaned[key] = value.trim();
+      }
+
+      // If resulting object is empty, store null
+      if (Object.keys(cleaned).length === 0) {
+        updates.socialLinks = null;
+      } else {
+        updates.socialLinks = JSON.stringify(cleaned);
+      }
+    }
+  }
+
   // Check if there's anything to update
   if (Object.keys(updates).length === 0) {
     return new Response(
@@ -195,6 +277,7 @@ export const PATCH: APIRoute = async (ctx) => {
         image: user.image,
         bio: user.bio,
         role: user.role,
+        socialLinks: user.socialLinks,
       })
       .from(user)
       .where(eq(user.id, currentUser.id))
@@ -210,7 +293,15 @@ export const PATCH: APIRoute = async (ctx) => {
       );
     }
 
-    return new Response(JSON.stringify(updatedUsers[0]), {
+    // Parse socialLinks JSON string into object
+    const updatedData = {
+      ...updatedUsers[0],
+      socialLinks: updatedUsers[0].socialLinks
+        ? JSON.parse(updatedUsers[0].socialLinks)
+        : null,
+    };
+
+    return new Response(JSON.stringify(updatedData), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

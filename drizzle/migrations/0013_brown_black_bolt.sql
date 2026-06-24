@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `social_links` text;

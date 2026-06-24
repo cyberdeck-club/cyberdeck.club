@@ -11,6 +11,7 @@ export const user = sqliteTable("user", {
   image: text("image"),
   role: text("role").default("member"),
   bio: text("bio"),
+  socialLinks: text("social_links"), // JSON: { website?, tiktok?, youtube?, instagram?, mastodon?, bluesky?, github?, twitch? }
   // Role progression tracking
   acceptedBuildCount: integer("accepted_build_count").notNull().default(0),
   firstBuildPublishedAt: text("first_build_published_at"), // ISO 8601

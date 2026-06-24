@@ -12,7 +12,15 @@
     "modNominatedAt": null,
     "bannedAt": null,
     "bannedBy": null,
-    "banReason": null
+    "banReason": null,
+    "socialLinks": {
+      "website": "https://divinecircuitry.dev",
+      "github": "https://github.com/divinecircuitry",
+      "codeberg": "https://codeberg.org/divinecircuitry",
+      "hackaday": "https://hackaday.io/divinecircuitry",
+      "mastodon": "https://hachyderm.io/@divinecircuitry",
+      "bluesky": "https://bsky.app/profile/divinecircuitry.dev"
+    }
   },
   {
     "id": "2",
@@ -27,7 +35,14 @@
     "modNominatedAt": null,
     "bannedAt": null,
     "bannedBy": null,
-    "banReason": null
+    "banReason": null,
+    "socialLinks": {
+      "instagram": "https://instagram.com/solderqueen",
+      "tiktok": "https://tiktok.com/@solderqueen",
+      "youtube": "https://youtube.com/@solderqueen",
+      "printables": "https://www.printables.com/@solderqueen",
+      "thingiverse": "https://www.thingiverse.com/solderqueen"
+    }
   },
   {
     "id": "3",
@@ -42,7 +57,13 @@
     "modNominatedAt": null,
     "bannedAt": null,
     "bannedBy": null,
-    "banReason": null
+    "banReason": null,
+    "socialLinks": {
+      "github": "https://github.com/bytewitch",
+      "codeberg": "https://codeberg.org/bytewitch",
+      "mastodon": "https://infosec.exchange/@bytewitch",
+      "hackaday": "https://hackaday.io/bytewitch"
+    }
   },
   {
     "id": "4",
@@ -57,7 +78,16 @@
     "modNominatedAt": null,
     "bannedAt": null,
     "bannedBy": null,
-    "banReason": null
+    "banReason": null,
+    "socialLinks": {
+      "website": "https://circuitfae.garden",
+      "instagram": "https://instagram.com/circuitfae",
+      "bluesky": "https://bsky.app/profile/circuitfae.garden",
+      "twitch": "https://twitch.tv/circuitfae",
+      "github": "https://github.com/circuitfae",
+      "onshape": "https://cad.onshape.com/documents/circuitfae",
+      "instructables": "https://www.instructables.com/member/circuitfae"
+    }
   },
   {
     "id": "5",
@@ -72,7 +102,11 @@
     "modNominatedAt": null,
     "bannedAt": null,
     "bannedBy": null,
-    "banReason": null
+    "banReason": null,
+    "socialLinks": {
+      "instagram": "https://instagram.com/glitchgrl.art",
+      "tiktok": "https://tiktok.com/@glitchgrl"
+    }
   },
   {
     "id": "6",

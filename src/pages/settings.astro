@@ -8,6 +8,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 import TokenManager from "@/components/tokens/TokenManager";
 import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
 import BlockedUsersList from "@/components/blocking/BlockedUsersList";
+import { PLATFORMS, PLATFORM_ICONS_SM, SOCIAL_KEYS } from "@/lib/social-icons";
 
 export const prerender = false;
 
@@ -101,6 +102,30 @@ const currentUser = user;
           <div id="avatar-preview" class="avatar-preview" style="display: none;">
             <img id="avatar-img" src="" alt="Avatar preview" class="avatar-img" />
             <span class="avatar-preview-label">Preview</span>
+          </div>
+        </div>
+
+        <!-- Social Links -->
+        <div class="form-group">
+          <span class="social-links-eyebrow">▸ SOCIAL LINKS</span>
+          <span class="form-hint">Add links to your profiles on other platforms</span>
+          
+          <div class="social-fields">
+            {PLATFORMS.map((platform) => (
+              <div class="social-field">
+                <label for={`social-${platform.key}`} class="social-label">
+                  <Fragment set:html={PLATFORM_ICONS_SM[platform.key]} />
+                  {platform.label}
+                </label>
+                <input
+                  type="url"
+                  id={`social-${platform.key}`}
+                  name={`social-${platform.key}`}
+                  class="form-input"
+                  placeholder={platform.placeholder}
+                />
+              </div>
+            ))}
           </div>
         </div>
 
@@ -465,6 +490,50 @@ const currentUser = user;
     line-height: 1.6;
   }
 
+  /* Social links section */
+  .social-links-eyebrow {
+    font-family: var(--font-pixel);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--color-text);
+    display: inline-block;
+    background: var(--color-secondary-200);
+    border: 2px solid var(--color-border);
+    padding: 4px 8px;
+    box-shadow: 3px 3px 0 var(--shadow-hard);
+    margin-bottom: var(--space-2);
+  }
+
+  .social-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+  }
+
+  .social-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .social-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-sans);
+    font-size: var(--fs-body);
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .social-label svg {
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+  }
+
   @media (max-width: 640px) {
     .settings-page {
       padding: var(--space-6) var(--space-3);
@@ -481,6 +550,12 @@ const currentUser = user;
 </style>
 
 <script>
+  // Social link platform keys — must match PLATFORMS order in src/lib/social-icons.ts
+  const SOCIAL_KEYS = [
+    "website", "github", "codeberg", "hackaday", "onshape", "printables", "thingiverse", "instructables",
+    "tiktok", "youtube", "instagram", "twitch", "mastodon", "bluesky",
+  ] as const;
+
   // Form elements
   const form = document.getElementById("settings-form") as HTMLFormElement;
   const nameInput = document.getElementById("name") as HTMLInputElement;
@@ -494,6 +569,36 @@ const currentUser = user;
   const btnLoading = saveBtn.querySelector(".btn-loading") as HTMLSpanElement;
   const successMsg = document.getElementById("form-success") as HTMLDivElement;
   const errorMsg = document.getElementById("form-error") as HTMLDivElement;
+
+  // Social link input references
+  const socialInputs = Object.fromEntries(
+    SOCIAL_KEYS.map((key) => [
+      key,
+      document.getElementById(`social-${key}`) as HTMLInputElement,
+    ])
+  );
+
+  // Load current social links on page load
+  async function loadSocialLinks() {
+    try {
+      const response = await fetch("/api/users/me");
+      if (response.ok) {
+        const userData = await response.json();
+        if (userData.socialLinks && typeof userData.socialLinks === "object") {
+          for (const key of SOCIAL_KEYS) {
+            const input = socialInputs[key];
+            if (input && userData.socialLinks[key]) {
+              input.value = userData.socialLinks[key];
+            }
+          }
+        }
+      }
+    } catch {
+      // Silently fail — social links will just be empty
+    }
+  }
+
+  loadSocialLinks();
 
   // Bio character counter
   bioTextarea.addEventListener("input", () => {
@@ -541,7 +646,7 @@ const currentUser = user;
     btnLoading.style.display = "inline";
 
     // Gather form data
-    const data: { name?: string; bio?: string; image?: string | null } = {};
+    const data: Record<string, unknown> = {};
 
     if (nameInput.value.trim()) {
       data.name = nameInput.value.trim();
@@ -550,14 +655,28 @@ const currentUser = user;
     if (bioTextarea.value.trim()) {
       data.bio = bioTextarea.value.trim();
     } else {
-      data.bio = null; // Allow clearing bio
+      data.bio = "";
     }
 
     if (imageInput.value.trim()) {
       data.image = imageInput.value.trim();
     } else {
-      data.image = null; // Allow clearing image
+      data.image = "";
     }
+
+    // Gather social links
+    const socialLinks: Record<string, string> = {};
+    for (const key of SOCIAL_KEYS) {
+      const input = socialInputs[key];
+      if (input) {
+        const val = input.value.trim();
+        if (val) {
+          socialLinks[key] = val;
+        }
+      }
+    }
+    // Send socialLinks (empty object means clear all)
+    data.socialLinks = Object.keys(socialLinks).length > 0 ? socialLinks : null;
 
     try {
       const response = await fetch("/api/users/me", {
@@ -580,7 +699,7 @@ const currentUser = user;
         errorMsg.textContent = result.error || "Failed to update profile";
         errorMsg.style.display = "block";
       }
-    } catch (err) {
+    } catch {
       // Network error
       errorMsg.textContent = "Network error. Please try again.";
       errorMsg.style.display = "block";

@@ -148,6 +148,7 @@ const userData = {
   bio: profileUser.bio,
   role: profileUser.role,
   createdAt: profileUser.createdAt,
+  socialLinks: profileUser.socialLinks ? JSON.parse(profileUser.socialLinks) : null,
 };
 ---
 

@@ -1,0 +1,104 @@
+---
+/**
+ * SocialLinks Component
+ * Renders a horizontal row of social link icons for user profiles.
+ * Only displays platforms that have a non-empty URL.
+ * If no social links exist, renders nothing.
+ *
+ * Icons sourced from react-icons (rendered to static SVG server-side).
+ */
+
+import { PLATFORMS } from "@/lib/social-icons";
+
+interface Props {
+  socialLinks: Record<string, string> | null | undefined;
+  class?: string;
+}
+
+const { socialLinks, class: className } = Astro.props;
+
+// Filter to only platforms with a non-empty URL
+const activeLinks = socialLinks
+  ? PLATFORMS.filter((p) => {
+      const url = socialLinks[p.key];
+      return typeof url === "string" && url.trim().length > 0;
+    })
+  : [];
+
+// If no active links, render nothing
+if (activeLinks.length === 0) return;
+---
+
+<div class={`social-links-container${className ? ` ${className}` : ""}`}>
+  <span class="social-links-eyebrow">▸ LINKS</span>
+  <div class="social-links-row">
+    {activeLinks.map((platform) => (
+      <a
+        href={socialLinks![platform.key]}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="social-link"
+        aria-label={`${platform.label} profile`}
+      >
+        <Fragment set:html={platform.icon} />
+        <span class="sr-only">{platform.label}</span>
+      </a>
+    ))}
+  </div>
+</div>
+
+<style>
+  .social-links-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .social-links-eyebrow {
+    font-family: var(--font-pixel);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .social-links-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: var(--text-muted);
+    border-radius: 4px;
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .social-link:hover {
+    color: var(--color-primary-700);
+    background: var(--color-primary-100);
+  }
+
+  .social-link:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focus);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+</style>

@@ -6,6 +6,7 @@
  */
 
 import RoleBadge from "./RoleBadge.astro";
+import SocialLinks from "./SocialLinks.astro";
 
 interface Props {
   user: {
@@ -15,6 +16,7 @@ interface Props {
     bio: string | null | undefined;
     role: string | null | undefined;
     createdAt: Date | string | number;
+    socialLinks?: Record<string, string> | null;
   };
   isOwnProfile?: boolean;
   isAdmin?: boolean;
@@ -78,6 +80,9 @@ const hasImage = !!user.image;
       <p>{user.bio}</p>
     </div>
   )}
+
+  <!-- Social Links -->
+  <SocialLinks socialLinks={user.socialLinks} class="profile-social-links" />
 
   <!-- Actions -->
   {(isOwnProfile || isAdmin) && (
@@ -185,6 +190,12 @@ const hasImage = !!user.image;
     line-height: 1.6;
     color: var(--text);
     margin: 0;
+  }
+
+  .profile-social-links {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--border);
   }
 
   .profile-actions {

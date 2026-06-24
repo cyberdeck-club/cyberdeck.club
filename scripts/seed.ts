@@ -45,6 +45,7 @@ interface SeedUser {
   displayName: string;
   role: string;
   bio?: string;
+  socialLinks?: Record<string, string> | null;
   acceptedBuildCount?: number;
   firstBuildPublishedAt?: string | null;
   isModNominated?: boolean;
@@ -362,9 +363,10 @@ function seedAuth(): void {
   // Pass 1: Insert all users with FK fields set to NULL initially
   for (const u of users) {
     const userId = userSlugToId.get(u.slug)!;
+    const socialLinksJson = u.socialLinks ? JSON.stringify(u.socialLinks) : null;
     sqls.push(
-      `INSERT OR REPLACE INTO "user" (id, name, email, email_verified, role, bio, accepted_build_count, first_build_published_at, is_mod_nominated, mod_nominated_by, mod_nominated_at, banned_at, banned_by, ban_reason, created_at, updated_at) VALUES (` +
-      `${sqlStr(userId)}, ${sqlStr(u.displayName)}, ${sqlStr(`${u.slug}@aster.hn`)}, 1, ${sqlStr(u.role)}, ${sqlStr(u.bio ?? null)}, ${sqlStr(u.acceptedBuildCount ?? 0)}, ${sqlStr(u.firstBuildPublishedAt ?? null)}, ${u.isModNominated ? 1 : 0}, NULL, ${sqlStr(u.modNominatedAt ?? null)}, ${sqlStr(u.bannedAt ?? null)}, NULL, ${sqlStr(u.banReason ?? null)}, ${nowEpoch}, ${nowEpoch})`
+      `INSERT OR REPLACE INTO "user" (id, name, email, email_verified, role, bio, social_links, accepted_build_count, first_build_published_at, is_mod_nominated, mod_nominated_by, mod_nominated_at, banned_at, banned_by, ban_reason, created_at, updated_at) VALUES (` +
+      `${sqlStr(userId)}, ${sqlStr(u.displayName)}, ${sqlStr(`${u.slug}@aster.hn`)}, 1, ${sqlStr(u.role)}, ${sqlStr(u.bio ?? null)}, ${sqlStr(socialLinksJson)}, ${sqlStr(u.acceptedBuildCount ?? 0)}, ${sqlStr(u.firstBuildPublishedAt ?? null)}, ${u.isModNominated ? 1 : 0}, NULL, ${sqlStr(u.modNominatedAt ?? null)}, ${sqlStr(u.bannedAt ?? null)}, NULL, ${sqlStr(u.banReason ?? null)}, ${nowEpoch}, ${nowEpoch})`
     );
 
     // Create session for admin user (test user)
