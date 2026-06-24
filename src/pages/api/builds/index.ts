@@ -4,6 +4,7 @@ import { eq, and, sql, count, isNull } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
 import { autoReviewBuild } from "../../../lib/moderation";
+import { autoSubscribe } from "../../../lib/notifications";
 import { requireAuth } from "../../../lib/require-auth";
 import { ROLES, requireRole } from "../../../lib/roles";
 import { serializeBuildJsonFields, validateBuildField } from "../../../lib/builds";
@@ -307,6 +308,22 @@ export const POST: APIRoute = async (ctx) => {
         ...serializedFields,
       });
 
+      // Background: auto-subscribe the build author to their own build
+      const subscriptionWork = (async () => {
+        try {
+          await autoSubscribe(db, userId, "build", id);
+        } catch (err) {
+          console.error("[notifications] Failed to auto-subscribe build author:", err);
+        }
+      })();
+
+      const execCtx = ctx.locals.cfContext;
+      if (execCtx?.waitUntil) {
+        execCtx.waitUntil(subscriptionWork);
+      } else {
+        void subscriptionWork;
+      }
+
       return new Response(JSON.stringify({ id, slug, status: "published" }), {
         status: 201,
         headers: { "Content-Type": "application/json" },
@@ -342,6 +359,22 @@ export const POST: APIRoute = async (ctx) => {
         buildTime: buildTime ?? null,
         ...serializedFields,
       });
+
+      // Background: auto-subscribe the build author to their own build
+      const subscriptionWork = (async () => {
+        try {
+          await autoSubscribe(db, userId, "build", id);
+        } catch (err) {
+          console.error("[notifications] Failed to auto-subscribe build author:", err);
+        }
+      })();
+
+      const execCtx = ctx.locals.cfContext;
+      if (execCtx?.waitUntil) {
+        execCtx.waitUntil(subscriptionWork);
+      } else {
+        void subscriptionWork;
+      }
 
       // Run auto-review
       const reviewResult = await autoReviewBuild({

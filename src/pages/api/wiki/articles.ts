@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { eq, and, count } from "drizzle-orm";
 import * as schema from "../../../db/schema";
 import { checkPublishingGate } from "../../../lib/publishing-gate";
+import { autoSubscribe } from "../../../lib/notifications";
 
 /**
  * GET /api/wiki/articles
@@ -226,6 +227,22 @@ export const POST: APIRoute = async (ctx) => {
         createdAt: now,
       }),
     ]);
+
+    // Background: auto-subscribe the article creator to their own article
+    const subscriptionWork = (async () => {
+      try {
+        await autoSubscribe(db, userId, "wiki_article", articleId);
+      } catch (err) {
+        console.error("[notifications] Failed to auto-subscribe article creator:", err);
+      }
+    })();
+
+    const execCtx = ctx.locals.cfContext;
+    if (execCtx?.waitUntil) {
+      execCtx.waitUntil(subscriptionWork);
+    } else {
+      void subscriptionWork;
+    }
 
     // Return success with article ID
     return new Response(
