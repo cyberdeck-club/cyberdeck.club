@@ -47,7 +47,8 @@
 				"list_users",
 				"list_all_tokens",
 				"list_token_logs",
-				"get_forum_thread"
+				"get_forum_thread",
+				"get_build"
 			]
 		},
 		"cyberdeck-prod": {

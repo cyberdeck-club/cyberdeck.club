@@ -49,6 +49,14 @@ function getStatusDisplay(status: string): { label: string; styleClass: string }
       return { label: "Needs Revision", styleClass: "status-revision" };
     case "draft":
       return { label: "Draft", styleClass: "status-draft" };
+    default:
+      return { label: status, styleClass: "status-draft" };
+  }
+}
+
+function getBuildStageDisplay(stage: string | null): { label: string; styleClass: string } | null {
+  if (!stage) return null;
+  switch (stage) {
     case "planning":
       return { label: "Planning", styleClass: "status-draft" };
     case "in-progress":
@@ -56,7 +64,7 @@ function getStatusDisplay(status: string): { label: string; styleClass: string }
     case "complete":
       return { label: "Complete", styleClass: "status-published" };
     default:
-      return { label: status, styleClass: "status-draft" };
+      return null;
   }
 }
 
@@ -120,6 +128,7 @@ function formatDate(val: number | string | null | undefined): string {
 
         {builds.map(({ build }) => {
           const statusDisplay = getStatusDisplay(build.status);
+          const stageDisplay = getBuildStageDisplay(build.buildStage);
           const link = getBuildLink(build.slug, build.status);
           const isRevision = build.status === "rejected" || build.status === "rejected_auto";
 
@@ -141,6 +150,11 @@ function formatDate(val: number | string | null | undefined): string {
                     <span class={`status-badge ${statusDisplay.styleClass}`}>
                       {statusDisplay.label}
                     </span>
+                    {stageDisplay && (
+                      <span class={`status-badge ${stageDisplay.styleClass}`}>
+                        {stageDisplay.label}
+                      </span>
+                    )}
                     <span class="build-date">
                       {formatDate(build.createdAt)}
                     </span>

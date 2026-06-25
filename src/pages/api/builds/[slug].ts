@@ -116,6 +116,7 @@ export const PUT: APIRoute = async (ctx) => {
     content?: string;
     imageUrl?: string;
     status?: string;
+    buildStage?: string;
     // New fields
     difficulty?: string | null;
     computePlatform?: string | null;
@@ -152,6 +153,7 @@ export const PUT: APIRoute = async (ctx) => {
     content,
     imageUrl,
     status,
+    buildStage,
     // New fields
     difficulty,
     computePlatform,
@@ -229,6 +231,7 @@ export const PUT: APIRoute = async (ctx) => {
     content: string | null;
     heroImageUrl: string | null;
     status: string;
+    buildStage: string | null;
     updatedAt: number;
     // New fields
     difficulty: string | null;
@@ -280,8 +283,9 @@ export const PUT: APIRoute = async (ctx) => {
   }
 
   if (status !== undefined) {
-    // Validate status value — includes pending_human for resubmission after revision
-    const validStatuses = ["planning", "in-progress", "complete", "draft", "published", "pending_human"];
+    // Validate status value — moderation pipeline statuses only.
+    // Build-stage values ("planning", "in-progress", "complete") go in buildStage.
+    const validStatuses = ["draft", "published", "pending_human"];
     if (!validStatuses.includes(status)) {
       return new Response(
         JSON.stringify({ error: `status must be one of: ${validStatuses.join(", ")}` }),
@@ -291,7 +295,33 @@ export const PUT: APIRoute = async (ctx) => {
         }
       );
     }
+    // Members cannot change status away from moderation pipeline states
+    // (only mods/admins can publish directly; resubmission sets pending_human)
+    const protectedStatuses = ["pending_human", "pending_auto"];
+    if (protectedStatuses.includes(build.status) && status !== "pending_human" && !isModeratorOrAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Your build is in the review queue. You cannot change its review status." }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
     updates.status = status;
+  }
+
+  if (buildStage !== undefined) {
+    const validBuildStages = ["planning", "in-progress", "complete"];
+    if (buildStage !== null && !validBuildStages.includes(buildStage)) {
+      return new Response(
+        JSON.stringify({ error: `buildStage must be one of: ${validBuildStages.join(", ")}` }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+    updates.buildStage = buildStage;
   }
 
   // Handle new fields - only include in update if explicitly provided
@@ -630,6 +660,7 @@ export const PATCH: APIRoute = async (ctx) => {
     content?: string;
     imageUrl?: string;
     status?: string;
+    buildStage?: string;
     // New fields
     difficulty?: string | null;
     computePlatform?: string | null;
@@ -666,6 +697,7 @@ export const PATCH: APIRoute = async (ctx) => {
     content,
     imageUrl,
     status,
+    buildStage,
     // New fields
     difficulty,
     computePlatform,
@@ -743,6 +775,7 @@ export const PATCH: APIRoute = async (ctx) => {
     content: string | null;
     heroImageUrl: string | null;
     status: string;
+    buildStage: string | null;
     updatedAt: number;
     // New fields
     difficulty: string | null;
@@ -794,8 +827,9 @@ export const PATCH: APIRoute = async (ctx) => {
   }
 
   if (status !== undefined) {
-    // Validate status value — includes pending_human for resubmission after revision
-    const validStatuses = ["planning", "in-progress", "complete", "draft", "published", "pending_human"];
+    // Validate status value — moderation pipeline statuses only.
+    // Build-stage values ("planning", "in-progress", "complete") go in buildStage.
+    const validStatuses = ["draft", "published", "pending_human"];
     if (!validStatuses.includes(status)) {
       return new Response(
         JSON.stringify({ error: `status must be one of: ${validStatuses.join(", ")}` }),
@@ -805,7 +839,32 @@ export const PATCH: APIRoute = async (ctx) => {
         }
       );
     }
+    // Members cannot change status away from moderation pipeline states
+    const protectedStatuses = ["pending_human", "pending_auto"];
+    if (protectedStatuses.includes(build.status) && status !== "pending_human" && !isModeratorOrAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Your build is in the review queue. You cannot change its review status." }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
     updates.status = status;
+  }
+
+  if (buildStage !== undefined) {
+    const validBuildStages = ["planning", "in-progress", "complete"];
+    if (buildStage !== null && !validBuildStages.includes(buildStage)) {
+      return new Response(
+        JSON.stringify({ error: `buildStage must be one of: ${validBuildStages.join(", ")}` }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+    updates.buildStage = buildStage;
   }
 
   // Handle new fields - only include in update if explicitly provided

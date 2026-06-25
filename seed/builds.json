@@ -4,6 +4,7 @@
     "slug": "the-recovery-kit-remix",
     "status": "published",
     "data": {
+      "build_stage": "complete",
       "title": "The Recovery Kit Remix",
       "description": "A Pelican 1300 cyberdeck inspired by Jay Doscher's iconic Recovery Kit, rebuilt with a Pi 5, a thrifted mechanical keyboard, and a focus on accessibility. Features tool-free component swapping and a modular internal layout.",
       "featured_image": null,
@@ -38,6 +39,7 @@
     "slug": "fernweh-solarpunk-bamboo-deck",
     "status": "published",
     "data": {
+      "build_stage": "complete",
       "title": "Fernweh — Solarpunk Bamboo Writing Deck",
       "description": "An ultra-low-power cyberdeck built into a thrifted bamboo tea box, featuring an e-ink display, BlackBerry keyboard, and solar charging capability. Designed as a distraction-free writing machine for off-grid field work.",
       "featured_image": null,
@@ -72,6 +74,7 @@
     "slug": "hex-witch-pentesting-rig",
     "status": "published",
     "data": {
+      "build_stage": "complete",
       "title": "Hex Witch — Dual-Screen Security Research Rig",
       "description": "A security-focused cyberdeck built into a thrifted aluminum camera case. Features dual displays, a full mechanical keyboard, and a suite of wireless security testing tools. Kali Linux on a Pi 5 with external WiFi adapters and a HackRF SDR.",
       "featured_image": null,
@@ -106,6 +109,7 @@
     "slug": "stardust-lunchbox-deck",
     "status": "pending_human",
     "data": {
+      "build_stage": "in-progress",
       "title": "Stardust — Holographic Lunchbox Deck",
       "description": "A colorful, maximalist cyberdeck built into a thrifted metal lunchbox. Features holographic vinyl wrapping, RGB LED strips, a 7-inch touchscreen, and a custom-painted ortholinear keyboard. Pure queer joy in a portable package.",
       "featured_image": null,
@@ -137,6 +141,7 @@
     "slug": "aurora-glytch-v2",
     "status": "pending_human",
     "data": {
+      "build_stage": "in-progress",
       "title": "Aurora Glytch v2 — Acrylic Edge-Lit Cyberdeck",
       "description": "An upgraded version of the original Aurora Glytch, featuring a fully transparent acrylic case with edge-lit RGB diffusion, built-in audio system with speakers, and a 10-inch capacitive touchscreen. Designed for maximum visual impact.",
       "featured_image": null,
@@ -168,6 +173,7 @@
     "slug": "coral-reef-biodeck",
     "status": "rejected_auto",
     "data": {
+      "build_stage": "planning",
       "title": "Coral Reef — Bioluminescent Biocompute Deck",
       "description": "A conceptual deck design featuring bioluminescent materials and living coral-based components. Includes plans for integration with marine biological monitoring equipment and underwater data collection.",
       "featured_image": null,
@@ -201,6 +207,7 @@
     "slug": "micro-palm-top-pi6000",
     "status": "rejected",
     "data": {
+      "build_stage": "in-progress",
       "title": "Micro Palm-Top Pi6000",
       "description": "An extremely compact palm-sized cyberdeck built into a vintage calculator case. Features a custom-designed PCB, 3-inch touchscreen, and Choc switches in a 40% layout.",
       "featured_image": null,
@@ -235,6 +242,7 @@
     "slug": "neon-sign-budget-build",
     "status": "pending_human",
     "data": {
+      "build_stage": "in-progress",
       "title": "Neon Sign — Budget Cyberdeck From Trash",
       "description": "A nearly-free cyberdeck built entirely from discarded electronics. Features a broken neon sign transformed into a glowing case, salvaged laptop screen, and a Raspberry Pi Zero 2 W running headless.",
       "featured_image": null,
@@ -266,6 +274,7 @@
     "slug": "cipher-deck-encrypted-communication-rig",
     "status": "published",
     "data": {
+      "build_stage": "complete",
       "title": "Cipher Deck — Encrypted Communication Rig",
       "description": "A purpose-built encrypted communication system in a cyberdeck form factor. Features two-factor authentication via secure enclave, full-disk encryption, and a custom encrypted mesh networking protocol for off-grid communication.",
       "featured_image": null,
@@ -300,6 +309,7 @@
     "slug": "prism-prototype-v1",
     "status": "published",
     "data": {
+      "build_stage": "complete",
       "title": "Prism Prototype v1 — Laser-Cut Acrylic Cyberdeck",
       "description": "A beginner-friendly cyberdeck design using laser-cut acrylic panels. Designed as a learning project with detailed documentation for others to replicate. Features RGB underglow and a compact layout.",
       "featured_image": null,
@@ -334,6 +344,7 @@
     "slug": "biocode-biofeedback-monitor",
     "status": "published",
     "data": {
+      "build_stage": "complete",
       "title": "BioCode — Biofeedback Monitor Cyberdeck",
       "description": "A cyberdeck designed for biofeedback monitoring and wellness tracking. Features sensors for heart rate variability, skin conductance, and temperature. Data is displayed on an e-ink dashboard and stored locally in encrypted format.",
       "featured_image": null,

@@ -142,6 +142,7 @@ export class CyberdeckClient {
     description?: string;
     content?: string;
     imageUrl?: string;
+    buildStage?: string;
   }): Promise<{ id: string; slug: string; status: string }> {
     return this.post<{ id: string; slug: string; status: string }>("/api/builds", body);
   }
@@ -153,6 +154,7 @@ export class CyberdeckClient {
       description?: string;
       content?: string;
       imageUrl?: string;
+      buildStage?: string;
     }
   ): Promise<{ build: Build }> {
     return this.patch<{ build: Build }>(`/api/builds/${slug}`, body);

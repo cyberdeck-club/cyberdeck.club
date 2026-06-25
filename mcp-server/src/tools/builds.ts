@@ -29,6 +29,7 @@ const CreateBuildSchema = z.object({
   description: z.string().optional().describe("Short description of the build"),
   content: z.string().optional().describe("Full build content in Markdown format"),
   imageUrl: z.string().url().optional().describe("Hero image URL"),
+  buildStage: z.enum(["planning", "in-progress", "complete"]).optional().describe("Where the builder is in their physical build journey: planning, in-progress, or complete"),
 });
 
 const UpdateBuildSchema = z.object({
@@ -37,6 +38,7 @@ const UpdateBuildSchema = z.object({
   description: z.string().optional().describe("New description"),
   content: z.string().optional().describe("New content in Markdown format"),
   imageUrl: z.string().url().optional().describe("New hero image URL"),
+  buildStage: z.enum(["planning", "in-progress", "complete"]).optional().describe("Where the builder is in their physical build journey: planning, in-progress, or complete"),
 });
 
 const ListBuildCommentsSchema = z.object({
@@ -163,6 +165,7 @@ export function registerBuildTools(server: McpServer, client: CyberdeckClient): 
           description: args.description,
           content: args.content,
           imageUrl: args.imageUrl,
+          buildStage: args.buildStage,
         });
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
@@ -185,6 +188,7 @@ export function registerBuildTools(server: McpServer, client: CyberdeckClient): 
           description: args.description,
           content: args.content,
           imageUrl: args.imageUrl,
+          buildStage: args.buildStage,
         });
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],

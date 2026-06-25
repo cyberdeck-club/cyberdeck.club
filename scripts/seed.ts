@@ -149,6 +149,7 @@ interface Build {
     estimated_cost?: number;
     difficulty?: string;
     build_time?: string;
+    build_stage?: string;
     builder: string;
     tags?: string;
     reviewedBy?: string | null;
@@ -594,8 +595,8 @@ function seedBuilds(): void {
     const reviewedById = build.data.reviewedBy ? resolveBylineRef(build.data.reviewedBy) : null;
 
     sqls.push(
-      `INSERT OR REPLACE INTO builds (id, slug, title, description, content, hero_image_url, status, author_id, rejection_reason, auto_review_result, reviewed_by, reviewed_at, published_at, created_at, updated_at) VALUES (` +
-      `${sqlStr(buildId)}, ${sqlStr(build.slug)}, ${sqlStr(build.data.title)}, ${sqlStr(build.data.description)}, ${sqlStr(build.data.parts_list ?? null)}, ${sqlStr(build.data.featured_image ?? null)}, ${sqlStr(build.status)}, ${sqlStr(builderId)}, ${sqlStr(build.rejectionReason ?? null)}, ${sqlStr(build.autoReviewResult ?? null)}, ${sqlStr(reviewedById)}, ${sqlStr(build.data.reviewedAt ?? null)}, ${sqlStr(build.data.publishedAt ?? null)}, ${now}, ${now})`
+      `INSERT OR REPLACE INTO builds (id, slug, title, description, content, hero_image_url, status, build_stage, author_id, rejection_reason, auto_review_result, reviewed_by, reviewed_at, published_at, created_at, updated_at) VALUES (` +
+      `${sqlStr(buildId)}, ${sqlStr(build.slug)}, ${sqlStr(build.data.title)}, ${sqlStr(build.data.description)}, ${sqlStr(build.data.parts_list ?? null)}, ${sqlStr(build.data.featured_image ?? null)}, ${sqlStr(build.status)}, ${sqlStr(build.data.build_stage ?? null)}, ${sqlStr(builderId)}, ${sqlStr(build.rejectionReason ?? null)}, ${sqlStr(build.autoReviewResult ?? null)}, ${sqlStr(reviewedById)}, ${sqlStr(build.data.reviewedAt ?? null)}, ${sqlStr(build.data.publishedAt ?? null)}, ${now}, ${now})`
     );
   }
 

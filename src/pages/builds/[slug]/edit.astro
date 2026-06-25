@@ -132,7 +132,7 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
       </div>
     )}
 
-    <form id="edit-build-form" class="build-form" data-build-slug={existingBuild.slug} data-build-needs-revision={needsRevision ? "true" : "false"}>
+    <form id="edit-build-form" class="build-form" data-build-slug={existingBuild.slug} data-build-needs-revision={needsRevision ? "true" : "false"} data-build-status={existingBuild.status}>
       <div class="form-group">
         <label for="title" class="form-label">Title <span class="required">*</span></label>
         <input 
@@ -164,13 +164,12 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
       </div>
 
       <div class="form-group">
-        <label for="status" class="form-label">Status <span class="required">*</span></label>
-        <select id="status" name="status" class="form-select" required>
-          <option value="planning" selected={existingBuild.status === "planning"}>Planning</option>
-          <option value="in-progress" selected={existingBuild.status === "in-progress"}>In Progress</option>
-          <option value="complete" selected={existingBuild.status === "complete"}>Complete</option>
-          <option value="draft" selected={existingBuild.status === "draft"}>Draft</option>
-          <option value="published" selected={existingBuild.status === "published"}>Published</option>
+        <label for="buildStage" class="form-label">Build Stage</label>
+        <select id="buildStage" name="buildStage" class="form-select">
+          <option value="" selected={!existingBuild.buildStage}>Not set</option>
+          <option value="planning" selected={existingBuild.buildStage === "planning"}>Planning</option>
+          <option value="in-progress" selected={existingBuild.buildStage === "in-progress"}>In Progress</option>
+          <option value="complete" selected={existingBuild.buildStage === "complete"}>Complete</option>
         </select>
         <span class="form-hint">Let the community know where you are in your build journey</span>
       </div>
@@ -225,7 +224,7 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
   const form = document.getElementById("edit-build-form") as HTMLFormElement;
   const titleInput = document.getElementById("title") as HTMLInputElement;
   const slugInput = document.getElementById("slug") as HTMLInputElement;
-  const statusSelect = document.getElementById("status") as HTMLSelectElement;
+  const buildStageSelect = document.getElementById("buildStage") as HTMLSelectElement;
   const descriptionInput = document.getElementById("description-input") as HTMLInputElement;
   const imageUrlInput = document.getElementById("imageUrl") as HTMLInputElement;
   const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
@@ -234,6 +233,7 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
   const formError = document.getElementById("form-error") as HTMLDivElement;
 
   const buildSlug = form.dataset.buildSlug ?? "";
+  const currentStatus = form.dataset.buildStatus ?? "";
 
   // Track if slug was manually edited
   let slugManuallyEdited = true; // Start as true since we're editing existing build
@@ -265,9 +265,25 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
     btnLoading.style.display = "inline";
     formError.style.display = "none";
 
-    // If this build needs revision, resubmit to pending_human on save
+    // If this build needs revision, resubmit to pending_human on save.
+    // Otherwise, only send buildStage (not status) — status is for the
+    // moderation pipeline and must not be overwritten by build progress.
     const needsRevision = form.dataset.buildNeedsRevision === "true";
-    const submitStatus = needsRevision ? "pending_human" : statusSelect.value;
+
+    const payload: Record<string, unknown> = {
+      title: titleInput.value.trim(),
+      slug: slugManuallyEdited ? slugInput.value.trim() : undefined,
+      buildStage: buildStageSelect.value || null,
+      description: descriptionInput.value,
+      imageUrl: imageUrlInput.value.trim() || undefined,
+      // Include structured fields from BuildFormFields component
+      ...(window as any).__buildStructuredFields,
+    };
+
+    // Only set status when resubmitting after revision
+    if (needsRevision) {
+      payload.status = "pending_human";
+    }
 
     try {
       const response = await fetch(`/api/builds/${buildSlug}`, {
@@ -275,15 +291,7 @@ const initialStructuredDataJson = JSON.stringify(initialStructuredData);
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title: titleInput.value.trim(),
-          slug: slugManuallyEdited ? slugInput.value.trim() : undefined,
-          status: submitStatus,
-          description: descriptionInput.value,
-          imageUrl: imageUrlInput.value.trim() || undefined,
-          // Include structured fields from BuildFormFields component
-          ...(window as any).__buildStructuredFields,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (response.status === 403) {

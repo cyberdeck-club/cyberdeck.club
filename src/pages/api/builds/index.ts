@@ -117,6 +117,7 @@ export const POST: APIRoute = async (ctx) => {
     description?: string;
     content?: string;
     imageUrl?: string;
+    buildStage?: string;
     // New fields
     difficulty?: string;
     computePlatform?: string;
@@ -152,6 +153,7 @@ export const POST: APIRoute = async (ctx) => {
     description,
     content,
     imageUrl,
+    buildStage,
     // New fields
     difficulty,
     computePlatform,
@@ -301,6 +303,7 @@ export const POST: APIRoute = async (ctx) => {
         updatedAt: now,
         publishedAt,
         // New fields
+        buildStage: buildStage ?? null,
         difficulty: difficulty ?? null,
         computePlatform: computePlatform ?? null,
         estimatedCost: estimatedCost ?? null,
@@ -353,6 +356,7 @@ export const POST: APIRoute = async (ctx) => {
         createdAt: now,
         updatedAt: now,
         // New fields
+        buildStage: buildStage ?? null,
         difficulty: difficulty ?? null,
         computePlatform: computePlatform ?? null,
         estimatedCost: estimatedCost ?? null,

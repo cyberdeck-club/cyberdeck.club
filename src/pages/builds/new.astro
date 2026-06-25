@@ -80,8 +80,9 @@ const redirectParam = Astro.url.searchParams.get("redirect");
       </div>
 
       <div class="form-group">
-        <label for="status" class="form-label">Status <span class="required">*</span></label>
-        <select id="status" name="status" class="form-select" required>
+        <label for="buildStage" class="form-label">Build Stage</label>
+        <select id="buildStage" name="buildStage" class="form-select">
+          <option value="">Not set</option>
           <option value="planning">Planning</option>
           <option value="in-progress" selected>In Progress</option>
           <option value="complete">Complete</option>
@@ -133,7 +134,7 @@ const redirectParam = Astro.url.searchParams.get("redirect");
   const form = document.getElementById("new-build-form") as HTMLFormElement;
   const titleInput = document.getElementById("title") as HTMLInputElement;
   const slugInput = document.getElementById("slug") as HTMLInputElement;
-  const statusSelect = document.getElementById("status") as HTMLSelectElement;
+  const buildStageSelect = document.getElementById("buildStage") as HTMLSelectElement;
   const descriptionInput = document.getElementById("description-input") as HTMLInputElement;
   const imageUrlInput = document.getElementById("imageUrl") as HTMLInputElement;
   const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
@@ -193,7 +194,7 @@ const redirectParam = Astro.url.searchParams.get("redirect");
         body: JSON.stringify({
           title: titleInput.value.trim(),
           slug: slugInput.value.trim() || undefined,
-          status: statusSelect.value,
+          buildStage: buildStageSelect.value || undefined,
           description: descriptionInput.value,
           imageUrl: imageUrlInput.value.trim() || undefined,
           // Include structured fields from BuildFormFields component

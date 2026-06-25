@@ -1,0 +1,1 @@
+ALTER TABLE `builds` ADD `build_stage` text;

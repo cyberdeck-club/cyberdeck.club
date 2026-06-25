@@ -30,22 +30,31 @@ export interface Build {
   content: string | null;
   heroImageUrl: string | null;
   status: BuildStatus;
+  buildStage: BuildStage | null;
   authorId: string;
   createdAt: number;
   updatedAt: number;
   publishedAt: string | null;
 }
 
+/**
+ * Moderation pipeline statuses — controls visibility and review state.
+ */
 export type BuildStatus =
-  | "planning"
-  | "in-progress"
-  | "complete"
   | "draft"
   | "published"
   | "pending_auto"
   | "pending_human"
   | "rejected_auto"
   | "rejected";
+
+/**
+ * Builder's physical build progress — orthogonal to moderation status.
+ */
+export type BuildStage =
+  | "planning"
+  | "in-progress"
+  | "complete";
 
 export interface BuildListResponse {
   builds: Build[];

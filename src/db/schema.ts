@@ -243,6 +243,10 @@ export const builds = sqliteTable("builds", {
   reviewedAt: text("reviewed_at"), // ISO 8601
   publishedAt: text("published_at"), // ISO 8601
   deletedAt: integer("deleted_at"),
+  // Build stage — where the builder is in their physical build journey
+  // Separate from `status` which tracks the moderation pipeline.
+  // Values: "planning" | "in-progress" | "complete"
+  buildStage: text("build_stage"),
   // Specialized build fields
   difficulty: text("difficulty"), // "beginner" | "intermediate" | "advanced"
   computePlatform: text("compute_platform"), // e.g., "Raspberry Pi 5"
